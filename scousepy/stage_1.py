@@ -5,6 +5,7 @@ from astropy import units as u
 import sys
 from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
+from io import *
 
 def get_moments(cube, ppv_vol, rms_approx, sigma_cut, write_moments, dir, filename, verbose):
     """
@@ -147,37 +148,6 @@ def get_random_saa(cc, ss, samplesize, rsaa, verbose=False):
     sample_ss = [sample_ss]
 
     return sample_cc, sample_ss
-
-def write_averaged_spectra(cube_header, saa_spectra, r, dir,
-                           fits_fmatter='saa_cube_r{}.fits'):
-    """
-    Writes spectra averaged on multiple scales into fits files.
-
-    Parameters
-    ----------
-    cube_header : FITS header of the original spectral cube
-
-    saa_spectra : len(N) list
-                  Contains spectra averaged over N scales
-
-    rsaa : len(N) list
-           List of averaging radii
-
-    fits_fmatter : a string formatter for output files to be written to
-    """
-
-    #for aver_cube in :
-    hdu = fits.PrimaryHDU(data=saa_spectra, header=cube_header)
-    hdu.header['RSAA'] = r
-    hdu.writeto(dir+'/saa_cube_r_{}.fits'.format(r), overwrite=True)
-
-def output_moments(momzero, momone, momtwo, dir, filename):
-    """
-    Write the moment maps to file
-    """
-    momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
-    momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
-    momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
 
 def plot_rsaa(coverage_coordinates, momzero, rsaa, dir, filename):
     """

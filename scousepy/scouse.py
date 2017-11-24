@@ -22,6 +22,7 @@ import time
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_1 import *
+from .io import *
 from .progressbar import AnimatedProgressBar
 
 # add Python 2 xrange compatibility, to be removed
@@ -50,17 +51,13 @@ class scouse(object):
         if outputdir==None:
             outputdir=datadirectory
 
+        # directory structure
         fitsfile = os.path.join(datadirectory, filename+'.fits')
         outputdirectory = os.path.join(outputdir, filename)
         s1dir = os.path.join(outputdir, filename, 'stage_1')
 
-        if not os.path.exists(outputdirectory):
-            os.makedirs(outputdirectory)
-            os.mkdir(s1dir)
-        else:
-            shutil.rmtree(outputdirectory) #removes all the subdirectories!
-            os.mkdir(outputdirectory)
-            os.mkdir(s1dir)
+        # create new directory
+        mkdir_s1(outputdirectory, s1dir)
 
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='start')
@@ -96,3 +93,7 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='end', length=np.size(momzero), var=cc, t1=starttime, t2=endtime)
+
+    @staticmethod
+    def stage_2():
+        return
