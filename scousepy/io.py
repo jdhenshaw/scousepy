@@ -15,6 +15,7 @@ def mkdir_s1(outputdir, s1dir):
     """
     Make the output directory for stage 1
     """
+    # TODO: error handling
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
         os.mkdir(s1dir)
@@ -22,6 +23,16 @@ def mkdir_s1(outputdir, s1dir):
         shutil.rmtree(outputdir) #removes all the subdirectories!
         os.mkdir(outputdir)
         os.mkdir(s1dir)
+
+def mkdir_s2(outputdir, s2dir):
+    """
+    Make the output directory for stage 2
+    """
+    if not os.path.exists(s2dir):
+        os.mkdir(s2dir)
+    else:
+        # TODO: error handling
+        pass
 
 def write_averaged_spectra(cube_header, saa_spectra, r, dir,
                            fits_fmatter='saa_cube_r{}.fits'):

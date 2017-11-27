@@ -7,7 +7,7 @@ from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from io import *
 
-def get_moments(cube, ppv_vol, rms_approx, sigma_cut, write_moments, dir, filename, verbose):
+def get_moments(self, write_moments, dir, filename, verbose):
     """
     Create moment maps
     """
@@ -16,22 +16,22 @@ def get_moments(cube, ppv_vol, rms_approx, sigma_cut, write_moments, dir, filena
         progress_bar = print_to_terminal(stage='s1', step='moments')
 
     # If upper and lower limits are imposed on the velocity range
-    if (ppv_vol[0] != 0) & (ppv_vol[1] != 0):
-        momzero = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).spectral_slab(ppv_vol[0]*u.km/u.s,ppv_vol[1]*u.km/u.s).moment0(axis=0)
-        momone = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).spectral_slab(ppv_vol[0]*u.km/u.s,ppv_vol[1]*u.km/u.s).moment1(axis=0)
-        momtwo = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).spectral_slab(ppv_vol[0]*u.km/u.s,ppv_vol[1]*u.km/u.s).linewidth_sigma()
+    if (self.ppv_vol[0] != 0) & (self.ppv_vol[1] != 0):
+        momzero = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment0(axis=0)
+        momone = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
+        momtwo = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
 
     # If no velocity limits are imposed
     else:
-        momzero = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).moment0(axis=0)
-        momone = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).moment1(axis=0)
-        momtwo = cube.with_mask(cube > u.Quantity(
-            rms_approx * sigma_cut, cube.unit)).linewidth_sigma()
+        momzero = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).moment0(axis=0)
+        momone = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).moment1(axis=0)
+        momtwo = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).linewidth_sigma()
 
     # Write moments
     if write_moments:
@@ -108,7 +108,7 @@ def define_coverage(cube, momzero, rsaa, verbose):
 
     return coverage, spec
 
-def get_random_saa(cc, ss, samplesize, rsaa, verbose=False):
+def get_random_saa(cc, ss, samplesize, r, verbose=False):
     """
     Get a randomly selected sample of spectral averaging areas
     """
@@ -117,7 +117,7 @@ def get_random_saa(cc, ss, samplesize, rsaa, verbose=False):
         print('')
         print("Extracting randomly sampled SAAs for training set...")
 
-    npixpersaa = (rsaa[0]*2.0)**2.0
+    npixpersaa = (r*2.0)**2.0
     training_set_size = npixpersaa*samplesize
 
     _ss = np.asarray(ss)
@@ -145,7 +145,8 @@ def get_random_saa(cc, ss, samplesize, rsaa, verbose=False):
             print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent RSAA)'.format(int(training_set_size)))
         print('')
 
-    sample_ss = [sample_ss]
+    if verbose:
+        progress_bar = print_to_terminal(stage='s1', step='coverage', var=sample_cc)
 
     return sample_cc, sample_ss
 
