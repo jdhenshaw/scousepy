@@ -26,6 +26,7 @@ from .stage_1 import *
 from .stage_2 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
+from .best_fitting_solution import fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -155,55 +156,55 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
+        starttime = time.time()
+        # Create an empty dictionary to hold the best-fitting solutions
+        self.saa_fits = {}
+
         count=0
-        # Generate the x_axis TODO: Add units
-        x_axis = get_xaxis(self.cube.header)
+        # Generate x axis - trim according to user inputs
+        x_axis_notrim = get_xaxis(self)
+        keep = ((x_axis_notrim>self.ppv_vol[0])&(x_axis_notrim<self.ppv_vol[1]))
+        #print(keep)
+        x_axis = x_axis_notrim[keep]
         # Loop over potentially multiple rsaa values
         for i in range(len(self.rsaa)):
+            self.saa_fits[i] = {}
             # Generate an array containing spectra for only the current rsaa
             _saa_spectra = np.asarray(self.saa_spectra[int(i)])
             # Loop over the number of spectra
             for xind in range(np.shape(self.saa_spectra[int(i)])[2]):
                 for yind in range(np.shape(self.saa_spectra[int(i)])[1]):
-                    # Generate y axis TODO: Add units from cube header
-                    y_axis = np.squeeze(_saa_spectra[:, yind, xind])
-                    # TODO: pyspeckit needs a noise estimate - need a way of getting this for every spectrum ahead of the fitting process
-
+                    # Trim flux data
+                    y_axis_notrim = np.squeeze(_saa_spectra[:, yind, xind])
+                    y_axis = y_axis_notrim[keep]
                     # Some spectra are empty so skip these
                     if np.nansum(y_axis) != 0:
-                        # Generate the spectrum for pyspeckit to fit
-                        # Shhh
-                        with warnings.catch_warnings():
-                            warnings.simplefilter('ignore')
-                            old_log = log.level
-                            log.setLevel('ERROR')
-                            # TODO: units! need to figure out what is going on w/units and if they can be specified easily from the header
-                            spec = get_spec(self, x_axis, y_axis)
-                            log.setLevel(old_log)
+                        # Establish noise
+                        rmsnoise = get_noise(self, x_axis_notrim, y_axis_notrim)
 
                         if training_set==True:
-                            # TODO: If training_set = True - SAAs are randomly selected so you always want to perform interactive fitting
-                            spec.plotter()
-                            # TODO: Setting xmin and xmax doesn't seem to do anything?
-                            # TODO: Can the interactive fitting be setup with user selected model as default?
-                            # TODO: Can pyspeckit perform multi-component hfs fitting?!
-                            spec.specfit(interactive=True, xmin=self.ppv_vol[0]*1000.0, xmax=self.ppv_vol[1]*1000.0, use_lmfit=True)
-                            # TODO: Figure out the output of pyspeckit - Need to store this in a solution array
-                            # TODO: Make the solution array as general as possible (dictionary perhaps?) so that the user can use different models
-                            plt.show()
+                            # If training_set=True, need to cycle through all of
+                            # the sample spectra and fit manually.
+                            bf = fitting(self, i, x_axis, y_axis, rmsnoise, count, training_set=True)
                         else:
-                            # TODO: If training_set = False then the user has to fit all spectral averaging areas.
-                            # TODO: Speed this up by using the previous best-fit as initial guess to current spectrum
-                            # TODO: Can you give the user a choice in pyspeckit? i.e. show them the initial guess then let the user fit interactively if they aren't happy?
-                            pass
-
+                            bf = fitting(self, i, x_axis, y_axis, rmsnoise, count, training_set=False)
                         count+=1
-                        sys.exit()
+
+            midtime=time.time()
+            if verbose:
+                progress_bar = print_to_terminal(stage='s2', step='mid', length=count, t1=starttime, t2=midtime)
+
+        endtime = time.time()
+        if verbose:
+            progress_bar = print_to_terminal(stage='s2', step='end', t1=starttime, t2=endtime)
 
         self.completed_stages.append('s2')
         return self
 
+    def stage_3(self, verbose=False, training_set=False):
 
+        self.completed_stages.append('s3')
+        return self
     def __repr__(self):
         """
         Return a nice printable format for the object.

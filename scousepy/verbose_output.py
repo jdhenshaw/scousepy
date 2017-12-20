@@ -44,5 +44,16 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print('Beginning stage_2 analysis...')
             print('')
             progress_bar=[]
+        if step=='mid':
+            print("")
+            print('You fitted a total of {0} spectra in {1} minutes'.format(length, (t2-t1)/60.))
+            print("")
+            progress_bar=[]
+        if step=='end':
+            print("")
+            print('scousepy stage 2 completed in: {0} minutes'.format((t2-t1)/60.))
+            print("")
+            progress_bar=[]
+
 
     return progress_bar

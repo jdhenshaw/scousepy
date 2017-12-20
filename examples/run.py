@@ -18,5 +18,5 @@ def run_scousepy():
 
     s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = True, training_set=True, samplesize=12, write_moments=True, save_fig=False)
     s = scouse.stage_2(s, verbose=True, training_set=True)
-
+    print(s)
 run_scousepy()

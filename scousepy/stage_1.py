@@ -5,7 +5,7 @@ from astropy import units as u
 import sys
 from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
-from io import *
+from .io import *
 
 def get_moments(self, write_moments, dir, filename, verbose):
     """
