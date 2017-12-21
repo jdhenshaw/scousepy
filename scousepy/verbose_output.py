@@ -28,7 +28,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
                                                    fill='=', blank='.')
                 print('')
             else:
-                print('Number of spectra to fit manually: {}'.format(np.count_nonzero(~np.isnan(np.asarray(var)[:,0]))))
+                print('Number of spectra to fit manually: {}'.format(var))
                 progress_bar=[]
                 print('')
 
@@ -55,5 +55,11 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("")
             progress_bar=[]
 
+    if stage=='s3':
+        if step=='start':
+            print("")
+            print("Beginning stage_3 analysis...")
+            print("")
+            progress_bar=[]
 
     return progress_bar

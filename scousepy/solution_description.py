@@ -18,9 +18,7 @@ class fit(object):
         Stores the best-fitting solutions
 
         """
-        self._fit_idx = idx
-        self._x = spec.xarr
-        self._y = spec.flux
+        self._index = idx
         self._ncomps = spec.specfit.npeaks
         self._params = spec.specfit.modelpars
         self._errors = spec.specfit.modelerrs
@@ -34,25 +32,11 @@ class fit(object):
         self._tau = None
 
     @property
-    def fit_idx(self):
+    def index(self):
         """
         Returns solution idx
         """
-        return self._fit_idx
-
-    @property
-    def x(self):
-        """
-        Returns x values
-        """
-        return self._x
-
-    @property
-    def y(self):
-        """
-        Returns y values
-        """
-        return self._y
+        return self._index
 
     @property
     def ncomps(self):
@@ -130,7 +114,7 @@ class fit(object):
         Return a nice printable format for the object.
 
         """
-        return "<< scousepy best_fitting_solution; fit_index={0}; ncomps={1} >>".format(self.fit_idx, self.ncomps)
+        return "<< scousepy best_fitting_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
 
 def get_aic(self, spec):
     """

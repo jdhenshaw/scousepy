@@ -15,29 +15,8 @@ import pyspeckit
 import warnings
 from astropy import log
 import matplotlib.pyplot as plt
-from .best_fitting_solution import fit, print_fit_information
-
-def get_xaxis(self):
-    """
-    Generate & return the velocity axis from the fits header.
-    """
-    return np.array(self.cube.world[:,0,0][0])
-
-def get_noise(self, x, y):
-    """
-    Works out rms noise within a spectrum
-    """
-    # Find all negative values
-    negids = (y < 0.0)
-    yneg = y[negids]
-    # Get the mean/std
-    mean = np.mean(yneg)
-    std = np.std(yneg)
-    # maximum neg = 4 std from mean
-    maxneg = mean-4.*std
-    # compute std over all values within that 4sigma limit
-    rms = np.std(y[y < abs(maxneg)])
-    return rms
+from .saa_description import add_solution
+from .solution_description import fit, print_fit_information
 
 def get_spec(self, x, y, rms):
     """
@@ -47,7 +26,7 @@ def get_spec(self, x, y, rms):
                               doplot=True, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
-def fitting(self, idx, x, y, rms, count, training_set=False, \
+def fitting(self, SAA, training_set=False, \
             init_guess=False, guesses=None):
 
     if training_set:
@@ -62,7 +41,7 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                 warnings.simplefilter('ignore')
                 old_log = log.level
                 log.setLevel('ERROR')
-                spec = get_spec(self, x, y, rms)
+                spec = get_spec(self, SAA.xtrim, SAA.ytrim, SAA.rms)
                 log.setLevel(old_log)
 
             # if no initial guess available then begin by fitting interactively
@@ -75,7 +54,7 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                              xmax=self.ppv_vol[1])
                 plt.show()
                 # Best-fitting model solution
-                bf = fit(spec, idx=count, scouse=self)
+                bf = fit(spec, idx=SAA.index, scouse=self)
 
                 print("")
                 print_fit_information(bf, init_guess=False)
@@ -89,7 +68,7 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                              xmax=self.ppv_vol[1], guesses=guesses)
                 spec.specfit.plot_fit()
                 plt.show()
-                bf = fit(spec, idx=count, scouse=self)
+                bf = fit(spec, idx=SAA.index, scouse=self)
 
                 if firstgo == 0:
                     print("")
@@ -105,21 +84,15 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
             print("")
             firstgo+=1
 
-        add_to_fits(self.saa_fits[idx], bf, count)
+        add_solution(SAA, bf)
 
     else:
         if count==0:
-            bf = fitting(self, x, y, rms, count, \
+            bf = fitting(self, SAA, \
                          training_set=True, init_guess=False)
         else:
             guesses = self.saa_fits[count-1].params
-            bf = fitting(self, x, y, rms, count, guesses=guesses,\
+            bf = fitting(self, SAA, guesses=guesses,\
                          training_set=True, init_guess=True)
 
     return bf
-
-def add_to_fits(dict, bestfit, index):
-    """
-    Adds best-fitting solution to dictionary
-    """
-    dict[index]=bestfit

@@ -34,6 +34,16 @@ def mkdir_s2(outputdir, s2dir):
         # TODO: error handling
         pass
 
+def mkdir_s3(outputdir, s3dir):
+    """
+    Make the output directory for stage 3
+    """
+    if not os.path.exists(s3dir):
+        os.mkdir(s3dir)
+    else:
+        # TODO: error handling
+        pass
+
 def write_averaged_spectra(cube_header, saa_spectra, r, dir,
                            fits_fmatter='saa_cube_r{}.fits'):
     """

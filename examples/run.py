@@ -16,7 +16,11 @@ def run_scousepy():
     # Threshold below which all channel values set to 0.0
     sigma_cut        =  3.0
 
-    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = True, training_set=True, samplesize=12, write_moments=True, save_fig=False)
-    s = scouse.stage_2(s, verbose=True, training_set=True)
-    print(s)
+    TS = True
+    verb = True
+
+    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=5, write_moments=True, save_fig=False)
+    s = scouse.stage_2(s, verbose=verb, training_set=TS)
+    s = scouse.stage_3(s, verbose=verb, training_set=TS)
+    
 run_scousepy()

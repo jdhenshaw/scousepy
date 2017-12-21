@@ -6,6 +6,7 @@ import sys
 from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from .io import *
+import random
 
 def get_moments(self, write_moments, dir, filename, verbose):
     """
@@ -69,6 +70,7 @@ def define_coverage(cube, momzero, rsaa, verbose):
 
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
+    ids = np.full([len(cov_y)*len(cov_x),len(cov_y)*len(cov_x), 2], np.nan)
 
     count= 0.0
     if verbose:
@@ -89,6 +91,9 @@ def define_coverage(cube, momzero, rsaa, verbose):
         limy = [lim if (lim > 0) else 0 for lim in limy ]
         limy = [lim if (lim < np.shape(momzero)[0]) else np.shape(momzero)[0] for lim in limy ]
 
+        rangex = range(min(limx), max(limx)+1)
+        rangey = range(min(limy), max(limy)+1)
+
         momzero_cutout = momzero[min(limy):max(limy),
                                  min(limx):max(limx)]
 
@@ -102,13 +107,18 @@ def define_coverage(cube, momzero, rsaa, verbose):
                 spec[:, idy, idx] = cube[:,
                                          min(limy):max(limy),
                                          min(limx):max(limx)].mean(axis=(1,2))
-
+                count=0
+                for i in range(min(limx), max(limx)+1):
+                    for j in range(min(limy), max(limy)+1):
+                        ids[idy+(idx*len(cov_y)), count, 0],\
+                        ids[idy+(idx*len(cov_y)), count, 1] = j, i
+                        count+=1
     if verbose:
         print('')
 
-    return coverage, spec
+    return coverage, spec, ids
 
-def get_random_saa(cc, ss, samplesize, r, verbose=False):
+def get_random_saa(cc, samplesize, r, verbose=False):
     """
     Get a randomly selected sample of spectral averaging areas
     """
@@ -120,24 +130,7 @@ def get_random_saa(cc, ss, samplesize, r, verbose=False):
     npixpersaa = (r*2.0)**2.0
     training_set_size = npixpersaa*samplesize
 
-    _ss = np.asarray(ss)
-    _cc = np.asarray(cc)
-
-    sample_ss = np.full(np.shape(_ss), np.nan)
-    sample_cc = np.full(np.shape(_cc), np.nan)
-
-    cc_finite = (np.isfinite(_cc[:,0]))
-    idx = np.squeeze(np.where(cc_finite == True))
-
-    low=0
-    high=np.size(idx)
-    randpix = np.random.randint(low, high, size=samplesize)
-    idx=idx[randpix]
-    idx_ss = np.array(np.unravel_index(idx, (np.shape(_ss)[2], np.shape(_ss)[1])))
-
-    for i in range(0, len(idx)):
-        sample_ss[:,idx_ss[1,i], idx_ss[0,i]] = _ss[:,idx_ss[1,i], idx_ss[0,i]]
-        sample_cc[idx[i], :]=_cc[idx[i], :]
+    sample = np.sort(random.sample(range(0,len(cc[:,0])), samplesize))
 
     if verbose:
         print('Training set size = {}'.format(int(training_set_size)))
@@ -145,12 +138,9 @@ def get_random_saa(cc, ss, samplesize, r, verbose=False):
             print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent RSAA)'.format(int(training_set_size)))
         print('')
 
-    if verbose:
-        progress_bar = print_to_terminal(stage='s1', step='coverage', var=sample_cc)
+    return sample
 
-    return sample_cc, sample_ss
-
-def plot_rsaa(coverage_coordinates, momzero, rsaa, dir, filename):
+def plot_rsaa(dict, momzero, rsaa, dir, filename):
     """
     Plot the SAA boxes
     """
@@ -165,14 +155,15 @@ def plot_rsaa(coverage_coordinates, momzero, rsaa, dir, filename):
     cols = ['black', 'red', 'blue']
     size = [0.5, 1, 2]
     alpha = [1, 0.8, 0.5]
-    for i, (r, covcoords) in enumerate(zip(rsaa, coverage_coordinates)):
-        for j in range(covcoords.shape[0]):
-            if np.all(np.isfinite(covcoords[j, :])):
-                ax.add_patch(
-                    patches.Rectangle(
-                        (covcoords[j, 0] - r, covcoords[j, 1] - r),
-                        r * 2., r * 2., facecolor='none',
-                        edgecolor=cols[i], lw=size[i], alpha=alpha[i]))
+
+    for i, r in enumerate(rsaa, start=0):
+        for j in range(len(dict[i].keys())):
+            if dict[i][j].to_be_fit:
+                ax.add_patch(patches.Rectangle(
+                            (dict[i][j].coordinates[0] - r, \
+                             dict[i][j].coordinates[1] - r),\
+                             r * 2., r * 2., facecolor='none',
+                             edgecolor=cols[i], lw=size[i], alpha=alpha[i]))
 
     plt.savefig(dir+'/'+filename+'coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
