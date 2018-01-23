@@ -1,8 +1,10 @@
+# Licensed under an MIT open source license - see LICENSE
+
 """
 
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2017 Jonathan D. Henshaw
-CONTACT: j.d.henshaw[AT]ljmu.ac.uk
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
 
 """
 
@@ -25,9 +27,10 @@ warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_1 import *
 from .stage_2 import *
+from .stage_3 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
-from .saa_description import saa, trim_spectrum, get_noise, add_ids
+from .saa_description import saa, add_ids, add_flat_ids
 from .solution_description import fit
 
 import matplotlib as mpl
@@ -62,11 +65,16 @@ class scouse(object):
         self.saa_spectra = None
         self.coverage_coordinates = None
         self.saa_dict = None
+        self.indiv_dict = None
         self.sample = None
+        self.tolerances = None
+        self.specres = None
         self.completed_stages = []
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = False, outputdir=None, write_moments=False, save_fig=True, training_set=False, samplesize=10):
+    def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
+                verbose = False, outputdir=None, write_moments=False, \
+                save_fig=True, training_set=False, samplesize=10):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
@@ -138,6 +146,7 @@ class scouse(object):
                         speccount+=1
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
+                        add_flat_ids(SAA, scouse=self)
 
                 if verbose:
                     print("")
@@ -156,7 +165,8 @@ class scouse(object):
         self.completed_stages.append('s1')
         return self
 
-    def stage_2(self, model='gauss', verbose = False, training_set=False):
+    def stage_2(self, model='gauss', verbose = False, training_set=False,
+                write_ascii=False):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -165,6 +175,7 @@ class scouse(object):
         # TODO: Need to make this method more flexible - it would be good if the
         # user could fit the spectra in stages
         # TODO: Add an output option where the solutions are printed to file.
+        # TODO: Allow for zero component fits
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -184,13 +195,9 @@ class scouse(object):
             for j in range(len(saa_dict.keys())):
                 # get the relavent SAA
                 SAA = saa_dict[j]
-                # Add noise
-                get_noise(SAA)
                 # If the SAA is to be fitted, pass it through the fitting
                 # process
                 if SAA.to_be_fit:
-                    if (self.ppv_vol[0] != 0) & (self.ppv_vol[1] != 0):
-                        trim_spectrum(SAA, scouse=self)
                     bf = fitting(self, SAA, training_set=training_set)
                     count+=1
 
@@ -199,6 +206,8 @@ class scouse(object):
                 progress_bar = print_to_terminal(stage='s2', step='mid', \
                                                  length=count, t1=starttime, \
                                                  t2=midtime)
+        if write_ascii:
+            output_ascii(self, s2dir)
 
         endtime = time.time()
         if verbose:
@@ -208,18 +217,32 @@ class scouse(object):
         self.completed_stages.append('s2')
         return self
 
-    def stage_3(self, verbose=False, training_set=False):
+    def stage_3(self, tol, \
+                model='gaussian', verbose=False, training_set=False, \
+                spatial=False):
         """
         This stage governs the automated fitting of the data
         """
+
+        # TODO: Allow for zero component fits
+
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
         # create the stage_2 directory
         mkdir_s3(self.outputdirectory, s3dir)
 
+        # initialise the dictionary containing all individual spectra
+        self.indiv_dict = {}
+
+        self.tolerances = np.array(tol)
+        self.specres = self.cube.header['CDELT3']
+
         if verbose:
             progress_bar = print_to_terminal(stage='s3', step='start')
 
+        # Begin by preparing the spectra and adding them to the relavent SAA
+        initialise_indiv_spectra(self)
+        fit_indiv_spectra(self, model=model, spatial=spatial)
 
         self.completed_stages.append('s3')
         return self

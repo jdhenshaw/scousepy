@@ -1,3 +1,13 @@
+# Licensed under an MIT open source license - see LICENSE
+
+"""
+
+SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
+
+"""
+
 import numpy as np
 import itertools
 from astropy.io import fits
@@ -87,9 +97,9 @@ def define_coverage(cube, momzero, rsaa, verbose):
         limx = [int(cx-spacing*2.), int(cx+spacing*2.)]
         limy = [int(cy-spacing*2.), int(cy+spacing*2.)]
         limx = [lim if (lim > 0) else 0 for lim in limx ]
-        limx = [lim if (lim < np.shape(momzero)[1]) else np.shape(momzero)[1] for lim in limx ]
+        limx = [lim if (lim < np.shape(momzero)[1]-1) else np.shape(momzero)[1]-1 for lim in limx ]
         limy = [lim if (lim > 0) else 0 for lim in limy ]
-        limy = [lim if (lim < np.shape(momzero)[0]) else np.shape(momzero)[0] for lim in limy ]
+        limy = [lim if (lim < np.shape(momzero)[0]-1) else np.shape(momzero)[0]-1 for lim in limy ]
 
         rangex = range(min(limx), max(limx)+1)
         rangey = range(min(limy), max(limy)+1)

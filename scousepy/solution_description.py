@@ -3,10 +3,11 @@
 """
 
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2017 Jonathan D. Henshaw
-CONTACT: j.d.henshaw[AT]ljmu.ac.uk
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
 
 """
+
 from astropy.stats import akaike_info_criterion as aic
 import numpy as np
 

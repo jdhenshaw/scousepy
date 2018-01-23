@@ -1,8 +1,19 @@
+# Licensed under an MIT open source license - see LICENSE
+
+"""
+
+SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
+
+"""
+
 from astropy import units as u
 from astropy.io import fits
 from spectral_cube import SpectralCube
 from astropy import wcs
-
+from astropy.table import Table
+from astropy.table import Column
 from astropy import log
 import numpy as np
 import os
@@ -74,3 +85,54 @@ def output_moments(momzero, momone, momtwo, dir, filename):
     momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
     momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
     momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
+
+def output_ascii(self, outputdir):
+    """
+    Outputs an ascii table containing the information for each cluster.
+    """
+
+    for i in range(len(self.rsaa)):
+        saa_dict = self.saa_dict[i]
+        table = make_table(saa_dict)
+        table.write(outputdir+'/saa_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
+                    overwrite=True, delimiter='\t')
+    return
+
+def make_table(saa_dict, headings=None):
+    """
+    Generates an astropy table to hold the information
+    """
+
+    table = Table(meta={'name': 'best-fitting solutions'})
+
+    headings=['ncomps', 'x', 'y', \
+              'amplitude', 'err amplitude',
+              'velocity', 'err velcoity',
+              'FWHM', 'err FWHM', \
+              'rms', 'residual', \
+              'chi2', 'dof', 'redchi2', 'aic']
+
+    solnlist = []
+    for j in range(len(saa_dict.keys())):
+        # get the relavent SAA
+        SAA = saa_dict[j]
+
+        if SAA.to_be_fit:
+            list=[]
+            soln = SAA.solution
+            for k in range(int(soln.ncomps)):
+                list = [soln.ncomps, SAA.coordinates[0], SAA.coordinates[1],\
+                        soln.params[0+k*3], soln.errors[0+k*3],\
+                        soln.params[1+k*3], soln.errors[1+k*3],\
+                        soln.params[2+k*3], soln.errors[2+k*3],\
+                        soln.rms, soln.residstd, \
+                        soln.chi2, soln.dof, soln.redchi2, soln.aic]
+                solnlist.append(list)
+
+    solnarr = np.asarray(solnlist).T
+
+    for j in range(len(solnarr[:,0])):
+        table[headings[j]] = Column(solnarr[j,:])
+
+    return table
+    sys.exit()

@@ -15,12 +15,16 @@ def run_scousepy():
     rms_approx       =  0.05
     # Threshold below which all channel values set to 0.0
     sigma_cut        =  3.0
+    # Tolerances for stage_3
+    tol              = [3.0, 2.0, 1.5, 1.5, 0.5]
+    # Spectral resolution
+    specres          = 0.07
 
     TS = True
     verb = True
 
-    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=5, write_moments=True, save_fig=False)
-    s = scouse.stage_2(s, verbose=verb, training_set=TS)
-    s = scouse.stage_3(s, verbose=verb, training_set=TS)
-    
+    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=False)
+    s = scouse.stage_2(s, verbose=verb, training_set=TS, write_ascii=True)
+    s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
+
 run_scousepy()

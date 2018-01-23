@@ -10,9 +10,9 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 
-class saa(object):
+class spectrum(object):
     def __init__(self, coords, flux, \
-                 idx=None, scouse=None, sample = False):
+                 idx=None, scouse=None):
         """
         Stores all the information regarding individual spectral averaging areas
 
@@ -25,10 +25,9 @@ class saa(object):
         self._xtrim, self._ytrim = trim_spectrum(self, scouse)
         self._rms = None
         self._indices = None
-        self._indices_flat = None
+        self._solution_parent = None
+        self._solution_spatial = None
         self._solution = None
-        self._indiv_spectra = None
-        self._sample = sample
 
     @property
     def index(self):
@@ -96,41 +95,24 @@ class saa(object):
         return self._indices
 
     @property
-    def indices_flat(self):
+    def solution_parent(self):
         """
-        Returns the flattened individual indices contained within the spectral
-        averaging area.
+        Returns the best-fitting solution derived from the parent SAA solution.
         """
-        return self._indices_flat
+        return self._solution_parent
 
     @property
-    def solution(self):
+    def solution_spatial(self):
         """
-        Returns the best-fitting solution to the spectral averaging area.
+        Returns the best-fitting solution which incorporates spatial fitting.
         """
-        return self._solution
-
-    @property
-    def to_be_fit(self):
-        """
-        Indicates whether or not the spectrum is to be fit (used for training
-        set generation)
-        """
-        return self._sample
-
-    @property
-    def indiv_spectra(self):
-        """
-        Returns a dictionary containing the solutions to the individual spectra
-        contained within the SAA
-        """
-        return self._indiv_spectra
+        return self._solution_spatial
 
     def __repr__(self):
         """
         Return a nice printable format for the object.
         """
-        return "<< scousepy SAA; index={0} >>".format(self.index)
+        return "<< scousepy individual spectrum; index={0} >>".format(self.index)
 
 def trim_spectrum(self, scouse=None):
     """
@@ -140,33 +122,3 @@ def trim_spectrum(self, scouse=None):
     xtrim = self.x[keep]
     ytrim = self.y[keep]
     return xtrim, ytrim
-
-def add_solution(self, solution):
-    """
-    Adds best-fitting solution information to the SAA
-    """
-    self._solution = solution
-
-def add_ids(self, ids):
-    """
-    Adds indices contained within the SAA
-    """
-    self._indices = np.array(ids, dtype='int')
-
-def add_flat_ids(self, scouse=None):
-    """
-    Flattens indices
-    """
-    indices_flat = []
-    for k in range(len(self.indices[:,0])):
-        idx_x, idx_y = int(self.indices[k,1]),int(self.indices[k,0])
-        idx_flat = int(idx_x*scouse.cube.shape[1]+idx_y)
-        indices_flat.append(idx_flat)
-
-    self._indices_flat = np.asarray(indices_flat)
-
-def add_indiv_spectra(self, dict):
-    """
-    Adds indices contained within the SAA
-    """
-    self._indiv_spectra = dict
