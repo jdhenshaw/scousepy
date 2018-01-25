@@ -27,7 +27,6 @@ class spectrum(object):
         self._indices = None
         self._solution_parent = None
         self._solution_spatial = None
-        self._solution = None
 
     @property
     def index(self):
@@ -122,3 +121,17 @@ def trim_spectrum(self, scouse=None):
     xtrim = self.x[keep]
     ytrim = self.y[keep]
     return xtrim, ytrim
+
+def add_solution_parent(self, solution):
+    """
+    Adds best-fitting solution information to the spectrum - note this only adds
+    the solution derived from the SAA
+    """
+    self._solution_parent = solution
+
+def add_solution_spatial(self, solution):
+    """
+    Adds best-fitting solution information to the spectrum - note this only adds
+    the solution derived from the SAA
+    """
+    self._solution_spatial = solution

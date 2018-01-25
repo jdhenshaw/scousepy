@@ -80,6 +80,10 @@ class scouse(object):
         fitting will be implemented.
         """
 
+        # TODO: Add optional refinement - base on peak vel versus mom1. refinement
+        # SAA size where this value is high - statistical - increase refinement
+        # based on deviation from mom1
+
         self = scouse()
         self.filename = filename
         self.rsaa = rsaa
@@ -173,7 +177,7 @@ class scouse(object):
         """
 
         # TODO: Need to make this method more flexible - it would be good if the
-        # user could fit the spectra in stages
+        # user could fit the spectra in stages - minimise_tedium = True
         # TODO: Add an output option where the solutions are printed to file.
         # TODO: Allow for zero component fits
 
@@ -225,6 +229,7 @@ class scouse(object):
         """
 
         # TODO: Allow for zero component fits
+        # TODO: Add spatial fitting methodolgy
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -242,7 +247,9 @@ class scouse(object):
 
         # Begin by preparing the spectra and adding them to the relavent SAA
         initialise_indiv_spectra(self)
+        # Fit the spectra
         fit_indiv_spectra(self, model=model, spatial=spatial)
+
 
         self.completed_stages.append('s3')
         return self

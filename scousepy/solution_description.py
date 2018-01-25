@@ -14,12 +14,14 @@ import numpy as np
 class fit(object):
     #TODO: Need to make this generic for pyspeckit's other models
 
-    def __init__(self, spec, idx=None, scouse=None):
+    def __init__(self, spec, idx=None, scouse=None, fit_dud=False):
         """
         Stores the best-fitting solutions
 
         """
+
         self._index = idx
+        self._spec = spec
         self._ncomps = spec.specfit.npeaks
         self._params = spec.specfit.modelpars
         self._errors = spec.specfit.modelerrs
@@ -31,6 +33,9 @@ class fit(object):
         self._redchi2 = spec.specfit.chi2/spec.specfit.dof
         self._aic = get_aic(self, spec)
         self._tau = None
+
+        if fit_dud:
+            fit_dud_soln(self, spec, idx, scouse)
 
     @property
     def index(self):
@@ -117,6 +122,19 @@ class fit(object):
         """
         return "<< scousepy best_fitting_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
 
+def fit_dud_soln(self, spec, idx=None, scouse=None):
+    """
+    If no satisfactory fit can be obtained set values to none
+    """
+    self._ncomps = 0
+    self._params = [0.0, 0.0, 0.0]
+    self._errors = [0.0, 0.0, 0.0]
+    self._residuals = spec.data
+    self._chi2 = 0.0
+    self._redchi2 = 0.0
+    self._aic = 0.0
+    self._tau = 0.0
+
 def get_aic(self, spec):
     """
     Calculates the AIC value from the spectrum
@@ -131,8 +149,8 @@ def print_fit_information(self, init_guess=False):
     print("=============================================================")
     if init_guess:
         print("Best-fitting solution based on previous SAA as input guess.")
-
         print("")
+
     print(self)
     print("")
     print(("Number of components: {0}").format(self.ncomps))
@@ -161,4 +179,5 @@ def print_fit_information(self, init_guess=False):
     if init_guess:
         print("To enter interative fitting mode type 'f'")
         print("")
+        
     print("=============================================================")
