@@ -16,7 +16,7 @@ class fit(object):
 
     def __init__(self, spec, idx=None, scouse=None, fit_dud=False):
         """
-        Stores the best-fitting solutions
+        Stores the best-fitting model
 
         """
 
@@ -40,7 +40,7 @@ class fit(object):
     @property
     def index(self):
         """
-        Returns solution idx
+        Returns model idx
         """
         return self._index
 
@@ -120,7 +120,7 @@ class fit(object):
         Return a nice printable format for the object.
 
         """
-        return "<< scousepy best_fitting_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
+        return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
 
 def fit_dud_soln(self, spec, idx=None, scouse=None):
     """
@@ -148,7 +148,7 @@ def print_fit_information(self, init_guess=False):
     """
     print("=============================================================")
     if init_guess:
-        print("Best-fitting solution based on previous SAA as input guess.")
+        print("Best-fitting model based on previous SAA as input guess.")
         print("")
 
     print(self)
@@ -179,5 +179,5 @@ def print_fit_information(self, init_guess=False):
     if init_guess:
         print("To enter interative fitting mode type 'f'")
         print("")
-        
+
     print("=============================================================")

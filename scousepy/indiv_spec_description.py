@@ -24,9 +24,10 @@ class spectrum(object):
         self._y = flux
         self._xtrim, self._ytrim = trim_spectrum(self, scouse)
         self._rms = None
-        self._indices = None
-        self._solution_parent = None
-        self._solution_spatial = None
+        self._model_parent = None
+        self._model_spatial = None
+        self._models = None
+        self._model = None
 
     @property
     def index(self):
@@ -86,26 +87,32 @@ class spectrum(object):
         return np.std(self.y[self.y < abs(maxneg)])
 
     @property
-    def indices(self):
+    def model_parent(self):
         """
-        Returns the individual indices contained within the spectral
-        averaging area.
+        Returns the best-fitting model derived from the parent SAA model.
         """
-        return self._indices
+        return self._model_parent
 
     @property
-    def solution_parent(self):
+    def model_spatial(self):
         """
-        Returns the best-fitting solution derived from the parent SAA solution.
+        Returns the best-fitting model which incorporates spatial fitting.
         """
-        return self._solution_parent
+        return self._model_spatial
 
     @property
-    def solution_spatial(self):
+    def models(self):
         """
-        Returns the best-fitting solution which incorporates spatial fitting.
+        Returns the list of available models
         """
-        return self._solution_spatial
+        return self._models
+
+    @property
+    def model(self):
+        """
+        Returns the best-fitting model model to the data
+        """
+        return self._model
 
     def __repr__(self):
         """
@@ -122,16 +129,24 @@ def trim_spectrum(self, scouse=None):
     ytrim = self.y[keep]
     return xtrim, ytrim
 
-def add_solution_parent(self, solution):
+def add_model_parent(self, model):
     """
-    Adds best-fitting solution information to the spectrum - note this only adds
-    the solution derived from the SAA
+    Adds best-fitting model information to the spectrum - note this only adds
+    the model derived from the SAA
     """
-    self._solution_parent = solution
+    self._model_parent = model
 
-def add_solution_spatial(self, solution):
+def add_model_spatial(self, model):
     """
-    Adds best-fitting solution information to the spectrum - note this only adds
-    the solution derived from the SAA
+    Adds best-fitting model information to the spectrum - note this only adds
+    the model derived from the SAA
     """
-    self._solution_spatial = solution
+    self._model_spatial = model
+
+def update_model_list(self, models):
+    """
+    Compiles all models
+    """
+    self._model_parent = None
+    self._model_spatial = None
+    self._models = models

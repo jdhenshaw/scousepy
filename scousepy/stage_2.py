@@ -17,7 +17,7 @@ import pyspeckit
 import warnings
 from astropy import log
 import matplotlib.pyplot as plt
-from .saa_description import add_solution
+from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 
 def get_spec(self, x, y, rms):
@@ -86,7 +86,7 @@ def fitting(self, SAA, training_set=False, \
             print("")
             firstgo+=1
 
-        add_solution(SAA, bf)
+        add_model(SAA, bf)
 
     else:
         if count==0:

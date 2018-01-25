@@ -94,7 +94,7 @@ def output_ascii(self, outputdir):
     for i in range(len(self.rsaa)):
         saa_dict = self.saa_dict[i]
         table = make_table(saa_dict)
-        table.write(outputdir+'/saa_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
+        table.write(outputdir+'/saa_model_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
                     overwrite=True, delimiter='\t')
     return
 
@@ -103,7 +103,7 @@ def make_table(saa_dict, headings=None):
     Generates an astropy table to hold the information
     """
 
-    table = Table(meta={'name': 'best-fitting solutions'})
+    table = Table(meta={'name': 'best-fitting model solutions'})
 
     headings=['ncomps', 'x', 'y', \
               'amplitude', 'err amplitude',
@@ -119,7 +119,7 @@ def make_table(saa_dict, headings=None):
 
         if SAA.to_be_fit:
             list=[]
-            soln = SAA.solution
+            soln = SAA.model
             for k in range(int(soln.ncomps)):
                 list = [soln.ncomps, SAA.coordinates[0], SAA.coordinates[1],\
                         soln.params[0+k*3], soln.errors[0+k*3],\

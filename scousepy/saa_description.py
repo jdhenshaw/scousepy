@@ -26,7 +26,7 @@ class saa(object):
         self._rms = None
         self._indices = None
         self._indices_flat = None
-        self._solution = None
+        self._model = None
         self._indiv_spectra = None
         self._sample = sample
 
@@ -104,11 +104,11 @@ class saa(object):
         return self._indices_flat
 
     @property
-    def solution(self):
+    def model(self):
         """
-        Returns the best-fitting solution to the spectral averaging area.
+        Returns the best-fitting model to the spectral averaging area.
         """
-        return self._solution
+        return self._model
 
     @property
     def to_be_fit(self):
@@ -121,7 +121,7 @@ class saa(object):
     @property
     def indiv_spectra(self):
         """
-        Returns a dictionary containing the solutions to the individual spectra
+        Returns a dictionary containing the models to the individual spectra
         contained within the SAA
         """
         return self._indiv_spectra
@@ -141,11 +141,11 @@ def trim_spectrum(self, scouse=None):
     ytrim = self.y[keep]
     return xtrim, ytrim
 
-def add_solution(self, solution):
+def add_model(self, model):
     """
-    Adds best-fitting solution information to the SAA
+    Adds best-fitting model information to the SAA
     """
-    self._solution = solution
+    self._model = model
 
 def add_ids(self, ids):
     """
@@ -170,3 +170,9 @@ def add_indiv_spectra(self, dict):
     Adds indices contained within the SAA
     """
     self._indiv_spectra = dict
+
+def clean_up(self):
+    """
+    Cleans model solutions
+    """
+    self._indiv_spectra = None

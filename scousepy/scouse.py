@@ -223,7 +223,7 @@ class scouse(object):
 
     def stage_3(self, tol, \
                 model='gaussian', verbose=False, training_set=False, \
-                spatial=False):
+                spatial=False, clear_cache = True):
         """
         This stage governs the automated fitting of the data
         """
@@ -249,7 +249,11 @@ class scouse(object):
         initialise_indiv_spectra(self)
         # Fit the spectra
         fit_indiv_spectra(self, model=model, spatial=spatial)
-
+        # Compile the spectra
+        compile_spectra(self, spatial=spatial)
+        # Clean things up a bit
+        if clear_cache:
+            clean_SAAs(self)
 
         self.completed_stages.append('s3')
         return self

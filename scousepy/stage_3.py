@@ -15,8 +15,8 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 from astropy import log
-from .indiv_spec_description import spectrum, add_solution_parent, add_solution_spatial
-from .saa_description import add_indiv_spectra
+from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list
+from .saa_description import add_indiv_spectra, clean_up
 from .solution_description import fit, print_fit_information
 
 def initialise_indiv_spectra(self):
@@ -59,7 +59,7 @@ def fit_indiv_spectra(self, model = 'gaussian', spatial=False):
             # TODO: MANUEL!
             if SAA.to_be_fit:
                 # get the parent
-                parent_solution = SAA.solution
+                parent_model = SAA.model
                 # cycle through the spectra contained within this SAA
                 for k in range(len(SAA.indices_flat)):
                     # Shhh
@@ -75,12 +75,12 @@ def fit_indiv_spectra(self, model = 'gaussian', spatial=False):
                         spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
                                               SAA.indiv_spectra[key].ytrim, \
                                               SAA.indiv_spectra[key].rms)
-                        # Check the solution
+                        # Check the model
                         happy = False
                         initfit = True
                         while not happy:
                             if initfit:
-                                guesses = np.asarray(parent_solution.params)
+                                guesses = np.asarray(parent_model.params)
 
                             if np.sum(guesses) != 0.0:
                                 # Perform fit
@@ -90,11 +90,11 @@ def fit_indiv_spectra(self, model = 'gaussian', spatial=False):
                                             fittype = model, \
                                             guesses = guesses)
 
-                                # Gen best-fitting solution
+                                # Gen best-fitting model
                                 bf = fit(spec, idx=key, scouse=self)
                                 # Check the output model, does it satisfy the
                                 # conditions?
-                                happy, bf, guesses = check_spec(self, parent_solution, bf, happy)
+                                happy, bf, guesses = check_spec(self, parent_model, bf, happy)
                                 initfit = False
                             else:
                                 # If no satisfactory model can be found - fit
@@ -102,18 +102,12 @@ def fit_indiv_spectra(self, model = 'gaussian', spatial=False):
                                 bf = fit(spec, idx=key, scouse=self, fit_dud=True)
                                 happy = True
 
-                        # Add the best-fitting solution to the SAA
-                        print("")
-                        print(SAA.indiv_spectra[key])
-                        print(SAA.indiv_spectra[key].solution_parent)
-                        add_solution_parent(SAA.indiv_spectra[key], bf)
-                        print(SAA.indiv_spectra[key].solution_parent)
-                        print_fit_information(bf)
-                        print("")
+                        # Add the best-fitting model to the SAA
+                        add_model_parent(SAA.indiv_spectra[key], bf)
                     log.setLevel(old_log)
                 # At this point we have a fit to every spectrum within the SAA.
                 # This is where we could implement spatial fitting to complement
-                # the fits from the SAA solutions
+                # the fits from the SAA models
                 if spatial:
                     # TODO: Implement spatial fitting
                     pass
@@ -127,7 +121,7 @@ def get_spec(self, x, y, rms):
                               doplot=True, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
-def check_spec(self, parent_solution, bf, happy):
+def check_spec(self, parent_model, bf, happy):
     """
     Here we are going to check the output spectrum against user-defined
     tolerance levels described in Henshaw et al. 2016 and against the SAA fit.
@@ -137,19 +131,19 @@ def check_spec(self, parent_solution, bf, happy):
     condition_passed, guesses = check_rms(self, bf, guesses, condition_passed)
 
     if condition_passed[0]:
-        condition_passed, guesses = check_dispersion(self, bf, parent_solution, guesses, condition_passed)
+        condition_passed, guesses = check_dispersion(self, bf, parent_model, guesses, condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
-            condition_passed, guesses = check_velocity(self, bf, parent_solution, guesses, condition_passed)
+            condition_passed, guesses = check_velocity(self, bf, parent_model, guesses, condition_passed)
             if np.all(condition_passed) and (bf.ncomps == 1):
                 happy = True
             else:
-                happy, guesses = check_distinct(self, bf, parent_solution, guesses, happy)
+                happy, guesses = check_distinct(self, bf, parent_model, guesses, happy)
 
     return happy, bf, guesses
 
 def check_rms(self, bf, guesses, condition_passed):
     """
-    Check the rms of the best-fitting solution components
+    Check the rms of the best-fitting model components
     """
 
     for i in range(int(bf.ncomps)):
@@ -168,19 +162,19 @@ def check_rms(self, bf, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_dispersion(self, bf, parent_solution, guesses, condition_passed):
+def check_dispersion(self, bf, parent_model, guesses, condition_passed):
     """
-    Check the fwhm of the best-fitting solution components
+    Check the fwhm of the best-fitting model components
     """
 
     for i in range(int(bf.ncomps)):
 
-        # Find the closest matching component in the parent SAA solution
-        diff = find_closest_match(i, bf, parent_solution)
+        # Find the closest matching component in the parent SAA model
+        diff = find_closest_match(i, bf, parent_model)
 
         # Work out the relative change in velocity dispersion
         idmin = np.squeeze(np.where(diff == np.min(diff)))
-        relchange = bf.params[(i*3)+2]/parent_solution.params[(idmin*3)+2]
+        relchange = bf.params[(i*3)+2]/parent_model.params[(idmin*3)+2]
         if relchange < 1.:
             relchange = 1./relchange
 
@@ -200,22 +194,22 @@ def check_dispersion(self, bf, parent_solution, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_velocity(self, bf, parent_solution, guesses, condition_passed):
+def check_velocity(self, bf, parent_model, guesses, condition_passed):
     """
-    Check the centroid velocity of the best-fitting solution components
+    Check the centroid velocity of the best-fitting model components
     """
 
     for i in range(int(bf.ncomps)):
 
-        # Find the closest matching component in the parent SAA solution
-        diff = find_closest_match(i, bf, parent_solution)
+        # Find the closest matching component in the parent SAA model
+        diff = find_closest_match(i, bf, parent_model)
 
         # Work out the relative change in velocity dispersion
         idmin = np.squeeze(np.where(diff == np.min(diff)))
 
         # Limits for tolerance
-        lower_lim = parent_solution.params[(idmin*3)+1]-(self.tolerances[3]*parent_solution.params[(idmin*3)+2])
-        upper_lim = parent_solution.params[(idmin*3)+1]+(self.tolerances[3]*parent_solution.params[(idmin*3)+2])
+        lower_lim = parent_model.params[(idmin*3)+1]-(self.tolerances[3]*parent_model.params[(idmin*3)+2])
+        upper_lim = parent_model.params[(idmin*3)+1]+(self.tolerances[3]*parent_model.params[(idmin*3)+2])
 
         # Does this satisfy the criteria
         if (bf.params[(i*3)+1] < lower_lim) or (bf.params[(i*3)+1] > upper_lim):
@@ -233,7 +227,7 @@ def check_velocity(self, bf, parent_solution, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_distinct(self, bf, parent_solution, guesses, happy):
+def check_distinct(self, bf, parent_model, guesses, happy):
     """
     Check to see if component pairs can be distinguished
     """
@@ -305,15 +299,117 @@ def check_distinct(self, bf, parent_solution, guesses, happy):
     return happy, guesses
 
 
-def find_closest_match(i, bf, parent_solution):
+def find_closest_match(i, bf, parent_model):
     """
-    Find the closest matching component in the parent SAA solution to the current
+    Find the closest matching component in the parent SAA model to the current
     component in bf.
     """
 
-    diff = np.zeros(int(parent_solution.ncomps))
-    for j in range(int(parent_solution.ncomps)):
-        diff[j] = np.sqrt((bf.params[i*3]-parent_solution.params[j*3])**2.+\
-                          (bf.params[(i*3)+1]-parent_solution.params[(j*3)+1])**2. + \
-                          (bf.params[(i*3)+2]-parent_solution.params[(j*3)+2])**2.)
+    diff = np.zeros(int(parent_model.ncomps))
+    for j in range(int(parent_model.ncomps)):
+        diff[j] = np.sqrt((bf.params[i*3]-parent_model.params[j*3])**2.+\
+                          (bf.params[(i*3)+1]-parent_model.params[(j*3)+1])**2. + \
+                          (bf.params[(i*3)+2]-parent_model.params[(j*3)+2])**2.)
     return diff
+
+def compile_spectra(self, spatial=False):
+    """
+    Here we compile all best-fitting models into a single dictionary.
+    """
+
+    key_list = []
+    model_list = []
+    # Cycle through potentially multiple Rsaa values
+    for i in range(len(self.rsaa)):
+        # Get the relavent SAA dictionary
+        saa_dict = self.saa_dict[i]
+        for j in range(len(saa_dict.keys())):
+            # get the relavent SAA
+            SAA = saa_dict[j]
+            if SAA.to_be_fit:
+                # Get indiv dict
+                indiv_spectra = SAA.indiv_spectra
+                for key in indiv_spectra.keys():
+                    key_list.append(key)
+                    model_list.append(indiv_spectra[key])
+
+    # sort the lists
+    key_arr = np.array(key_list)
+    model_arr = np.array(model_list)
+    sortidx = argsort(key_list)
+    key_arr = key_arr[sortidx]
+    model_arr = model_arr[sortidx]
+
+    # Cycle through all the spectra
+    for key in range(self.cube.shape[1]*self.cube.shape[2]):
+
+        # Find all instances of key in the key_arr
+        model_idxs = np.squeeze(np.where(key_arr == key))
+        # If there is a solution available
+        if np.size(model_idxs) > 0:
+            # If there is only one instance of this spectrum being fit - we can
+            # add it to the dictionary straight away
+            if np.size(model_idxs) == 1:
+                spectrum = model_arr[model_idxs]
+                model_list = []
+                model_list = get_model_list(model_list, spectrum, spatial)
+                update_model_list(spectrum, model_list)
+                self.indiv_dict[key] = spectrum
+            else:
+                # if not, we have to compile the solutions into a single object
+                # Take the first one
+                spectrum = model_arr[model_idxs[0]]
+                model_list = []
+                model_list = get_model_list(model_list, spectrum, spatial)
+                # Now cycle through the others
+                for i in range(1, np.size(model_idxs)):
+                    spec = model_arr[model_idxs[i]]
+                    model_list = get_model_list(model_list, spec, spatial)
+                # So now the model list should contain every single model
+                # solution that is available from all spectral averaging areas
+
+                # Update the model list of the first spectrum and then update
+                # the dictionary
+                update_model_list(spectrum, model_list)
+                self.indiv_dict[key] = spectrum
+
+def get_model_list(model_list, spectrum, spatial=False):
+    """
+    Add to model list
+    """
+    model_list.append(spectrum.model_parent)
+    if spatial:
+        model_list.append(spectrum.model_spatial)
+
+    return model_list
+
+def argsort(data, reversed=False):
+    """
+    Returns sorted indices
+
+    Notes
+    -----
+    Sorting in Python 2. and Python 3. can differ in cases where you have
+    identical values. 
+
+    """
+
+    index = np.arange(len(data))
+    key = lambda x: data[x]
+    sortidx = sorted(index, key=key,reverse=reversed)
+    sortidx = np.array(list(sortidx))
+    return sortidx
+
+def clean_SAAs(self):
+    """
+    This is to save space - there is lots of (often duplicated) information
+    stored within the SAAs - get rid of this.
+    """
+    for i in range(len(self.rsaa)):
+        # Get the relavent SAA dictionary
+        saa_dict = self.saa_dict[i]
+        for j in range(len(saa_dict.keys())):
+            # get the relavent SAA
+            SAA = saa_dict[j]
+            if SAA.to_be_fit:
+                clean_up(SAA)
