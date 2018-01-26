@@ -69,12 +69,14 @@ class scouse(object):
         self.sample = None
         self.tolerances = None
         self.specres = None
+        self.nrefine = None
         self.completed_stages = []
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
                 verbose = False, outputdir=None, write_moments=False, \
-                save_fig=True, training_set=False, samplesize=10):
+                save_fig=True, training_set=False, samplesize=10, \
+                refine_grid=False, nrefine=3.0):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
@@ -90,6 +92,7 @@ class scouse(object):
         self.ppv_vol = ppv_vol
         self.rms_approx = rms_approx
         self.sigma_cut = sigma_cut
+        self.nrefine = nrefine
 
         if training_set:
             self.training_set = True
@@ -123,21 +126,40 @@ class scouse(object):
             # Read in the datacube
             self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
             # Generate moment maps
-            momzero, momone, momtwo = get_moments(self, write_moments, s1dir, filename, verbose)
+            momzero, momone, momtwo, momnine = get_moments(self, write_moments, s1dir, filename, verbose)
             # get the coverage / average the subcube spectra
             self.saa_dict = {}
+
+            # If the user has chosen to refine the grid
+            if refine_grid:
+                self.rsaa = get_rsaa(self)
+                if verbose:
+                    if np.size(self.rsaa) != self.nrefine:
+                        raise ValueError('Rsaa < 1 pixel. Either increase Rsaa or decrease nrefine.')
+                delta_v = calculate_delta_v(self, momone, momnine)
+                # generate logarithmically spaced refinement steps
+                step_values = generate_steps(self, delta_v)
+                step_values.insert(0, 0.0)
+            else:
+                mom_zero = momzero.value
+
             for i, r in enumerate(self.rsaa, start=0):
+                # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
-                cc, ss, ids = define_coverage(self.cube, momzero.value, r, verbose)
+                if refine_grid:
+                    mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
+                cc, ss, ids = define_coverage(self.cube, mom_zero, r, verbose)
 
                 # Randomly select saas to be fit
                 if training_set:
                     self.sample = get_random_saa(cc, samplesize, r, verbose=verbose)
+                    totfit = len(self.sample)
                 else:
                     self.sample = range(len(cc[:,0]))
+                    totfit = len(cc[(np.isfinite(cc[:,0])),0])
 
                 if verbose:
-                    progress_bar = print_to_terminal(stage='s1', step='coverage', var=len(self.sample))
+                    progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
 
                 speccount=0
                 for xind in range(np.shape(ss)[2]):

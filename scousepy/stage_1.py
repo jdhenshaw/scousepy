@@ -34,6 +34,15 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
             self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
+        slab = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
+        momnine = np.empty(np.shape(momone))
+        momnine.fill(np.nan)
+        idxmax= np.argmax(slab._data, axis=0)
+        for i in range(momzero.shape[1]):
+            for j in range(momzero.shape[0]):
+                momnine[j,i]=slab.spectral_axis[idxmax[j,i]].value
+        momnine = momnine * u.km/u.s
 
     # If no velocity limits are imposed
     else:
@@ -43,12 +52,21 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.rms_approx * self.sigma_cut, self.cube.unit)).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
             self.rms_approx * self.sigma_cut, self.cube.unit)).linewidth_sigma()
+        slab = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit))
+        momnine = np.empty(np.shape(momone))
+        momnine.fill(np.nan)
+        idxmax= np.argmax(slab._data, axis=0)
+        for i in range(momzero.shape[1]):
+            for j in range(momzero.shape[0]):
+                momnine[j,i]=slab.spectral_axis[idxmax[j,i]].value
+        momnine = momnine * u.km/u.s
 
     # Write moments
     if write_moments:
-        output_moments(momzero, momone, momtwo, dir, filename)
+        output_moments(momzero, momone, momtwo, momnine, dir, filename)
 
-    return momzero, momone, momtwo
+    return momzero, momone, momtwo, momnine
 
 def get_coverage(momzero, spacing):
     """
@@ -80,7 +98,7 @@ def define_coverage(cube, momzero, rsaa, verbose):
 
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
-    ids = np.full([len(cov_y)*len(cov_x),len(cov_y)*len(cov_x), 2], np.nan)
+    ids = np.full([len(cov_y)*len(cov_x),cube.shape[2]*cube.shape[1], 2], np.nan)
 
     count= 0.0
     if verbose:
@@ -112,14 +130,14 @@ def define_coverage(cube, momzero, rsaa, verbose):
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
-            if fraction > 0.5:
+            if fraction >= 0.5:
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
                 spec[:, idy, idx] = cube[:,
                                          min(limy):max(limy),
                                          min(limx):max(limx)].mean(axis=(1,2))
                 count=0
-                for i in range(min(limx), max(limx)+1):
-                    for j in range(min(limy), max(limy)+1):
+                for i in rangex:
+                    for j in rangey:
                         ids[idy+(idx*len(cov_y)), count, 0],\
                         ids[idy+(idx*len(cov_y)), count, 1] = j, i
                         count+=1
@@ -127,6 +145,14 @@ def define_coverage(cube, momzero, rsaa, verbose):
         print('')
 
     return coverage, spec, ids
+
+def get_rsaa(self):
+    rsaa = []
+    for i in range(1, int(self.nrefine)+1):
+        newrsaa = self.rsaa[0]/i
+        if newrsaa > 0.5:
+            rsaa.append(newrsaa)
+    return rsaa
 
 def get_random_saa(cc, samplesize, r, verbose=False):
     """
@@ -162,9 +188,7 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
     ax = fig.add_subplot(111)
     plt.imshow(momzero, cmap='Greys', origin='lower',
                interpolation='nearest')
-    cols = ['black', 'red', 'blue']
-    size = [0.5, 1, 2]
-    alpha = [1, 0.8, 0.5]
+    cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
     for i, r in enumerate(rsaa, start=0):
         for j in range(len(dict[i].keys())):
@@ -172,9 +196,41 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
                 ax.add_patch(patches.Rectangle(
                             (dict[i][j].coordinates[0] - r, \
                              dict[i][j].coordinates[1] - r),\
-                             r * 2., r * 2., facecolor='none',
-                             edgecolor=cols[i], lw=size[i], alpha=alpha[i]))
+                             r * 2., r * 2., facecolor=cols[i],
+                             edgecolor=cols[i], lw=0.1, alpha=0.1))
+                ax.add_patch(patches.Rectangle(
+                            (dict[i][j].coordinates[0] - r, \
+                             dict[i][j].coordinates[1] - r),\
+                             r * 2., r * 2., facecolor='None',
+                             edgecolor=cols[i], lw=0.2, alpha=0.25))
 
-    plt.savefig(dir+'/'+filename+'coverage.pdf', dpi=600,bbox_inches='tight')
+    plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
     plt.show()
+
+def calculate_delta_v(self, momone, momnine):
+
+    # Generate an empty array
+    delta_v = np.empty(np.shape(momone))
+    delta_v.fill(np.nan)
+    delta_v = np.abs(momone.value-momnine.value)
+
+    return delta_v
+
+def generate_steps(self, delta_v):
+    """
+    Creates logarithmically spaced lag values for structure function computation
+    """
+    median = np.median(delta_v)
+    step_values = np.logspace(np.log10(median), \
+                              np.log10(np.max(delta_v)), \
+                              self.nrefine )
+    return list(step_values)
+
+def refine_momzero(self, momzero, delta_v, minval, maxval):
+    mom_zero=None
+    keep = ((delta_v >= minval) & (delta_v <= maxval))
+    mom_zero = np.zeros(np.shape(momzero))
+    mom_zero[keep] = momzero[keep]
+
+    return mom_zero

@@ -10,7 +10,7 @@ def run_scousepy():
     # The range in velocity, x, and y over which to fit
     ppv_vol          =  [32.0,42.0,0.0,0.0,0.0,0.0]
     # Radius for the spectral averaging areas. Pixel units.
-    rsaa             =  [2.0]
+    rsaa             =  [3.0]
     # Enter an approximate rms value for the data.
     rms_approx       =  0.05
     # Threshold below which all channel values set to 0.0
@@ -20,11 +20,14 @@ def run_scousepy():
     # Spectral resolution
     specres          = 0.07
 
-    TS = True
+    RG = True
+    nRG = 3.
+    TS = False
     verb = True
 
     s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=False)
+    #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
     s = scouse.stage_2(s, verbose=verb, training_set=TS, write_ascii=True)
-    s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
+    #s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
 
 run_scousepy()

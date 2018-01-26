@@ -78,13 +78,14 @@ def write_averaged_spectra(cube_header, saa_spectra, r, dir,
     hdu.header['RSAA'] = r
     hdu.writeto(dir+'/saa_cube_r_{}.fits'.format(r), overwrite=True)
 
-def output_moments(momzero, momone, momtwo, dir, filename):
+def output_moments(momzero, momone, momtwo, momnine, dir, filename):
     """
     Write the moment maps to file
     """
     momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
     momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
     momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
+    momtwo.write(dir+'/'+filename+'_momnine.fits', format='fits', overwrite=True)
 
 def output_ascii(self, outputdir):
     """
