@@ -1,3 +1,13 @@
+# Licensed under an MIT open source license - see LICENSE
+
+"""
+
+SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
+
+"""
+
 import numpy as np
 import itertools
 from astropy.io import fits
@@ -6,6 +16,7 @@ import sys
 from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from .io import *
+import random
 
 def get_moments(self, write_moments, dir, filename, verbose):
     """
@@ -23,6 +34,15 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
             self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
+        slab = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
+        momnine = np.empty(np.shape(momone))
+        momnine.fill(np.nan)
+        idxmax= np.argmax(slab._data, axis=0)
+        momnine=slab.spectral_axis[idxmax].value
+        idnan = (np.isfinite(momtwo.value)==0)
+        momnine[idnan] = np.nan
+        momnine = momnine * u.km/u.s
 
     # If no velocity limits are imposed
     else:
@@ -32,12 +52,21 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.rms_approx * self.sigma_cut, self.cube.unit)).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
             self.rms_approx * self.sigma_cut, self.cube.unit)).linewidth_sigma()
+        slab = self.cube.with_mask(self.cube > u.Quantity(
+            self.rms_approx * self.sigma_cut, self.cube.unit))
+        momnine = np.empty(np.shape(momone))
+        momnine.fill(np.nan)
+        idxmax= np.argmax(slab._data, axis=0)
+        momnine=slab.spectral_axis[idxmax].value
+        idnan = (np.isfinite(momtwo.value)==0)
+        momnine[idnan] = np.nan
+        momnine = momnine * u.km/u.s
 
     # Write moments
     if write_moments:
-        output_moments(momzero, momone, momtwo, dir, filename)
+        output_moments(momzero, momone, momtwo, momnine, dir, filename)
 
-    return momzero, momone, momtwo
+    return momzero, momone, momtwo, momnine
 
 def get_coverage(momzero, spacing):
     """
@@ -58,7 +87,7 @@ def get_coverage(momzero, spacing):
 
     return cov_x, cov_y
 
-def define_coverage(cube, momzero, rsaa, verbose):
+def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
@@ -69,6 +98,7 @@ def define_coverage(cube, momzero, rsaa, verbose):
 
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
+    ids = np.full([len(cov_y)*len(cov_x),cube.shape[2]*cube.shape[1], 2], np.nan)
 
     count= 0.0
     if verbose:
@@ -85,9 +115,12 @@ def define_coverage(cube, momzero, rsaa, verbose):
         limx = [int(cx-spacing*2.), int(cx+spacing*2.)]
         limy = [int(cy-spacing*2.), int(cy+spacing*2.)]
         limx = [lim if (lim > 0) else 0 for lim in limx ]
-        limx = [lim if (lim < np.shape(momzero)[1]) else np.shape(momzero)[1] for lim in limx ]
+        limx = [lim if (lim < np.shape(momzero)[1]-1) else np.shape(momzero)[1]-1 for lim in limx ]
         limy = [lim if (lim > 0) else 0 for lim in limy ]
-        limy = [lim if (lim < np.shape(momzero)[0]) else np.shape(momzero)[0] for lim in limy ]
+        limy = [lim if (lim < np.shape(momzero)[0]-1) else np.shape(momzero)[0]-1 for lim in limy ]
+
+        rangex = range(min(limx), max(limx)+1)
+        rangey = range(min(limy), max(limy)+1)
 
         momzero_cutout = momzero[min(limy):max(limy),
                                  min(limx):max(limx)]
@@ -97,18 +130,35 @@ def define_coverage(cube, momzero, rsaa, verbose):
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
-            if fraction > 0.5:
+            if refine_grid:
+                lim = 0.5/nrefine
+            else:
+                lim = 0.5
+            if fraction >= lim:
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
                 spec[:, idy, idx] = cube[:,
                                          min(limy):max(limy),
                                          min(limx):max(limx)].mean(axis=(1,2))
-
+                count=0
+                for i in rangex:
+                    for j in rangey:
+                        ids[idy+(idx*len(cov_y)), count, 0],\
+                        ids[idy+(idx*len(cov_y)), count, 1] = j, i
+                        count+=1
     if verbose:
         print('')
 
-    return coverage, spec
+    return coverage, spec, ids
 
-def get_random_saa(cc, ss, samplesize, r, verbose=False):
+def get_rsaa(self):
+    rsaa = []
+    for i in range(1, int(self.nrefine)+1):
+        newrsaa = self.rsaa[0]/i
+        if newrsaa > 0.5:
+            rsaa.append(newrsaa)
+    return rsaa
+
+def get_random_saa(cc, samplesize, r, verbose=False):
     """
     Get a randomly selected sample of spectral averaging areas
     """
@@ -120,24 +170,7 @@ def get_random_saa(cc, ss, samplesize, r, verbose=False):
     npixpersaa = (r*2.0)**2.0
     training_set_size = npixpersaa*samplesize
 
-    _ss = np.asarray(ss)
-    _cc = np.asarray(cc)
-
-    sample_ss = np.full(np.shape(_ss), np.nan)
-    sample_cc = np.full(np.shape(_cc), np.nan)
-
-    cc_finite = (np.isfinite(_cc[:,0]))
-    idx = np.squeeze(np.where(cc_finite == True))
-
-    low=0
-    high=np.size(idx)
-    randpix = np.random.randint(low, high, size=samplesize)
-    idx=idx[randpix]
-    idx_ss = np.array(np.unravel_index(idx, (np.shape(_ss)[2], np.shape(_ss)[1])))
-
-    for i in range(0, len(idx)):
-        sample_ss[:,idx_ss[1,i], idx_ss[0,i]] = _ss[:,idx_ss[1,i], idx_ss[0,i]]
-        sample_cc[idx[i], :]=_cc[idx[i], :]
+    sample = np.sort(random.sample(range(0,len(cc[:,0])), samplesize))
 
     if verbose:
         print('Training set size = {}'.format(int(training_set_size)))
@@ -145,12 +178,9 @@ def get_random_saa(cc, ss, samplesize, r, verbose=False):
             print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent RSAA)'.format(int(training_set_size)))
         print('')
 
-    if verbose:
-        progress_bar = print_to_terminal(stage='s1', step='coverage', var=sample_cc)
+    return sample
 
-    return sample_cc, sample_ss
-
-def plot_rsaa(coverage_coordinates, momzero, rsaa, dir, filename):
+def plot_rsaa(dict, momzero, rsaa, dir, filename):
     """
     Plot the SAA boxes
     """
@@ -162,18 +192,52 @@ def plot_rsaa(coverage_coordinates, momzero, rsaa, dir, filename):
     ax = fig.add_subplot(111)
     plt.imshow(momzero, cmap='Greys', origin='lower',
                interpolation='nearest')
-    cols = ['black', 'red', 'blue']
-    size = [0.5, 1, 2]
-    alpha = [1, 0.8, 0.5]
-    for i, (r, covcoords) in enumerate(zip(rsaa, coverage_coordinates)):
-        for j in range(covcoords.shape[0]):
-            if np.all(np.isfinite(covcoords[j, :])):
-                ax.add_patch(
-                    patches.Rectangle(
-                        (covcoords[j, 0] - r, covcoords[j, 1] - r),
-                        r * 2., r * 2., facecolor='none',
-                        edgecolor=cols[i], lw=size[i], alpha=alpha[i]))
+    cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
-    plt.savefig(dir+'/'+filename+'coverage.pdf', dpi=600,bbox_inches='tight')
+    for i, r in enumerate(rsaa, start=0):
+        for j in range(len(dict[i].keys())):
+            if dict[i][j].to_be_fit:
+                ax.add_patch(patches.Rectangle(
+                            (dict[i][j].coordinates[0] - r, \
+                             dict[i][j].coordinates[1] - r),\
+                             r * 2., r * 2., facecolor=cols[i],
+                             edgecolor=cols[i], lw=0.1, alpha=0.1))
+                ax.add_patch(patches.Rectangle(
+                            (dict[i][j].coordinates[0] - r, \
+                             dict[i][j].coordinates[1] - r),\
+                             r * 2., r * 2., facecolor='None',
+                             edgecolor=cols[i], lw=0.2, alpha=0.25))
+
+    plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
     plt.show()
+
+def calculate_delta_v(self, momone, momnine):
+
+    # Generate an empty array
+    delta_v = np.empty(np.shape(momone))
+    delta_v.fill(np.nan)
+    delta_v = np.abs(momone.value-momnine.value)
+
+    return delta_v
+
+def generate_steps(self, delta_v):
+    """
+    Creates logarithmically spaced lag values for structure function computation
+    """
+    median = np.nanmedian(delta_v)
+    step_values = np.logspace(np.log10(median), \
+                              np.log10(np.nanmax(delta_v)), \
+                              self.nrefine )
+    return list(step_values)
+
+def refine_momzero(self, momzero, delta_v, minval, maxval):
+    """
+    Refines momzero based on upper/lower lims of delta_v
+    """
+    mom_zero=None
+    keep = ((delta_v >= minval) & (delta_v <= maxval))
+    mom_zero = np.zeros(np.shape(momzero))
+    mom_zero[keep] = momzero[keep]
+
+    return mom_zero

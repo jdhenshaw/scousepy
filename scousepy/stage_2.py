@@ -1,8 +1,10 @@
+# Licensed under an MIT open source license - see LICENSE
+
 """
 
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2017 Jonathan D. Henshaw
-CONTACT: j.d.henshaw[AT]ljmu.ac.uk
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
 
 """
 
@@ -15,29 +17,8 @@ import pyspeckit
 import warnings
 from astropy import log
 import matplotlib.pyplot as plt
-from .best_fitting_solution import fit, print_fit_information
-
-def get_xaxis(self):
-    """
-    Generate & return the velocity axis from the fits header.
-    """
-    return np.array(self.cube.world[:,0,0][0])
-
-def get_noise(self, x, y):
-    """
-    Works out rms noise within a spectrum
-    """
-    # Find all negative values
-    negids = (y < 0.0)
-    yneg = y[negids]
-    # Get the mean/std
-    mean = np.mean(yneg)
-    std = np.std(yneg)
-    # maximum neg = 4 std from mean
-    maxneg = mean-4.*std
-    # compute std over all values within that 4sigma limit
-    rms = np.std(y[y < abs(maxneg)])
-    return rms
+from .saa_description import add_model
+from .solution_description import fit, print_fit_information
 
 def get_spec(self, x, y, rms):
     """
@@ -47,7 +28,7 @@ def get_spec(self, x, y, rms):
                               doplot=True, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
-def fitting(self, idx, x, y, rms, count, training_set=False, \
+def fitting(self, SAA, saa_dict, count, training_set=False, \
             init_guess=False, guesses=None):
 
     if training_set:
@@ -62,11 +43,11 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                 warnings.simplefilter('ignore')
                 old_log = log.level
                 log.setLevel('ERROR')
-                spec = get_spec(self, x, y, rms)
+                spec = get_spec(self, SAA.xtrim, SAA.ytrim, SAA.rms)
                 log.setLevel(old_log)
 
             # if no initial guess available then begin by fitting interactively
-            if not init_guess:
+            if init_guess:
                 # Interactive fitting with pyspeckit
                 spec.plotter(xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1])
@@ -75,7 +56,7 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                              xmax=self.ppv_vol[1])
                 plt.show()
                 # Best-fitting model solution
-                bf = fit(spec, idx=count, scouse=self)
+                bf = fit(spec, idx=SAA.index, scouse=self)
 
                 print("")
                 print_fit_information(bf, init_guess=False)
@@ -84,12 +65,16 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
             # else start with an initial guess. If the user isn't happy they
             # can enter the interactive fitting mode
             else:
+                spec.plotter(xmin=self.ppv_vol[0], \
+                             xmax=self.ppv_vol[1])
                 spec.specfit(interactive=False, \
                              xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1], guesses=guesses)
-                spec.specfit.plot_fit()
+                spec.specfit.plot_fit(show_components=True)
+                spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
+
                 plt.show()
-                bf = fit(spec, idx=count, scouse=self)
+                bf = fit(spec, idx=SAA.index, scouse=self)
 
                 if firstgo == 0:
                     print("")
@@ -101,25 +86,18 @@ def fitting(self, idx, x, y, rms, count, training_set=False, \
                     print("")
 
             h = input("Are you happy with the fit? (y/n): ")
-            happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes', '']
+            happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
             print("")
             firstgo+=1
-
-        add_to_fits(self.saa_fits[idx], bf, count)
+        add_model(SAA, bf)
 
     else:
-        if count==0:
-            bf = fitting(self, x, y, rms, count, \
-                         training_set=True, init_guess=False)
+        if init_guess:
+            bf = fitting(self, SAA, saa_dict, count, \
+                         training_set=True, init_guess=init_guess)
         else:
-            guesses = self.saa_fits[count-1].params
-            bf = fitting(self, x, y, rms, count, guesses=guesses,\
-                         training_set=True, init_guess=True)
+            guesses = saa_dict[count].model.params
+            bf = fitting(self, SAA, saa_dict, count, guesses=guesses,\
+                         training_set=True, init_guess=init_guess)
 
     return bf
-
-def add_to_fits(dict, bestfit, index):
-    """
-    Adds best-fitting solution to dictionary
-    """
-    dict[index]=bestfit

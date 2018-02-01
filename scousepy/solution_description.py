@@ -3,24 +3,24 @@
 """
 
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2017 Jonathan D. Henshaw
-CONTACT: j.d.henshaw[AT]ljmu.ac.uk
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
 
 """
+
 from astropy.stats import akaike_info_criterion as aic
 import numpy as np
 
 class fit(object):
     #TODO: Need to make this generic for pyspeckit's other models
 
-    def __init__(self, spec, idx=None, scouse=None):
+    def __init__(self, spec, idx=None, scouse=None, fit_dud=False):
         """
-        Stores the best-fitting solutions
+        Stores the best-fitting model
 
         """
-        self._fit_idx = idx
-        self._x = spec.xarr
-        self._y = spec.flux
+
+        self._index = idx
         self._ncomps = spec.specfit.npeaks
         self._params = spec.specfit.modelpars
         self._errors = spec.specfit.modelerrs
@@ -33,26 +33,15 @@ class fit(object):
         self._aic = get_aic(self, spec)
         self._tau = None
 
-    @property
-    def fit_idx(self):
-        """
-        Returns solution idx
-        """
-        return self._fit_idx
+        if fit_dud:
+            fit_dud_soln(self, spec, idx, scouse)
 
     @property
-    def x(self):
+    def index(self):
         """
-        Returns x values
+        Returns model idx
         """
-        return self._x
-
-    @property
-    def y(self):
-        """
-        Returns y values
-        """
-        return self._y
+        return self._index
 
     @property
     def ncomps(self):
@@ -130,7 +119,20 @@ class fit(object):
         Return a nice printable format for the object.
 
         """
-        return "<< scousepy best_fitting_solution; fit_index={0}; ncomps={1} >>".format(self.fit_idx, self.ncomps)
+        return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
+
+def fit_dud_soln(self, spec, idx=None, scouse=None):
+    """
+    If no satisfactory fit can be obtained set values to none
+    """
+    self._ncomps = 0
+    self._params = [0.0, 0.0, 0.0]
+    self._errors = [0.0, 0.0, 0.0]
+    self._residuals = spec.data
+    self._chi2 = 0.0
+    self._redchi2 = 0.0
+    self._aic = 0.0
+    self._tau = 0.0
 
 def get_aic(self, spec):
     """
@@ -145,9 +147,9 @@ def print_fit_information(self, init_guess=False):
     """
     print("=============================================================")
     if init_guess:
-        print("Best-fitting solution based on previous SAA as input guess.")
-
+        print("Best-fitting model based on previous SAA as input guess.")
         print("")
+
     print(self)
     print("")
     print(("Number of components: {0}").format(self.ncomps))
@@ -176,4 +178,5 @@ def print_fit_information(self, init_guess=False):
     if init_guess:
         print("To enter interative fitting mode type 'f'")
         print("")
+
     print("=============================================================")

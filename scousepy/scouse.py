@@ -1,8 +1,10 @@
+# Licensed under an MIT open source license - see LICENSE
+
 """
 
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2017 Jonathan D. Henshaw
-CONTACT: j.d.henshaw[AT]ljmu.ac.uk
+Copyright (c) 2016-2018 Jonathan D. Henshaw
+CONTACT: henshaw@mpia.de
 
 """
 
@@ -20,13 +22,16 @@ import warnings
 import shutil
 import time
 import pyspeckit
+import random
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_1 import *
 from .stage_2 import *
+from .stage_3 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
-from .best_fitting_solution import fit
+from .saa_description import saa, add_ids, add_flat_ids
+from .solution_description import fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -59,14 +64,27 @@ class scouse(object):
         self.sample_size = None
         self.saa_spectra = None
         self.coverage_coordinates = None
+        self.saa_dict = None
+        self.indiv_dict = None
+        self.sample = None
+        self.tolerances = None
+        self.specres = None
+        self.nrefine = None
         self.completed_stages = []
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = False, outputdir=None, write_moments=False, save_fig=True, training_set=False, samplesize=10):
+    def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
+                verbose = False, outputdir=None, write_moments=False, \
+                save_fig=True, training_set=False, samplesize=10, \
+                refine_grid=False, nrefine=3.0):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
         """
+
+        # TODO: Add optional refinement - base on peak vel versus mom1. refinement
+        # SAA size where this value is high - statistical - increase refinement
+        # based on deviation from mom1
 
         self = scouse()
         self.filename = filename
@@ -74,6 +92,8 @@ class scouse(object):
         self.ppv_vol = ppv_vol
         self.rms_approx = rms_approx
         self.sigma_cut = sigma_cut
+        self.nrefine = nrefine
+
         if training_set:
             self.training_set = True
             self.samplesize = samplesize
@@ -106,33 +126,70 @@ class scouse(object):
             # Read in the datacube
             self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
             # Generate moment maps
-            momzero, momone, momtwo = get_moments(self, write_moments, s1dir, filename, verbose)
+            momzero, momone, momtwo, momnine = get_moments(self, write_moments, s1dir, filename, verbose)
             # get the coverage / average the subcube spectra
-            self.coverage_coordinates, self.saa_spectra = [], []
-            for r in self.rsaa:
-                cc, ss = define_coverage(self.cube, momzero.value, r, verbose)
+            self.saa_dict = {}
 
-                # for training_set implementation we want to randomly select
-                # SAAs
-                # TODO: current implementation can result in duplicates - fix
+            # If the user has chosen to refine the grid
+            if refine_grid:
+                self.rsaa = get_rsaa(self)
+                if verbose:
+                    if np.size(self.rsaa) != self.nrefine:
+                        raise ValueError('Rsaa < 1 pixel. Either increase Rsaa or decrease nrefine.')
+                delta_v = calculate_delta_v(self, momone, momnine)
+                # generate logarithmically spaced refinement steps
+                step_values = generate_steps(self, delta_v)
+                step_values.insert(0, 0.0)
+            else:
+                mom_zero = momzero.value
+
+            nref = self.nrefine
+            for i, r in enumerate(self.rsaa, start=0):
+
+                # Refine the mom zero grid if necessary
+                self.saa_dict[i] = {}
+                if refine_grid:
+                    mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
+                cc, ss, ids = define_coverage(self.cube, mom_zero, r, nref, verbose, refine_grid=refine_grid)
+                nref -= 1.0
+
+                # Randomly select saas to be fit
                 if training_set:
-                    cc, ss = get_random_saa(cc, ss, samplesize, r, verbose)
+                    self.sample = get_random_saa(cc, samplesize, r, verbose=verbose)
+                    totfit = len(self.sample)
                 else:
-                    if verbose:
-                        print('')
-                _ss=np.array(ss)
+                    if not refine_grid:
+                        self.sample = range(len(cc[:,0]))
+                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
+                    else:
+                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
+                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
 
-                # Write a cube containing the average spectra. **DO NOT USE THIS
-                # IN ANY WAY OTHER THAN TO EXTRACT THE DATA - POSITIONS WILL BE
-                # ALL OFF DUE TO NYQUIST SAMPLING**
-                write_averaged_spectra(self.cube.header, ss, r, s1dir)
-                self.coverage_coordinates.append(cc)
-                self.saa_spectra.append(ss)
+                if verbose:
+                    progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
+
+                speccount=0
+                for xind in range(np.shape(ss)[2]):
+                    for yind in range(np.shape(ss)[1]):
+                        sample = speccount in self.sample
+
+                        SAA = saa(cc[speccount,:], ss[:, yind, xind],
+                                     idx=speccount, sample = sample, \
+                                     scouse=self)
+                        self.saa_dict[i][speccount] = SAA
+                        speccount+=1
+                        indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
+                        add_ids(SAA, indices)
+                        add_flat_ids(SAA, scouse=self)
+
+                if verbose:
+                    print("")
+
             log.setLevel(old_log)
 
         if save_fig:
             # plot multiple coverage areas
-            plot_rsaa(self.coverage_coordinates, momzero.value, self.rsaa, s1dir, filename)
+            plot_rsaa(self.saa_dict, momzero.value, self.rsaa, s1dir, filename)
 
         endtime = time.time()
 
@@ -142,11 +199,17 @@ class scouse(object):
         self.completed_stages.append('s1')
         return self
 
-    def stage_2(self, model='gauss', verbose = False, training_set=False):
+    def stage_2(self, model='gauss', verbose = False, training_set=False,
+                write_ascii=False):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
         """
+
+        # TODO: Need to make this method more flexible - it would be good if the
+        # user could fit the spectra in stages - minimise_tedium = True
+        # TODO: Add an output option where the solutions are printed to file.
+        # TODO: Allow for zero component fits
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -157,54 +220,94 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
-        # Create an empty dictionary to hold the best-fitting solutions
-        self.saa_fits = {}
 
-        count=0
-        # Generate x axis - trim according to user inputs
-        x_axis_notrim = get_xaxis(self)
-        keep = ((x_axis_notrim>self.ppv_vol[0])&(x_axis_notrim<self.ppv_vol[1]))
-        #print(keep)
-        x_axis = x_axis_notrim[keep]
-        # Loop over potentially multiple rsaa values
+        # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
-            self.saa_fits[i] = {}
-            # Generate an array containing spectra for only the current rsaa
-            _saa_spectra = np.asarray(self.saa_spectra[int(i)])
-            # Loop over the number of spectra
-            for xind in range(np.shape(self.saa_spectra[int(i)])[2]):
-                for yind in range(np.shape(self.saa_spectra[int(i)])[1]):
-                    # Trim flux data
-                    y_axis_notrim = np.squeeze(_saa_spectra[:, yind, xind])
-                    y_axis = y_axis_notrim[keep]
-                    # Some spectra are empty so skip these
-                    if np.nansum(y_axis) != 0:
-                        # Establish noise
-                        rmsnoise = get_noise(self, x_axis_notrim, y_axis_notrim)
-
-                        if training_set==True:
-                            # If training_set=True, need to cycle through all of
-                            # the sample spectra and fit manually.
-                            bf = fitting(self, i, x_axis, y_axis, rmsnoise, count, training_set=True)
-                        else:
-                            bf = fitting(self, i, x_axis, y_axis, rmsnoise, count, training_set=False)
-                        count+=1
+            firstfit=True
+            SAAid=0
+            count=0
+            # Get the relavent SAA dictionary
+            saa_dict = self.saa_dict[i]
+            for j in range(len(saa_dict.keys())):
+                # get the relavent SAA
+                SAA = saa_dict[j]
+                # If the SAA is to be fitted, pass it through the fitting
+                # process
+                if SAA.to_be_fit:
+                    bf = fitting(self, SAA, saa_dict, SAAid, training_set=training_set, init_guess=firstfit)
+                    SAAid = SAA.index
+                    firstfit=False
+                    count+=1
 
             midtime=time.time()
             if verbose:
-                progress_bar = print_to_terminal(stage='s2', step='mid', length=count, t1=starttime, t2=midtime)
+                progress_bar = print_to_terminal(stage='s2', step='mid', \
+                                                 length=count, t1=starttime, \
+                                                 t2=midtime)
+        if write_ascii:
+            output_ascii(self, s2dir)
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s2', step='end', t1=starttime, t2=endtime)
+            progress_bar = print_to_terminal(stage='s2', step='end',
+                                             t1=starttime, t2=endtime)
 
         self.completed_stages.append('s2')
         return self
 
-    def stage_3(self, verbose=False, training_set=False):
+    def stage_3(self, tol, \
+                model='gaussian', verbose=False, training_set=False, \
+                spatial=False, clear_cache = True):
+        """
+        This stage governs the automated fitting of the data
+        """
+
+        # TODO: Add spatial fitting methodolgy
+
+        s3dir = os.path.join(self.outputdirectory, 'stage_3')
+        self.stagedirs.append(s3dir)
+        # create the stage_2 directory
+        mkdir_s3(self.outputdirectory, s3dir)
+
+        starttime = time.time()
+        # initialise the dictionary containing all individual spectra
+        indiv_dictionaries = {}
+
+        self.tolerances = np.array(tol)
+        self.specres = self.cube.header['CDELT3']
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s3', step='start')
+
+        # Begin by preparing the spectra and adding them to the relavent SAA
+        initialise_indiv_spectra(self)
+
+        # Cycle through potentially multiple Rsaa values
+        for i in range(len(self.rsaa)):
+            # Get the relavent SAA dictionary
+            saa_dict = self.saa_dict[i]
+            indiv_dictionaries[i] = {}
+            # Fit the spectra
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, spatial=spatial, verbose=verbose)
+            # Compile the spectra
+            indiv_dict = indiv_dictionaries[i]
+            compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
+            # Clean things up a bit
+            if clear_cache:
+                clean_SAAs(self, saa_dict)
+
+        # merge multiple rsaa solutions into a single dictionary
+        merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)
+        # remove any duplicate entries
+        remove_duplicates(self, verbose=verbose)
+
+        endtime = time.time()
+        if verbose:
+            progress_bar = print_to_terminal(stage='s3', step='end', t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
         return self
+
     def __repr__(self):
         """
         Return a nice printable format for the object.
