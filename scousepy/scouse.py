@@ -301,15 +301,6 @@ class scouse(object):
         # remove any duplicate entries
         remove_duplicates(self, verbose=verbose)
 
-        for key in self.indiv_dict.keys():
-            spectrum = self.indiv_dict[key]
-            models = spectrum.models
-            models = np.asarray(models)
-            for i in range(len(models)):
-                print(models[i])
-                print(models[i].ncomps)
-            print("")
-
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s3', step='end', t1=starttime, t2=endtime)

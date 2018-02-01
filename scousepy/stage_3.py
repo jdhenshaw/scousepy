@@ -419,9 +419,6 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
 
     if len(self.rsaa)>1:
         main_dictionary = indiv_dictionaries[0]
-        print("")
-        print(main_dictionary)
-        print("")
 
         for i in range(self.cube.shape[2]*self.cube.shape[1]):
             # get model solutions
