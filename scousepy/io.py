@@ -85,7 +85,7 @@ def output_moments(momzero, momone, momtwo, momnine, dir, filename):
     momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
     momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
     momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
-    momtwo.write(dir+'/'+filename+'_momnine.fits', format='fits', overwrite=True)
+    fits.writeto(dir+'/'+filename+'_momnine.fits', momnine.value, momtwo.header, overwrite=True)
 
 def output_ascii(self, outputdir):
     """

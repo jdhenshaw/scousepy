@@ -171,6 +171,17 @@ def add_indiv_spectra(self, dict):
     """
     self._indiv_spectra = dict
 
+def merge_models(self, merge_spec):
+    """
+    Merges merge_spec models into self
+    """
+    main_models = self.models
+    merge_models = merge_spec.models
+    allmodels = []
+    allmodels.append(main_models)
+    allmodels.append(merge_models)
+    self._models = [model for mergemods in allmodels for model in mergemods]
+
 def clean_up(self):
     """
     Cleans model solutions

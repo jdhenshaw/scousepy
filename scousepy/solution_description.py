@@ -21,7 +21,6 @@ class fit(object):
         """
 
         self._index = idx
-        self._spec = spec
         self._ncomps = spec.specfit.npeaks
         self._params = spec.specfit.modelpars
         self._errors = spec.specfit.modelerrs

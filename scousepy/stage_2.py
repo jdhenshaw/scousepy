@@ -28,7 +28,7 @@ def get_spec(self, x, y, rms):
                               doplot=True, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
-def fitting(self, SAA, training_set=False, \
+def fitting(self, SAA, saa_dict, count, training_set=False, \
             init_guess=False, guesses=None):
 
     if training_set:
@@ -47,7 +47,7 @@ def fitting(self, SAA, training_set=False, \
                 log.setLevel(old_log)
 
             # if no initial guess available then begin by fitting interactively
-            if not init_guess:
+            if init_guess:
                 # Interactive fitting with pyspeckit
                 spec.plotter(xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1])
@@ -65,10 +65,14 @@ def fitting(self, SAA, training_set=False, \
             # else start with an initial guess. If the user isn't happy they
             # can enter the interactive fitting mode
             else:
+                spec.plotter(xmin=self.ppv_vol[0], \
+                             xmax=self.ppv_vol[1])
                 spec.specfit(interactive=False, \
                              xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1], guesses=guesses)
-                spec.specfit.plot_fit()
+                spec.specfit.plot_fit(show_components=True)
+                spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
+
                 plt.show()
                 bf = fit(spec, idx=SAA.index, scouse=self)
 
@@ -82,19 +86,18 @@ def fitting(self, SAA, training_set=False, \
                     print("")
 
             h = input("Are you happy with the fit? (y/n): ")
-            happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes', '']
+            happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
             print("")
             firstgo+=1
-
         add_model(SAA, bf)
 
     else:
-        if count==0:
-            bf = fitting(self, SAA, \
-                         training_set=True, init_guess=False)
+        if init_guess:
+            bf = fitting(self, SAA, saa_dict, count, \
+                         training_set=True, init_guess=init_guess)
         else:
-            guesses = self.saa_fits[count-1].params
-            bf = fitting(self, SAA, guesses=guesses,\
-                         training_set=True, init_guess=True)
+            guesses = saa_dict[count].model.params
+            bf = fitting(self, SAA, saa_dict, count, guesses=guesses,\
+                         training_set=True, init_guess=init_guess)
 
     return bf

@@ -15,9 +15,10 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 from astropy import log
-from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list
-from .saa_description import add_indiv_spectra, clean_up
+from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list, update_model_list_remdup
+from .saa_description import add_indiv_spectra, clean_up, merge_models
 from .solution_description import fit, print_fit_information
+from .verbose_output import print_to_terminal
 
 def initialise_indiv_spectra(self):
     """
@@ -43,82 +44,117 @@ def initialise_indiv_spectra(self):
                                           idx=SAA.indices_flat[k], \
                                           scouse=self)
                     indiv_spectra[SAA.indices_flat[k]] = indiv_spec
-                    add_indiv_spectra(SAA, indiv_spectra)
+                add_indiv_spectra(SAA, indiv_spectra)
 
-def fit_indiv_spectra(self, model = 'gaussian', spatial=False):
+def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, verbose=False):
     """
     automated fitting procedure for individual spectra
     """
-    # Cycle through potentially multiple Rsaa values
-    for i in range(len(self.rsaa)):
-        # Get the relavent SAA dictionary
-        saa_dict = self.saa_dict[i]
-        for j in range(len(saa_dict.keys())):
-            # get the relavent SAA
-            SAA = saa_dict[j]
-            # TODO: MANUEL!
+
+    totspec=0
+    for j in range(len(saa_dict.keys())):
+        # get the relavent SAA
+        SAA = saa_dict[j]
+        if verbose:
             if SAA.to_be_fit:
-                # get the parent
-                parent_model = SAA.model
-                # cycle through the spectra contained within this SAA
-                for k in range(len(SAA.indices_flat)):
-                    # Shhh
-                    with warnings.catch_warnings():
-                        warnings.simplefilter('ignore')
-                        old_log = log.level
-                        log.setLevel('ERROR')
+                totspec+=len(SAA.indices_flat)
+            else:
+                totspec+=len(SAA.indices_flat)
 
-                        # Key to access spectrum in dictionary
-                        key = SAA.indices_flat[k]
+    if verbose:
+        count=0
+        progress_bar = print_to_terminal(stage='s3', step='fitting', length=totspec, var=rsaa)
 
-                        # create the spectrum
-                        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                                              SAA.indiv_spectra[key].ytrim, \
-                                              SAA.indiv_spectra[key].rms)
-                        # Check the model
-                        happy = False
-                        initfit = True
-                        while not happy:
-                            if initfit:
-                                guesses = np.asarray(parent_model.params)
+    for j in range(len(saa_dict.keys())):
+        # get the relavent SAA
+        SAA = saa_dict[j]
+        if SAA.to_be_fit:
+            # get the parent
+            parent_model = SAA.model
+            # cycle through the spectra contained within this SAA
+            for k in range(len(SAA.indices_flat)):
+                spec=None
+                if verbose:
+                    progress_bar + 1
+                    progress_bar.show_progress()
 
-                            if np.sum(guesses) != 0.0:
-                                # Perform fit
-                                spec.specfit(interactive=False, \
-                                            xmin=self.ppv_vol[0], \
-                                            xmax=self.ppv_vol[1], \
-                                            fittype = model, \
-                                            guesses = guesses)
+                # Shhh
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
+                    old_log = log.level
+                    log.setLevel('ERROR')
 
-                                # Gen best-fitting model
-                                bf = fit(spec, idx=key, scouse=self)
-                                # Check the output model, does it satisfy the
-                                # conditions?
-                                happy, bf, guesses = check_spec(self, parent_model, bf, happy)
-                                initfit = False
-                            else:
-                                # If no satisfactory model can be found - fit
-                                # a dud!
-                                bf = fit(spec, idx=key, scouse=self, fit_dud=True)
-                                happy = True
+                    # Key to access spectrum in dictionary
+                    key = SAA.indices_flat[k]
+                    # create the spectrum
+                    spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                                          SAA.indiv_spectra[key].ytrim, \
+                                          SAA.indiv_spectra[key].rms)
+                    # Check the model
+                    happy = False
+                    initfit = True
+                    while not happy:
+                        if initfit:
+                            guesses = np.asarray(parent_model.params)
+                        if np.sum(guesses) != 0.0:
+                            # Perform fit
+                            spec.specfit(interactive=False, \
+                                        xmin=self.ppv_vol[0], \
+                                        xmax=self.ppv_vol[1], \
+                                        fittype = model, \
+                                        guesses = guesses)
+                            # Gen best-fitting model
+                            bf = fit(spec, idx=key, scouse=self)
+                            # Check the output model, does it satisfy the
+                            # conditions?
+                            happy, bf, guesses = check_spec(self, parent_model, bf, happy)
+                            initfit = False
+                        else:
+                            # If no satisfactory model can be found - fit
+                            # a dud!
+                            bf = fit(spec, idx=key, scouse=self, fit_dud=True)
+                            happy = True
 
-                        # Add the best-fitting model to the SAA
-                        add_model_parent(SAA.indiv_spectra[key], bf)
-                    log.setLevel(old_log)
-                # At this point we have a fit to every spectrum within the SAA.
-                # This is where we could implement spatial fitting to complement
-                # the fits from the SAA models
-                if spatial:
-                    # TODO: Implement spatial fitting
-                    pass
+                    # Add the best-fitting model to the SAA
+                    add_model_parent(SAA.indiv_spectra[key], bf)
+                log.setLevel(old_log)
+            # At this point we have a fit to every spectrum within the SAA.
+            # This is where we could implement spatial fitting to complement
+            # the fits from the SAA models
+            if spatial:
+                # TODO: Implement spatial fitting
+                pass
+        else:
+            # If the SAA is not to be fit - need to fit some duds
+            for k in range(len(SAA.indices_flat)):
+                spec=None
+                if verbose:
+                    progress_bar + 1
+                    progress_bar.show_progress()
 
+                # Shhh
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
+                    old_log = log.level
+                    log.setLevel('ERROR')
+
+                    # Key to access spectrum in dictionary
+                    key = SAA.indices_flat[k]
+                    # create the spectrum
+                    spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                                          SAA.indiv_spectra[key].ytrim, \
+                                          SAA.indiv_spectra[key].rms)
+                    bf = fit(spec, idx=key, scouse=self, fit_dud=True)
+                    # Add the best-fitting model to the SAA
+                    add_model_parent(SAA.indiv_spectra[key], bf)
+                log.setLevel(old_log)
 
 def get_spec(self, x, y, rms):
     """
     Generate the spectrum
     """
     return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=True, unit=self.cube.header['BUNIT'],\
+                              doplot=False, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
 def check_spec(self, parent_model, bf, happy):
@@ -312,26 +348,26 @@ def find_closest_match(i, bf, parent_model):
                           (bf.params[(i*3)+2]-parent_model.params[(j*3)+2])**2.)
     return diff
 
-def compile_spectra(self, spatial=False):
+def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):
     """
     Here we compile all best-fitting models into a single dictionary.
     """
 
+    if verbose:
+        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=rsaa)
+
     key_list = []
     model_list = []
-    # Cycle through potentially multiple Rsaa values
-    for i in range(len(self.rsaa)):
-        # Get the relavent SAA dictionary
-        saa_dict = self.saa_dict[i]
-        for j in range(len(saa_dict.keys())):
-            # get the relavent SAA
-            SAA = saa_dict[j]
-            if SAA.to_be_fit:
-                # Get indiv dict
-                indiv_spectra = SAA.indiv_spectra
-                for key in indiv_spectra.keys():
-                    key_list.append(key)
-                    model_list.append(indiv_spectra[key])
+
+    for j in range(len(saa_dict.keys())):
+        # get the relavent SAA
+        SAA = saa_dict[j]
+        if SAA.to_be_fit:
+            # Get indiv dict
+            indiv_spectra = SAA.indiv_spectra
+            for key in indiv_spectra.keys():
+                key_list.append(key)
+                model_list.append(indiv_spectra[key])
 
     # sort the lists
     key_arr = np.array(key_list)
@@ -354,7 +390,7 @@ def compile_spectra(self, spatial=False):
                 model_list = []
                 model_list = get_model_list(model_list, spectrum, spatial)
                 update_model_list(spectrum, model_list)
-                self.indiv_dict[key] = spectrum
+                indiv_dict[key] = spectrum
             else:
                 # if not, we have to compile the solutions into a single object
                 # Take the first one
@@ -371,7 +407,63 @@ def compile_spectra(self, spatial=False):
                 # Update the model list of the first spectrum and then update
                 # the dictionary
                 update_model_list(spectrum, model_list)
-                self.indiv_dict[key] = spectrum
+                indiv_dict[key] = spectrum
+
+def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
+    """
+    There is now a dictionary for each Rsaa - merge these into a single one
+    """
+
+    if verbose:
+        progress_bar = print_to_terminal(stage='s3', step='merge', length=0)
+
+    if len(self.rsaa)>1:
+        main_dictionary = indiv_dictionaries[0]
+        print("")
+        print(main_dictionary)
+        print("")
+
+        for i in range(self.cube.shape[2]*self.cube.shape[1]):
+            # get model solutions
+            main_spectrum = main_dictionary[i]
+            # Cycle through potentially multiple Rsaa values
+            for j in range(1, len(self.rsaa)):
+                # Get the relavent dictionary
+                dictionary = indiv_dictionaries[j]
+                spectrum = dictionary[i]
+                merge_models(main_spectrum, spectrum)
+        self.indiv_dict = main_dictionary
+    else:
+        main_dictionary = indiv_dictionaries[0]
+        self.indiv_dict = main_dictionary
+
+def remove_duplicates(self, verbose):
+    """
+    Removes duplicate models from the model dictionary
+    """
+    if verbose:
+        progress_bar = print_to_terminal(stage='s3', step='duplicates', length=0)
+
+    for key in self.indiv_dict.keys():
+        # get the spectrum
+        spectrum = self.indiv_dict[key]
+        # get the models
+        models = spectrum.models
+
+        # extract aic values and identify unique values
+        aiclist = []
+        for i in range(len(models)):
+            aiclist.append(models[i].aic)
+        aicarr = np.asarray(aiclist)
+        aicarr = np.around(aicarr, decimals=5)
+        uniqvals, uniqids = np.unique(aicarr, return_index=True)
+        models = np.asarray(models)
+        uniqmodels = models[uniqids]
+
+        # update list with only unique aic entries
+        uniqmodels = list(uniqmodels)
+        update_model_list_remdup(spectrum, uniqmodels)
+
 
 def get_model_list(model_list, spectrum, spatial=False):
     """
@@ -390,7 +482,7 @@ def argsort(data, reversed=False):
     Notes
     -----
     Sorting in Python 2. and Python 3. can differ in cases where you have
-    identical values. 
+    identical values.
 
     """
 
@@ -400,16 +492,14 @@ def argsort(data, reversed=False):
     sortidx = np.array(list(sortidx))
     return sortidx
 
-def clean_SAAs(self):
+def clean_SAAs(self, saa_dict):
     """
     This is to save space - there is lots of (often duplicated) information
     stored within the SAAs - get rid of this.
     """
-    for i in range(len(self.rsaa)):
-        # Get the relavent SAA dictionary
-        saa_dict = self.saa_dict[i]
-        for j in range(len(saa_dict.keys())):
-            # get the relavent SAA
-            SAA = saa_dict[j]
-            if SAA.to_be_fit:
-                clean_up(SAA)
+
+    for j in range(len(saa_dict.keys())):
+        # get the relavent SAA
+        SAA = saa_dict[j]
+        if SAA.to_be_fit:
+            clean_up(SAA)

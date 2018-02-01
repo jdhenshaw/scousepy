@@ -150,3 +150,9 @@ def update_model_list(self, models):
     self._model_parent = None
     self._model_spatial = None
     self._models = models
+
+def update_model_list_remdup(self, models):
+    """
+    updates model list following removal of duplicates
+    """
+    self._models = models

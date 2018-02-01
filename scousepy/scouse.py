@@ -143,20 +143,27 @@ class scouse(object):
             else:
                 mom_zero = momzero.value
 
+            nref = self.nrefine
             for i, r in enumerate(self.rsaa, start=0):
+
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
                 if refine_grid:
                     mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
-                cc, ss, ids = define_coverage(self.cube, mom_zero, r, verbose)
+                cc, ss, ids = define_coverage(self.cube, mom_zero, r, nref, verbose, refine_grid=refine_grid)
+                nref -= 1.0
 
                 # Randomly select saas to be fit
                 if training_set:
                     self.sample = get_random_saa(cc, samplesize, r, verbose=verbose)
                     totfit = len(self.sample)
                 else:
-                    self.sample = range(len(cc[:,0]))
-                    totfit = len(cc[(np.isfinite(cc[:,0])),0])
+                    if not refine_grid:
+                        self.sample = range(len(cc[:,0]))
+                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
+                    else:
+                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
+                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
 
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
@@ -165,6 +172,7 @@ class scouse(object):
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
                         sample = speccount in self.sample
+
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
                                      idx=speccount, sample = sample, \
                                      scouse=self)
@@ -212,10 +220,12 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
-        count=0
 
         # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
+            firstfit=True
+            SAAid=0
+            count=0
             # Get the relavent SAA dictionary
             saa_dict = self.saa_dict[i]
             for j in range(len(saa_dict.keys())):
@@ -224,7 +234,9 @@ class scouse(object):
                 # If the SAA is to be fitted, pass it through the fitting
                 # process
                 if SAA.to_be_fit:
-                    bf = fitting(self, SAA, training_set=training_set)
+                    bf = fitting(self, SAA, saa_dict, SAAid, training_set=training_set, init_guess=firstfit)
+                    SAAid = SAA.index
+                    firstfit=False
                     count+=1
 
             midtime=time.time()
@@ -250,7 +262,6 @@ class scouse(object):
         This stage governs the automated fitting of the data
         """
 
-        # TODO: Allow for zero component fits
         # TODO: Add spatial fitting methodolgy
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
@@ -258,8 +269,9 @@ class scouse(object):
         # create the stage_2 directory
         mkdir_s3(self.outputdirectory, s3dir)
 
+        starttime = time.time()
         # initialise the dictionary containing all individual spectra
-        self.indiv_dict = {}
+        indiv_dictionaries = {}
 
         self.tolerances = np.array(tol)
         self.specres = self.cube.header['CDELT3']
@@ -269,13 +281,38 @@ class scouse(object):
 
         # Begin by preparing the spectra and adding them to the relavent SAA
         initialise_indiv_spectra(self)
-        # Fit the spectra
-        fit_indiv_spectra(self, model=model, spatial=spatial)
-        # Compile the spectra
-        compile_spectra(self, spatial=spatial)
-        # Clean things up a bit
-        if clear_cache:
-            clean_SAAs(self)
+
+        # Cycle through potentially multiple Rsaa values
+        for i in range(len(self.rsaa)):
+            # Get the relavent SAA dictionary
+            saa_dict = self.saa_dict[i]
+            indiv_dictionaries[i] = {}
+            # Fit the spectra
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, spatial=spatial, verbose=verbose)
+            # Compile the spectra
+            indiv_dict = indiv_dictionaries[i]
+            compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
+            # Clean things up a bit
+            if clear_cache:
+                clean_SAAs(self, saa_dict)
+
+        # merge multiple rsaa solutions into a single dictionary
+        merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)
+        # remove any duplicate entries
+        remove_duplicates(self, verbose=verbose)
+
+        for key in self.indiv_dict.keys():
+            spectrum = self.indiv_dict[key]
+            models = spectrum.models
+            models = np.asarray(models)
+            for i in range(len(models)):
+                print(models[i])
+                print(models[i].ncomps)
+            print("")
+
+        endtime = time.time()
+        if verbose:
+            progress_bar = print_to_terminal(stage='s3', step='end', t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
         return self

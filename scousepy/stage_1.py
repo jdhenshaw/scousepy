@@ -39,9 +39,9 @@ def get_moments(self, write_moments, dir, filename, verbose):
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax= np.argmax(slab._data, axis=0)
-        for i in range(momzero.shape[1]):
-            for j in range(momzero.shape[0]):
-                momnine[j,i]=slab.spectral_axis[idxmax[j,i]].value
+        momnine=slab.spectral_axis[idxmax].value
+        idnan = (np.isfinite(momtwo.value)==0)
+        momnine[idnan] = np.nan
         momnine = momnine * u.km/u.s
 
     # If no velocity limits are imposed
@@ -57,9 +57,9 @@ def get_moments(self, write_moments, dir, filename, verbose):
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax= np.argmax(slab._data, axis=0)
-        for i in range(momzero.shape[1]):
-            for j in range(momzero.shape[0]):
-                momnine[j,i]=slab.spectral_axis[idxmax[j,i]].value
+        momnine=slab.spectral_axis[idxmax].value
+        idnan = (np.isfinite(momtwo.value)==0)
+        momnine[idnan] = np.nan
         momnine = momnine * u.km/u.s
 
     # Write moments
@@ -87,7 +87,7 @@ def get_coverage(momzero, spacing):
 
     return cov_x, cov_y
 
-def define_coverage(cube, momzero, rsaa, verbose):
+def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
@@ -130,7 +130,11 @@ def define_coverage(cube, momzero, rsaa, verbose):
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
-            if fraction >= 0.5:
+            if refine_grid:
+                lim = 0.5/nrefine
+            else:
+                lim = 0.5
+            if fraction >= lim:
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
                 spec[:, idy, idx] = cube[:,
                                          min(limy):max(limy),
@@ -221,13 +225,16 @@ def generate_steps(self, delta_v):
     """
     Creates logarithmically spaced lag values for structure function computation
     """
-    median = np.median(delta_v)
+    median = np.nanmedian(delta_v)
     step_values = np.logspace(np.log10(median), \
-                              np.log10(np.max(delta_v)), \
+                              np.log10(np.nanmax(delta_v)), \
                               self.nrefine )
     return list(step_values)
 
 def refine_momzero(self, momzero, delta_v, minval, maxval):
+    """
+    Refines momzero based on upper/lower lims of delta_v
+    """
     mom_zero=None
     keep = ((delta_v >= minval) & (delta_v <= maxval))
     mom_zero = np.zeros(np.shape(momzero))
