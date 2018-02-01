@@ -165,15 +165,15 @@ def check_spec(self, parent_model, bf, happy):
     guesses = np.asarray(bf.params)
     condition_passed = np.zeros(3, dtype='bool')
     condition_passed, guesses = check_rms(self, bf, guesses, condition_passed)
-
     if condition_passed[0]:
         condition_passed, guesses = check_dispersion(self, bf, parent_model, guesses, condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
             condition_passed, guesses = check_velocity(self, bf, parent_model, guesses, condition_passed)
-            if np.all(condition_passed) and (bf.ncomps == 1):
-                happy = True
-            else:
-                happy, guesses = check_distinct(self, bf, parent_model, guesses, happy)
+            if np.all(condition_passed):
+                if (bf.ncomps == 1):
+                    happy = True
+                else:
+                    happy, guesses = check_distinct(self, bf, parent_model, guesses, happy)
 
     return happy, bf, guesses
 

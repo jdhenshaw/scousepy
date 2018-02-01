@@ -82,9 +82,8 @@ class scouse(object):
         fitting will be implemented.
         """
 
-        # TODO: Add optional refinement - base on peak vel versus mom1. refinement
-        # SAA size where this value is high - statistical - increase refinement
-        # based on deviation from mom1
+        # TODO: Check refinement - need to test this on multiple datasets to
+        # make sure it doesn't miss regions.
 
         self = scouse()
         self.filename = filename
@@ -210,6 +209,7 @@ class scouse(object):
         # user could fit the spectra in stages - minimise_tedium = True
         # TODO: Add an output option where the solutions are printed to file.
         # TODO: Allow for zero component fits
+        # TODO: rename output_ascii
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -263,10 +263,12 @@ class scouse(object):
         """
 
         # TODO: Add spatial fitting methodolgy
+        # TODO: Not sure if this needs the training set keyword
+        # TODO: Write out the best-fitting solutions?
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
-        # create the stage_2 directory
+        # create the stage_3 directory
         mkdir_s3(self.outputdirectory, s3dir)
 
         starttime = time.time()
@@ -306,6 +308,29 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s3', step='end', t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
+        return self
+
+    def stage_4(self, verbose = False):
+        """
+        In this stage we select the best fits out of those performed in stage 3.
+        """
+
+        s4dir = os.path.join(self.outputdirectory, 'stage_4')
+        self.stagedirs.append(s4dir)
+        # create the stage_4 directory
+        mkdir_s4(self.outputdirectory, s4dir)
+
+        starttime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s4', step='start')
+
+        endtime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s4', step='end', t1=starttime, t2=endtime)
+
+        self.complted_stages.append('s4')
         return self
 
     def __repr__(self):

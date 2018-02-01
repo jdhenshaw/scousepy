@@ -55,6 +55,16 @@ def mkdir_s3(outputdir, s3dir):
         # TODO: error handling
         pass
 
+def mkdir_s4(outputdir, s4dir):
+    """
+    Make the output directory for stage 3
+    """
+    if not os.path.exists(s4dir):
+        os.mkdir(s4dir)
+    else:
+        # TODO: error handling
+        pass
+
 def write_averaged_spectra(cube_header, saa_spectra, r, dir,
                            fits_fmatter='saa_cube_r{}.fits'):
     """
@@ -89,7 +99,7 @@ def output_moments(momzero, momone, momtwo, momnine, dir, filename):
 
 def output_ascii(self, outputdir):
     """
-    Outputs an ascii table containing the information for each cluster.
+    Outputs an ascii table containing the information for each fit.
     """
 
     for i in range(len(self.rsaa)):
