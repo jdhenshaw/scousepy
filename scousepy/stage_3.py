@@ -14,11 +14,13 @@ import warnings
 import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
+import multiprocessing as mp
 from astropy import log
 from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list, update_model_list_remdup
 from .saa_description import add_indiv_spectra, clean_up, merge_models
 from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
+
 
 def initialise_indiv_spectra(self):
     """
@@ -46,6 +48,73 @@ def initialise_indiv_spectra(self):
                     indiv_spectra[SAA.indices_flat[k]] = indiv_spec
                 add_indiv_spectra(SAA, indiv_spectra)
 
+def fitting_process_parent(self, k, SAA, rsaa, model = 'gaussian'):
+    """
+    The process used for fitting using parent SAA solution
+    """
+    spec=None
+    parent_model = SAA.model
+    # Shhh
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        # Key to access spectrum in dictionary
+        key = SAA.indices_flat[k]
+        # create the spectrum
+        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                              SAA.indiv_spectra[key].ytrim, \
+                              SAA.indiv_spectra[key].rms)
+        # Check the model
+        happy = False
+        initfit = True
+        while not happy:
+            if initfit:
+                guesses = np.asarray(parent_model.params)
+            if np.sum(guesses) != 0.0:
+                # Perform fit
+                spec.specfit(interactive=False, \
+                            xmin=self.ppv_vol[0], \
+                            xmax=self.ppv_vol[1], \
+                            fittype = model, \
+                            guesses = guesses)
+                # Gen best-fitting model
+                bf = fit(spec, idx=key, scouse=self)
+                # Check the output model, does it satisfy the
+                # conditions?
+                happy, bf, guesses = check_spec(self, parent_model, bf, happy)
+                initfit = False
+            else:
+                # If no satisfactory model can be found - fit
+                # a dud!
+                bf = fit(spec, idx=key, scouse=self, fit_dud=True)
+                happy = True
+
+    log.setLevel(old_log)
+    return bf
+
+def fitting_process_duds(self, k, SAA, rsaa, model = 'gaussian', spatial=False, verbose=False):
+    """
+    Fitting duds
+    """
+    spec=None
+    # Shhh
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        # Key to access spectrum in dictionary
+        key = SAA.indices_flat[k]
+        # create the spectrum
+        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                              SAA.indiv_spectra[key].ytrim, \
+                              SAA.indiv_spectra[key].rms)
+        bf = fit(spec, idx=key, scouse=self, fit_dud=True)
+    log.setLevel(old_log)
+    return bf
+
 def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, verbose=False):
     """
     automated fitting procedure for individual spectra
@@ -70,91 +139,24 @@ def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, v
         SAA = saa_dict[j]
         if SAA.to_be_fit:
             # get the parent
-            parent_model = SAA.model
-            # cycle through the spectra contained within this SAA
-            for k in range(len(SAA.indices_flat)):
-                spec=None
-                if verbose:
-                    progress_bar + 1
-                    progress_bar.show_progress()
-
-                # Shhh
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    old_log = log.level
-                    log.setLevel('ERROR')
-
-                    # Key to access spectrum in dictionary
-                    key = SAA.indices_flat[k]
-                    # create the spectrum
-                    spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                                          SAA.indiv_spectra[key].ytrim, \
-                                          SAA.indiv_spectra[key].rms)
-                    # Check the model
-                    happy = False
-                    initfit = True
-                    while not happy:
-                        if initfit:
-                            guesses = np.asarray(parent_model.params)
-                        if np.sum(guesses) != 0.0:
-                            # Perform fit
-                            spec.specfit(interactive=False, \
-                                        xmin=self.ppv_vol[0], \
-                                        xmax=self.ppv_vol[1], \
-                                        fittype = model, \
-                                        guesses = guesses)
-                            # Gen best-fitting model
-                            bf = fit(spec, idx=key, scouse=self)
-                            # Check the output model, does it satisfy the
-                            # conditions?
-                            happy, bf, guesses = check_spec(self, parent_model, bf, happy)
-                            initfit = False
-                        else:
-                            # If no satisfactory model can be found - fit
-                            # a dud!
-                            bf = fit(spec, idx=key, scouse=self, fit_dud=True)
-                            happy = True
-
-                    # Add the best-fitting model to the SAA
-                    add_model_parent(SAA.indiv_spectra[key], bf)
-                log.setLevel(old_log)
-            # At this point we have a fit to every spectrum within the SAA.
-            # This is where we could implement spatial fitting to complement
-            # the fits from the SAA models
-            if spatial:
-                # TODO: Implement spatial fitting
-                pass
+            pool = mp.Pool(processes=1)
+            results = [pool.apply(fitting_process_parent, args=(self, k, SAA, rsaa, model)) for k in range(len(SAA.indices_flat))]
+            # Add the best-fitting model to the SAA
+            #add_model_parent(SAA.indiv_spectra[key], bf)
+            print(results)
         else:
-            # If the SAA is not to be fit - need to fit some duds
-            for k in range(len(SAA.indices_flat)):
-                spec=None
-                if verbose:
-                    progress_bar + 1
-                    progress_bar.show_progress()
+            pool = mp.Pool(processes=1)
+            results = [pool.apply(fitting_process_dudes, args=(self, k, SAA, rsaa, model)) for k in range(len(SAA.indices_flat))]
+            print(results)
 
-                # Shhh
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    old_log = log.level
-                    log.setLevel('ERROR')
-
-                    # Key to access spectrum in dictionary
-                    key = SAA.indices_flat[k]
-                    # create the spectrum
-                    spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                                          SAA.indiv_spectra[key].ytrim, \
-                                          SAA.indiv_spectra[key].rms)
-                    bf = fit(spec, idx=key, scouse=self, fit_dud=True)
-                    # Add the best-fitting model to the SAA
-                    add_model_parent(SAA.indiv_spectra[key], bf)
-                log.setLevel(old_log)
+    sys.exit()
 
 def get_spec(self, x, y, rms):
     """
     Generate the spectrum
     """
     return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=self.cube.header['BUNIT'],\
+                              unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
 def check_spec(self, parent_model, bf, happy):

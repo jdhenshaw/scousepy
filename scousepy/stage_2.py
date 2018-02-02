@@ -100,4 +100,6 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
             bf = fitting(self, SAA, saa_dict, count, guesses=guesses,\
                          training_set=True, init_guess=init_guess)
 
+    spec=None
+    
     return bf

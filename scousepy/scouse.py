@@ -84,7 +84,6 @@ class scouse(object):
 
         # TODO: Check refinement - need to test this on multiple datasets to
         # make sure it doesn't miss regions.
-
         self = scouse()
         self.filename = filename
         self.rsaa = rsaa
