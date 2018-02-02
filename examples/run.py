@@ -30,6 +30,6 @@ def run_scousepy():
     s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
     s = scouse.stage_2(s, verbose=verb, training_set=TS, write_ascii=True)
     s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
-    s = scouse.stage_4(s, verbose=verbose)
+    s = scouse.stage_4(s, verbose=verb)
 
 run_scousepy()

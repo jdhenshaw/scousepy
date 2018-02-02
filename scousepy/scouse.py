@@ -330,7 +330,7 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s4', step='end', t1=starttime, t2=endtime)
 
-        self.complted_stages.append('s4')
+        self.completed_stages.append('s4')
         return self
 
     def __repr__(self):
