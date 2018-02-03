@@ -64,15 +64,14 @@ class scouse(object):
         self.training_set = None
         self.sample_size = None
         self.saa_spectra = None
-        self.coverage_coordinates = None
         self.saa_dict = None
         self.indiv_dict = None
+        self.key_set = None
         self.sample = None
         self.tolerances = None
         self.specres = None
         self.nrefine = None
         self.completed_stages = []
-        self.key_set = None
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
@@ -137,6 +136,7 @@ class scouse(object):
                 if verbose:
                     if np.size(self.rsaa) != self.nrefine:
                         raise ValueError('Rsaa < 1 pixel. Either increase Rsaa or decrease nrefine.')
+
                 delta_v = calculate_delta_v(self, momone, momnine)
                 # generate logarithmically spaced refinement steps
                 step_values = generate_steps(self, delta_v)
@@ -154,7 +154,7 @@ class scouse(object):
                     mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
                     _cc, _ss, _ids, _frac = define_coverage(self.cube, momzero.value, mom_zero, r, nref, verbose, redefine=True)
                 else:
-                    _cc, _ss, _ids, _frac = cc, ss, ids, frac
+                    _cc, _ss, _ids, _frape = cc, ss, ids, frac
                 nref -= 1.0
 
                 # Randomly select saas to be fit
@@ -303,7 +303,7 @@ class scouse(object):
 
         # At this stage there are multiple key sets - 1 for each rsaa value
         # compile into one.
-        compile_key_sets(self)
+        compile_key_sets(self, key_set)
 
         # merge multiple rsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)

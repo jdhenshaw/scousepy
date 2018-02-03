@@ -19,7 +19,7 @@ def run_scousepy():
     # Tolerances for stage_3
     tol              = [3.0, 2.0, 1.5, 1.5, 0.5]
     # Spectral resolution
-    specres          = 1.7
+    specres          = 0.07
 
     RG = True
     nRG = 2.
@@ -27,15 +27,14 @@ def run_scousepy():
     verb = True
 
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=True)
-    #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
-    #s = scouse.stage_2(s, verbose=verb, training_set=TS, write_ascii=True)
-    #s.save_to(datadirectory+filename+'/stage_2/s2.scousepy')
-    #s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
-    #s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
-    #s.save_to(datadirectory+filename+'/stage_3/s3.scousepy')
-    #s = scouse.load_from(datadirectory+filename+'/stage_3/s3.scousepy')
-    #s = scouse.stage_4(s, verbose=verb)
-    #s.save_to(datadirectory+filename+'/stage_4/s4.scousepy')
-    s = scouse.load_from(datadirectory+filename+'/stage_4/s4.scousepy')
+    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, verbose = verb, training_set=TS, samplesize=1, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
+    s.save_to(datadirectory+filename+'/stage_1/s1.scousepy')
+    s = scouse.stage_2(s, verbose=verb, training_set=TS, write_ascii=True)
+    s.save_to(datadirectory+filename+'/stage_2/s2.scousepy')
+    s = scouse.stage_3(s, tol, verbose=verb, training_set=TS)
+    s.save_to(datadirectory+filename+'/stage_3/s3.scousepy')
+    s = scouse.stage_4(s, verbose=verb)
+    s.save_to(datadirectory+filename+'/stage_4/s4.scousepy')
+    #s = scouse.load_from(datadirectory+filename+'/stage_4/s4.scousepy')
 
 run_scousepy()

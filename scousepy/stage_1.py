@@ -96,9 +96,10 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
     spacing = rsaa/2.
     cov_x, cov_y = get_coverage(momzero, spacing)
 
+    maxspecinsaa = int((rsaa*3)**2)
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
-    ids = np.full([len(cov_y)*len(cov_x),cube.shape[2]*cube.shape[1], 2], np.nan)
+    ids = np.full([len(cov_y)*len(cov_x), maxspecinsaa, 2], np.nan)
     frac = np.full([len(cov_y)*len(cov_x)], np.nan)
 
     count= 0.0
@@ -128,22 +129,24 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
         momzero_cutout = momzero_mod[min(limy):max(limy),
                                      min(limx):max(limx)]
 
+        cube_cutout = cube._data[:,min(limy):max(limy), min(limx):max(limx)]
+
         finite = np.isfinite(momzero_cutout)
         nmask = np.count_nonzero(finite)
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
             if redefine:
-                lim = 0.5/nrefine
+                lim = 0.6/nrefine
             else:
                 lim = 0.5
             if fraction >= lim:
                 frac[idy+(idx*len(cov_y))] = fraction
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
-                spec[:, idy, idx] = cube[:,
-                                         min(limy):max(limy),
-                                         min(limx):max(limx)].mean(axis=(1,2))
+                if not redefine:
+                    spec[:, idy, idx] = np.nanmean(cube_cutout, axis=(1,2))
                 count=0
+
                 for i in rangex:
                     for j in rangey:
                         ids[idy+(idx*len(cov_y)), count, 0],\
@@ -199,13 +202,14 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
     cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
     for i, r in enumerate(rsaa, start=0):
+        alpha = 0.1+(0.05*int(i))
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
                             (dict[i][j].coordinates[0] - r, \
                              dict[i][j].coordinates[1] - r),\
                              r * 2., r * 2., facecolor=cols[i],
-                             edgecolor=cols[i], lw=0.1, alpha=0.1))
+                             edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
                             (dict[i][j].coordinates[0] - r, \
                              dict[i][j].coordinates[1] - r),\

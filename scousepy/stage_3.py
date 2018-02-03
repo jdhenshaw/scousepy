@@ -417,10 +417,10 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
     # this is the complete list of all spectra included in all dictionaries
     key_set = set(key_arr)
     key_set = list(key_set)
-    
+
     return key_set
 
-def compile_key_sets(self):
+def compile_key_sets(self, key_set):
     """
     Returns unqiue keys
     """
