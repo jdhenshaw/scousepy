@@ -21,6 +21,11 @@ import sys
 import warnings
 import shutil
 import time
+import pickle
+if sys.version_info.major >= 3:
+    proto=3
+else:
+    proto=2
 
 def mkdir_s1(outputdir, s1dir):
     """
@@ -51,6 +56,16 @@ def mkdir_s3(outputdir, s3dir):
     """
     if not os.path.exists(s3dir):
         os.mkdir(s3dir)
+    else:
+        # TODO: error handling
+        pass
+
+def mkdir_s4(outputdir, s4dir):
+    """
+    Make the output directory for stage 3
+    """
+    if not os.path.exists(s4dir):
+        os.mkdir(s4dir)
     else:
         # TODO: error handling
         pass
@@ -89,7 +104,7 @@ def output_moments(momzero, momone, momtwo, momnine, dir, filename):
 
 def output_ascii(self, outputdir):
     """
-    Outputs an ascii table containing the information for each cluster.
+    Outputs an ascii table containing the information for each fit.
     """
 
     for i in range(len(self.rsaa)):
@@ -136,4 +151,16 @@ def make_table(saa_dict, headings=None):
         table[headings[j]] = Column(solnarr[j,:])
 
     return table
-    sys.exit()
+
+def save(self, filename):
+    """
+    Saves the output file - requires pickle.
+    """
+    pickle.dump( self, open( filename, "wb" ), protocol=proto )
+
+def load(filename):
+    """
+    Loads a previously computed file - requires pickle.
+    """
+    loadedfile = pickle.load( open(filename, "rb"))
+    return loadedfile

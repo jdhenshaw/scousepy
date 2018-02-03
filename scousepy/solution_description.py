@@ -21,20 +21,30 @@ class fit(object):
         """
 
         self._index = idx
-        self._ncomps = spec.specfit.npeaks
-        self._params = spec.specfit.modelpars
-        self._errors = spec.specfit.modelerrs
-        self._rms = spec.error[0]
-        self._residuals = spec.specfit.residuals
-        self._residstd = None
-        self._chi2 = spec.specfit.chi2
-        self._dof = spec.specfit.dof
-        self._redchi2 = spec.specfit.chi2/spec.specfit.dof
-        self._aic = get_aic(self, spec)
-        self._tau = None
 
         if fit_dud:
-            fit_dud_soln(self, spec, idx, scouse)
+            self._ncomps = 0.0
+            self._params = [0.0, 0.0, 0.0]
+            self._errors = [0.0, 0.0, 0.0]
+            self._residuals = spec.data
+            self._chi2 = 0.0
+            self._redchi2 = 0.0
+            self._aic = 0.0
+            self._tau = 0.0
+
+        else:
+            self._ncomps = spec.specfit.npeaks
+            self._params = spec.specfit.modelpars
+            self._errors = spec.specfit.modelerrs
+            self._residuals = spec.specfit.residuals
+            self._chi2 = spec.specfit.chi2
+            self._dof = spec.specfit.dof
+            self._redchi2 = spec.specfit.chi2/spec.specfit.dof
+            self._aic = get_aic(self, spec)
+            self._tau = None
+
+        self._residstd = None
+        self._rms = spec.error[0]
 
     @property
     def index(self):
@@ -125,7 +135,7 @@ def fit_dud_soln(self, spec, idx=None, scouse=None):
     """
     If no satisfactory fit can be obtained set values to none
     """
-    self._ncomps = 0
+    self._ncomps = 0.0
     self._params = [0.0, 0.0, 0.0]
     self._errors = [0.0, 0.0, 0.0]
     self._residuals = spec.data

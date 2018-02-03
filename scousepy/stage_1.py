@@ -87,7 +87,7 @@ def get_coverage(momzero, spacing):
 
     return cov_x, cov_y
 
-def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
+def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
@@ -96,16 +96,20 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     spacing = rsaa/2.
     cov_x, cov_y = get_coverage(momzero, spacing)
 
+    maxspecinsaa = int((rsaa*3)**2)
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
-    ids = np.full([len(cov_y)*len(cov_x),cube.shape[2]*cube.shape[1], 2], np.nan)
+    ids = np.full([len(cov_y)*len(cov_x), maxspecinsaa, 2], np.nan)
+    frac = np.full([len(cov_y)*len(cov_x)], np.nan)
 
     count= 0.0
-    if verbose:
-        progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
+    if not redefine:
+        if verbose:
+            progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
 
     for cx,cy in itertools.product(cov_x, cov_y):
-        if verbose and (count % 1 == 0):
+        if not redefine:
+            if verbose and (count % 1 == 0):
                 progress_bar + 1
                 progress_bar.show_progress()
 
@@ -122,24 +126,27 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
         rangex = range(min(limx), max(limx)+1)
         rangey = range(min(limy), max(limy)+1)
 
-        momzero_cutout = momzero[min(limy):max(limy),
-                                 min(limx):max(limx)]
+        momzero_cutout = momzero_mod[min(limy):max(limy),
+                                     min(limx):max(limx)]
+
+        cube_cutout = cube._data[:,min(limy):max(limy), min(limx):max(limx)]
 
         finite = np.isfinite(momzero_cutout)
         nmask = np.count_nonzero(finite)
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
-            if refine_grid:
-                lim = 0.5/nrefine
+            if redefine:
+                lim = 0.6/nrefine
             else:
                 lim = 0.5
             if fraction >= lim:
+                frac[idy+(idx*len(cov_y))] = fraction
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
-                spec[:, idy, idx] = cube[:,
-                                         min(limy):max(limy),
-                                         min(limx):max(limx)].mean(axis=(1,2))
+                if not redefine:
+                    spec[:, idy, idx] = np.nanmean(cube_cutout, axis=(1,2))
                 count=0
+
                 for i in rangex:
                     for j in rangey:
                         ids[idy+(idx*len(cov_y)), count, 0],\
@@ -148,7 +155,7 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     if verbose:
         print('')
 
-    return coverage, spec, ids
+    return coverage, spec, ids, frac
 
 def get_rsaa(self):
     rsaa = []
@@ -195,13 +202,14 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
     cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
     for i, r in enumerate(rsaa, start=0):
+        alpha = 0.1+(0.05*int(i))
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
                             (dict[i][j].coordinates[0] - r, \
                              dict[i][j].coordinates[1] - r),\
                              r * 2., r * 2., facecolor=cols[i],
-                             edgecolor=cols[i], lw=0.1, alpha=0.1))
+                             edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
                             (dict[i][j].coordinates[0] - r, \
                              dict[i][j].coordinates[1] - r),\

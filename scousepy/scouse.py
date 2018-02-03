@@ -28,6 +28,7 @@ warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 from .stage_1 import *
 from .stage_2 import *
 from .stage_3 import *
+from .stage_4 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids, add_flat_ids
@@ -63,9 +64,9 @@ class scouse(object):
         self.training_set = None
         self.sample_size = None
         self.saa_spectra = None
-        self.coverage_coordinates = None
         self.saa_dict = None
         self.indiv_dict = None
+        self.key_set = None
         self.sample = None
         self.tolerances = None
         self.specres = None
@@ -82,9 +83,8 @@ class scouse(object):
         fitting will be implemented.
         """
 
-        # TODO: Add optional refinement - base on peak vel versus mom1. refinement
-        # SAA size where this value is high - statistical - increase refinement
-        # based on deviation from mom1
+        # TODO: Check refinement - need to test this on multiple datasets to
+        # make sure it doesn't miss regions.
 
         self = scouse()
         self.filename = filename
@@ -136,6 +136,7 @@ class scouse(object):
                 if verbose:
                     if np.size(self.rsaa) != self.nrefine:
                         raise ValueError('Rsaa < 1 pixel. Either increase Rsaa or decrease nrefine.')
+
                 delta_v = calculate_delta_v(self, momone, momnine)
                 # generate logarithmically spaced refinement steps
                 step_values = generate_steps(self, delta_v)
@@ -148,9 +149,12 @@ class scouse(object):
 
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
+                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, momzero.value, r, 1.0, verbose)
                 if refine_grid:
                     mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
-                cc, ss, ids = define_coverage(self.cube, mom_zero, r, nref, verbose, refine_grid=refine_grid)
+                    _cc, _ss, _ids, _frac = define_coverage(self.cube, momzero.value, mom_zero, r, nref, verbose, redefine=True)
+                else:
+                    _cc, _ss, _ids, _frape = cc, ss, ids, frac
                 nref -= 1.0
 
                 # Randomly select saas to be fit
@@ -162,8 +166,8 @@ class scouse(object):
                         self.sample = range(len(cc[:,0]))
                         totfit = len(cc[(np.isfinite(cc[:,0])),0])
                     else:
-                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
-                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
+                        self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
+                        totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
@@ -172,7 +176,6 @@ class scouse(object):
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
                         sample = speccount in self.sample
-
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
                                      idx=speccount, sample = sample, \
                                      scouse=self)
@@ -181,10 +184,6 @@ class scouse(object):
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
                         add_flat_ids(SAA, scouse=self)
-
-                if verbose:
-                    print("")
-
             log.setLevel(old_log)
 
         if save_fig:
@@ -210,6 +209,7 @@ class scouse(object):
         # user could fit the spectra in stages - minimise_tedium = True
         # TODO: Add an output option where the solutions are printed to file.
         # TODO: Allow for zero component fits
+        # TODO: rename output_ascii
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -223,6 +223,7 @@ class scouse(object):
 
         # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
+            fittime = time.time()
             firstfit=True
             SAAid=0
             count=0
@@ -242,7 +243,7 @@ class scouse(object):
             midtime=time.time()
             if verbose:
                 progress_bar = print_to_terminal(stage='s2', step='mid', \
-                                                 length=count, t1=starttime, \
+                                                 length=count, t1=fittime, \
                                                  t2=midtime)
         if write_ascii:
             output_ascii(self, s2dir)
@@ -263,10 +264,12 @@ class scouse(object):
         """
 
         # TODO: Add spatial fitting methodolgy
+        # TODO: Not sure if this needs the training set keyword
+        # TODO: Write out the best-fitting solutions?
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
-        # create the stage_2 directory
+        # create the stage_3 directory
         mkdir_s3(self.outputdirectory, s3dir)
 
         starttime = time.time()
@@ -282,6 +285,7 @@ class scouse(object):
         # Begin by preparing the spectra and adding them to the relavent SAA
         initialise_indiv_spectra(self)
 
+        key_set = []
         # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
             # Get the relavent SAA dictionary
@@ -291,10 +295,15 @@ class scouse(object):
             fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
-            compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
+            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
             # Clean things up a bit
             if clear_cache:
                 clean_SAAs(self, saa_dict)
+            key_set.append(_key_set)
+
+        # At this stage there are multiple key sets - 1 for each rsaa value
+        # compile into one.
+        compile_key_sets(self, key_set)
 
         # merge multiple rsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)
@@ -308,9 +317,55 @@ class scouse(object):
         self.completed_stages.append('s3')
         return self
 
+    def stage_4(self, verbose = False):
+        """
+        In this stage we select the best fits out of those performed in stage 3.
+        """
+
+        s4dir = os.path.join(self.outputdirectory, 'stage_4')
+        self.stagedirs.append(s4dir)
+        # create the stage_4 directory
+        mkdir_s4(self.outputdirectory, s4dir)
+
+        starttime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s4', step='start')
+
+        # select the best model out of those available - i.e. that with the
+        # lowest aic value
+        select_best_model(self)
+
+        endtime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s4', step='end', t1=starttime, t2=endtime)
+
+        self.completed_stages.append('s4')
+        return self
+
     def __repr__(self):
         """
         Return a nice printable format for the object.
         """
 
         return "<< scousepy object; stages_completed={} >>".format(self.completed_stages)
+
+#==============================================================================#
+# io
+#==============================================================================#
+
+    def save_to(self, filename):
+        """
+        Saves an output file
+        """
+        from .io import save
+        return save(self, filename)
+
+    @staticmethod
+    def load_from(filename):
+        """
+        Loads a previously computed scousepy file
+        """
+        from .io import load
+        return load(filename)
