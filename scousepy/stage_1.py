@@ -87,7 +87,7 @@ def get_coverage(momzero, spacing):
 
     return cov_x, cov_y
 
-def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
+def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
@@ -99,13 +99,16 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
     ids = np.full([len(cov_y)*len(cov_x),cube.shape[2]*cube.shape[1], 2], np.nan)
+    frac = np.full([len(cov_y)*len(cov_x)], np.nan)
 
     count= 0.0
-    if verbose:
-        progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
+    if not redefine:
+        if verbose:
+            progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
 
     for cx,cy in itertools.product(cov_x, cov_y):
-        if verbose and (count % 1 == 0):
+        if not redefine:
+            if verbose and (count % 1 == 0):
                 progress_bar + 1
                 progress_bar.show_progress()
 
@@ -122,19 +125,20 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
         rangex = range(min(limx), max(limx)+1)
         rangey = range(min(limy), max(limy)+1)
 
-        momzero_cutout = momzero[min(limy):max(limy),
-                                 min(limx):max(limx)]
+        momzero_cutout = momzero_mod[min(limy):max(limy),
+                                     min(limx):max(limx)]
 
         finite = np.isfinite(momzero_cutout)
         nmask = np.count_nonzero(finite)
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
-            if refine_grid:
+            if redefine:
                 lim = 0.5/nrefine
             else:
                 lim = 0.5
             if fraction >= lim:
+                frac[idy+(idx*len(cov_y))] = fraction
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
                 spec[:, idy, idx] = cube[:,
                                          min(limy):max(limy),
@@ -148,7 +152,7 @@ def define_coverage(cube, momzero, rsaa, nrefine, verbose, refine_grid=False):
     if verbose:
         print('')
 
-    return coverage, spec, ids
+    return coverage, spec, ids, frac
 
 def get_rsaa(self):
     rsaa = []

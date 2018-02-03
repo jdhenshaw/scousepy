@@ -21,6 +21,11 @@ import sys
 import warnings
 import shutil
 import time
+import pickle
+if sys.version_info.major >= 3:
+    proto=3
+else:
+    proto=2
 
 def mkdir_s1(outputdir, s1dir):
     """
@@ -146,4 +151,16 @@ def make_table(saa_dict, headings=None):
         table[headings[j]] = Column(solnarr[j,:])
 
     return table
-    sys.exit()
+
+def save(self, filename):
+    """
+    Saves the output file - requires pickle.
+    """
+    pickle.dump( self, open( filename, "wb" ), protocol=proto )
+
+def load(filename):
+    """
+    Loads a previously computed file - requires pickle.
+    """
+    loadedfile = pickle.load( open(filename, "rb"))
+    return loadedfile

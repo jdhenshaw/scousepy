@@ -28,6 +28,7 @@ warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 from .stage_1 import *
 from .stage_2 import *
 from .stage_3 import *
+from .stage_4 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids, add_flat_ids
@@ -71,6 +72,7 @@ class scouse(object):
         self.specres = None
         self.nrefine = None
         self.completed_stages = []
+        self.key_set = None
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
@@ -147,9 +149,12 @@ class scouse(object):
 
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
+                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, momzero.value, r, 1.0, verbose)
                 if refine_grid:
                     mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
-                cc, ss, ids = define_coverage(self.cube, mom_zero, r, nref, verbose, refine_grid=refine_grid)
+                    _cc, _ss, _ids, _frac = define_coverage(self.cube, momzero.value, mom_zero, r, nref, verbose, redefine=True)
+                else:
+                    _cc, _ss, _ids, _frac = cc, ss, ids, frac
                 nref -= 1.0
 
                 # Randomly select saas to be fit
@@ -161,8 +166,8 @@ class scouse(object):
                         self.sample = range(len(cc[:,0]))
                         totfit = len(cc[(np.isfinite(cc[:,0])),0])
                     else:
-                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
-                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
+                        self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
+                        totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
@@ -171,7 +176,6 @@ class scouse(object):
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
                         sample = speccount in self.sample
-
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
                                      idx=speccount, sample = sample, \
                                      scouse=self)
@@ -180,10 +184,6 @@ class scouse(object):
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
                         add_flat_ids(SAA, scouse=self)
-
-                if verbose:
-                    print("")
-
             log.setLevel(old_log)
 
         if save_fig:
@@ -223,6 +223,7 @@ class scouse(object):
 
         # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
+            fittime = time.time()
             firstfit=True
             SAAid=0
             count=0
@@ -242,7 +243,7 @@ class scouse(object):
             midtime=time.time()
             if verbose:
                 progress_bar = print_to_terminal(stage='s2', step='mid', \
-                                                 length=count, t1=starttime, \
+                                                 length=count, t1=fittime, \
                                                  t2=midtime)
         if write_ascii:
             output_ascii(self, s2dir)
@@ -284,6 +285,7 @@ class scouse(object):
         # Begin by preparing the spectra and adding them to the relavent SAA
         initialise_indiv_spectra(self)
 
+        key_set = []
         # Cycle through potentially multiple Rsaa values
         for i in range(len(self.rsaa)):
             # Get the relavent SAA dictionary
@@ -293,10 +295,15 @@ class scouse(object):
             fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
-            compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
+            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
             # Clean things up a bit
             if clear_cache:
                 clean_SAAs(self, saa_dict)
+            key_set.append(_key_set)
+
+        # At this stage there are multiple key sets - 1 for each rsaa value
+        # compile into one.
+        compile_key_sets(self)
 
         # merge multiple rsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)
@@ -325,6 +332,10 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s4', step='start')
 
+        # select the best model out of those available - i.e. that with the
+        # lowest aic value
+        select_best_model(self)
+
         endtime = time.time()
 
         if verbose:
@@ -339,3 +350,22 @@ class scouse(object):
         """
 
         return "<< scousepy object; stages_completed={} >>".format(self.completed_stages)
+
+#==============================================================================#
+# io
+#==============================================================================#
+
+    def save_to(self, filename):
+        """
+        Saves an output file
+        """
+        from .io import save
+        return save(self, filename)
+
+    @staticmethod
+    def load_from(filename):
+        """
+        Loads a previously computed scousepy file
+        """
+        from .io import load
+        return load(filename)

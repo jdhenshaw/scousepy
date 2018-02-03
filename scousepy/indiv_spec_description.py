@@ -143,6 +143,12 @@ def add_model_spatial(self, model):
     """
     self._model_spatial = model
 
+def add_bf_model(self, model):
+    """
+    Selected best fit model solution
+    """
+    self._model = model
+
 def update_model_list(self, models):
     """
     Compiles all models

@@ -35,16 +35,17 @@ def initialise_indiv_spectra(self):
             SAA = saa_dict[j]
             # Initialise indiv spectra
             indiv_spectra = {}
-            if SAA.to_be_fit:
-                for k in range(len(SAA.indices_flat)):
-                    indiv_spec = spectrum(np.array([SAA.indices[k,0], \
-                                          SAA.indices[k,1]]), \
-                                          self.cube._data[:,SAA.indices[k,0], \
-                                          SAA.indices[k,1]], \
-                                          idx=SAA.indices_flat[k], \
-                                          scouse=self)
-                    indiv_spectra[SAA.indices_flat[k]] = indiv_spec
-                add_indiv_spectra(SAA, indiv_spectra)
+
+            for k in range(len(SAA.indices_flat)):
+                indiv_spec = spectrum(np.array([SAA.indices[k,0], \
+                                      SAA.indices[k,1]]), \
+                                      self.cube._data[:,SAA.indices[k,0], \
+                                      SAA.indices[k,1]], \
+                                      idx=SAA.indices_flat[k], \
+                                      scouse=self)
+                indiv_spectra[SAA.indices_flat[k]] = indiv_spec
+            add_indiv_spectra(SAA, indiv_spectra)
+
 
 def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, verbose=False):
     """
@@ -152,7 +153,6 @@ def fitting_process_duds(self, key, SAA, rsaa, model = 'gaussian', spatial=False
         warnings.simplefilter('ignore')
         old_log = log.level
         log.setLevel('ERROR')
-
         # create the spectrum
         spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
                               SAA.indiv_spectra[key].ytrim, \
@@ -367,12 +367,12 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
     for j in range(len(saa_dict.keys())):
         # get the relavent SAA
         SAA = saa_dict[j]
-        if SAA.to_be_fit:
+        #if SAA.to_be_fit:
             # Get indiv dict
-            indiv_spectra = SAA.indiv_spectra
-            for key in indiv_spectra.keys():
-                key_list.append(key)
-                model_list.append(indiv_spectra[key])
+        indiv_spectra = SAA.indiv_spectra
+        for key in indiv_spectra.keys():
+            key_list.append(key)
+            model_list.append(indiv_spectra[key])
 
     # sort the lists
     key_arr = np.array(key_list)
@@ -414,6 +414,24 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
                 update_model_list(spectrum, model_list)
                 indiv_dict[key] = spectrum
 
+    # this is the complete list of all spectra included in all dictionaries
+    key_set = set(key_arr)
+    key_set = list(key_set)
+    
+    return key_set
+
+def compile_key_sets(self):
+    """
+    Returns unqiue keys
+    """
+    if len(self.rsaa) == 1:
+        key_set=key_set[0]
+        self.key_set = key_set
+    else:
+        key_set = [key for keys in key_set for key in keys]
+        key_set = set(key_set)
+        self.key_set = list(key_set)
+
 def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
     """
     There is now a dictionary for each Rsaa - merge these into a single one
@@ -422,21 +440,40 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
     if verbose:
         progress_bar = print_to_terminal(stage='s3', step='merge', length=0)
 
+    main_dict={}
     if len(self.rsaa)>1:
-        main_dictionary = indiv_dictionaries[0]
+        for key in self.key_set:
+            # Search dictionaries for found keys
+            keyfound = np.zeros(len(self.rsaa), dtype='bool')
+            for i in range(len(indiv_dictionaries.keys())):
+                if key in indiv_dictionaries[i]:
+                    keyfound[i] = True
 
-        for i in range(self.cube.shape[2]*self.cube.shape[1]):
-            # get model solutions
-            main_spectrum = main_dictionary[i]
-            # Cycle through potentially multiple Rsaa values
-            for j in range(1, len(self.rsaa)):
-                # Get the relavent dictionary
-                dictionary = indiv_dictionaries[j]
-                spectrum = dictionary[i]
-                merge_models(main_spectrum, spectrum)
-        self.indiv_dict = main_dictionary
+            # If the key is found take the first spectrum and add to the new
+            # dictionary
+            idx = list(np.squeeze(np.where(keyfound==True)))
+            if np.size(idx)==1:
+                main_dict[key] = indiv_dictionaries[idx][key]
+                idx.remove(idx)
+            else:
+                main_dict[key] = indiv_dictionaries[idx[0]][key]
+                idx.remove(idx[0])
+
+            # Get the main spectrum
+            main_spectrum = main_dict[key]
+            # Merge spectra from other dictionaries into main_dict
+
+            if np.size(idx) != 0:
+                for i in idx:
+                    dictionary = indiv_dictionaries[i]
+                    spectrum = dictionary[key]
+                    merge_models(main_spectrum, spectrum)
+
+        # Return this new dictionary
+        self.indiv_dict = main_dict
     else:
         main_dictionary = indiv_dictionaries[0]
+        # Return this new dictionary
         self.indiv_dict = main_dictionary
 
 def remove_duplicates(self, verbose):
