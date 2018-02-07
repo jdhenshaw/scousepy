@@ -12,8 +12,10 @@ import numpy as np
 import itertools
 import matplotlib.pyplot as plt
 import sys
+from matplotlib import pyplot
+from matplotlib.patches import Rectangle
 
-
+from .stage_5 import *
 
 def get_offsets(radius_pix):
     """
@@ -58,3 +60,60 @@ def neighbours(n_dim, idx, radius_pix):
     indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), np.flip(n_dim, 0)) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
 
     return indices_adjacent
+
+def plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian'):
+    """
+    Plot neighbours and their model solutions
+    """
+    npix = np.size(indices_adjacent)
+
+    # Set up figure page
+    fig, ax = pyplot.subplots(int(np.sqrt(npix)), int(np.sqrt(npix)), figsize=figsize)
+    fig.canvas.mpl_connect('key_press_event', keyentry)
+    fig.patch.set_facecolor('black')
+    fig.patch.set_alpha(0.05)
+    plt.suptitle("Checking spectrum and its neighbours. Press 'enter' to continue.")
+    ax = np.asarray(ax)
+    ax = ax.T
+    ax = np.flip(ax,1)
+    ax = [a for axis in ax for a in axis]
+
+    for i, key in enumerate(indices_adjacent, start=0):
+
+        if np.isfinite(key):
+
+            # Get the correct subplot axis
+            axis = ax[i]
+            # First plot the Spectrum
+            axis.plot(self.indiv_dict[key].xtrim, self.indiv_dict[key].ytrim, 'k-', drawstyle='steps', lw=1)
+            # Recreate the model from information held in the solution
+            # description
+            mod = recreate_model(self, key, model=model)
+            # now overplot the model
+            if self.indiv_dict[key].model.ncomps == 0.0:
+                axis.plot(self.indiv_dict[key].xtrim, mod[:,0], 'b-', lw=1)
+            else:
+                for k in range(int(self.indiv_dict[key].model.ncomps)):
+                    axis.plot(self.indiv_dict[key].xtrim, mod[:,k], 'b-', lw=1)
+
+            if i != round((npix/2)-0.5):
+                axis.patch.set_facecolor('blue')
+                axis.patch.set_alpha(0.1)
+        else:
+            # Get the correct subplot axis
+            axis = ax[i]
+            axis.plot(0.5, 0.5, 'kX', transform=axis.transAxes, ms=10)
+            axis.patch.set_facecolor('blue')
+            axis.patch.set_alpha(0.1)
+
+    pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
+    pyplot.show()
+
+def keyentry(event):
+    """
+    What happens following a key entry
+    """
+
+    if event.key == 'enter':
+        plt.close()
+        return

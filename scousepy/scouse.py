@@ -382,7 +382,7 @@ class scouse(object):
 
         return self
 
-    def stage_6(self, plot_neighbours=False, radius_pix=1, verbose=False ):
+    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], model='gaussian', verbose=False ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -397,13 +397,12 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='start')
 
-        if plot_neighbours:
-            # Find the neighbours
-            indices_adjacent = neighbours(np.shape(self.cube)[1:3], 0, radius_pix)
-            # plot the neighbours
-
-            print(indices_adjacent)
-
+        for key in self.check_spec_indices:
+            if plot_neighbours:
+                # Find the neighbours
+                indices_adjacent = neighbours(np.shape(self.cube)[1:3], int(key), radius_pix)
+                # plot the neighbours
+                plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian')
 
         endtime = time.time()
 
