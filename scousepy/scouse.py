@@ -30,6 +30,7 @@ from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
 from .stage_5 import interactive_plot
+from .stage_6 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids, add_flat_ids
@@ -381,7 +382,7 @@ class scouse(object):
 
         return self
 
-    def stage_6(self, verbose=False):
+    def stage_6(self, plot_neighbours=False, radius_pix=1, verbose=False ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -396,7 +397,13 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='start')
 
-        
+        if plot_neighbours:
+            # Find the neighbours
+            indices_adjacent = neighbours(np.shape(self.cube)[1:3], 0, radius_pix)
+            # plot the neighbours
+
+            print(indices_adjacent)
+
 
         endtime = time.time()
 
