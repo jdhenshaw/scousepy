@@ -106,10 +106,28 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("Beginning stage_4 analysis...")
             print("")
             progress_bar=[]
-            
+
         if step=='end':
             print("")
             print('scousepy stage 4 completed in: {0} minutes'.format((t2-t1)/60.))
+            print("")
+            progress_bar=[]
+
+    if stage=='s5':
+        if step=='start':
+            print("")
+            print("Beginning stage_5 analysis...")
+            print("")
+            progress_bar=[]
+
+        if step=='end':
+            print("")
+            if var == 1:
+                print("A single spectrum has been chosen for inspection.".format(var))
+            else:
+                print("A total of {0} spectra have been chosen for inspection.".format(var))
+            print("")
+            print('scousepy stage 5 completed in: {0} minutes'.format((t2-t1)/60.))
             print("")
             progress_bar=[]
 

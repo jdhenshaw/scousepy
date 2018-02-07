@@ -29,6 +29,7 @@ from .stage_1 import *
 from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
+from .stage_5 import interactive_plot
 from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids, add_flat_ids
@@ -71,6 +72,7 @@ class scouse(object):
         self.tolerances = None
         self.specres = None
         self.nrefine = None
+        self.check_spec_indices = []
         self.completed_stages = []
 
     @staticmethod
@@ -210,6 +212,7 @@ class scouse(object):
         # TODO: Add an output option where the solutions are printed to file.
         # TODO: Allow for zero component fits
         # TODO: rename output_ascii
+        # TODO: Need to add 'npars' and what they are to the fit information
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -266,6 +269,7 @@ class scouse(object):
         # TODO: Add spatial fitting methodolgy
         # TODO: Not sure if this needs the training set keyword
         # TODO: Write out the best-fitting solutions?
+        # TODO: Need to add 'npars' and what they are to the fit information s
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -342,6 +346,40 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s4', step='end', t1=starttime, t2=endtime)
 
         self.completed_stages.append('s4')
+        return self
+
+    def stage_5(self, blocksize = 6, figsize = None, model = 'gaussian', verbose=False):
+        """
+        In this stage the user is required to check the best-fitting solutions
+        """
+
+        # TODO: Need to make general for different models - here we use
+        # pyspeckit to reverse engineer the model and plot it. That requires
+        # scouse to know what model was being fitted in the first place.
+        # TODO: Need to go back to stages 2 and 3 and add model type and
+        # parameter list to the solution description - that way it *should be*
+        # easy to reverse engineer the model.
+
+        s5dir = os.path.join(self.outputdirectory, 'stage_5')
+        self.stagedirs.append(s5dir)
+        # create the stage_5 directory
+        mkdir_s5(self.outputdirectory, s5dir)
+
+        starttime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s5', step='start')
+
+        saa_dict = self.saa_dict[0]
+        self.check_spec_indices = interactive_plot(self, blocksize, figsize, model)
+
+        endtime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s5', step='end', t1=starttime, t2=endtime, var=np.size(self.check_spec_indices))
+
+        self.completed_stages.append('s5')
+
         return self
 
     def __repr__(self):
