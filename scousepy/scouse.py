@@ -370,7 +370,6 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
 
-        saa_dict = self.saa_dict[0]
         self.check_spec_indices = interactive_plot(self, blocksize, figsize, model)
 
         endtime = time.time()
@@ -379,6 +378,32 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s5', step='end', t1=starttime, t2=endtime, var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
+
+        return self
+
+    def stage_6(self, verbose=False):
+        """
+        In this stage the user takes a closer look at the spectra selected in s5
+        """
+
+        s6dir = os.path.join(self.outputdirectory, 'stage_6')
+        self.stagedirs.append(s6dir)
+        # create the stage_6 directory
+        mkdir_s6(self.outputdirectory, s6dir)
+
+        starttime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s6', step='start')
+
+        
+
+        endtime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s6', step='end', t1=starttime, t2=endtime)
+
+        self.completed_stages.append('s6')
 
         return self
 

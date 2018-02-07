@@ -131,4 +131,16 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("")
             progress_bar=[]
 
+    if stage=='s6':
+        if step=='start':
+            print("")
+            print("Beginning stage_6 analysis...")
+            print("")
+            progress_bar=[]
+
+        if step=='end':
+            print("")
+            print('scousepy stage 6 completed in: {0} minutes'.format((t2-t1)/60.))
+            print("")
+            progress_bar=[]
     return progress_bar
