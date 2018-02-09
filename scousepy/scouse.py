@@ -270,7 +270,8 @@ class scouse(object):
         # TODO: Add spatial fitting methodolgy
         # TODO: Not sure if this needs the training set keyword
         # TODO: Write out the best-fitting solutions?
-        # TODO: Need to add 'npars' and what they are to the fit information s
+        # TODO: Need to add 'npars' and what they are to the fit information
+        # TODO: Need to add a zero component fit to all spectra
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -402,7 +403,10 @@ class scouse(object):
                 # Find the neighbours
                 indices_adjacent = neighbours(np.shape(self.cube)[1:3], int(key), radius_pix)
                 # plot the neighbours
-                plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian')
+                plot_neighbour_pixels(self, indices_adjacent, figsize, model=model)
+
+            models, selection = plot_alternatives(self, key, figsize, model=model)
+            update_models(self, key, models, selection, model=model)
 
         endtime = time.time()
 

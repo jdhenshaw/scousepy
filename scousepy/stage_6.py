@@ -17,6 +17,10 @@ from matplotlib.patches import Rectangle
 
 from .stage_5 import *
 
+from .interactiveplot import showplot
+from .solution_description import fit, print_fit_information
+from .indiv_spec_description import *
+
 def get_offsets(radius_pix):
     """
     Returns offsets of adjacent pixels
@@ -82,19 +86,21 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian'):
 
         if np.isfinite(key):
 
+            spectrum = self.indiv_dict[key]
             # Get the correct subplot axis
             axis = ax[i]
             # First plot the Spectrum
-            axis.plot(self.indiv_dict[key].xtrim, self.indiv_dict[key].ytrim, 'k-', drawstyle='steps', lw=1)
+            axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
             # Recreate the model from information held in the solution
             # description
-            mod = recreate_model(self, key, model=model)
+            bfmodel = spectrum.model
+            mod = recreate_model(self, spectrum, bfmodel, model=model)
             # now overplot the model
-            if self.indiv_dict[key].model.ncomps == 0.0:
-                axis.plot(self.indiv_dict[key].xtrim, mod[:,0], 'b-', lw=1)
+            if bfmodel.ncomps == 0.0:
+                axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
             else:
-                for k in range(int(self.indiv_dict[key].model.ncomps)):
-                    axis.plot(self.indiv_dict[key].xtrim, mod[:,k], 'b-', lw=1)
+                for k in range(int(bfmodel.ncomps)):
+                    axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
 
             if i != round((npix/2)-0.5):
                 axis.patch.set_facecolor('blue')
@@ -117,3 +123,117 @@ def keyentry(event):
     if event.key == 'enter':
         plt.close()
         return
+
+def plot_alternatives(self, key, figsize, model='gaussian'):
+    """
+    Plot the spectrum to be checked and its alternatives
+    """
+
+    spectrum = self.indiv_dict[key]
+    bfmodel = spectrum.model
+    alternatives = spectrum.models
+
+    allmodels = []
+    allmodels.append([bfmodel])
+    allmodels.append(alternatives)
+
+    # Flatten
+    allmodels = [mod for mods in allmodels for mod in mods]
+
+    lenmods = np.size(allmodels)
+
+    # Set up figure page
+    fig, ax = pyplot.subplots(1, lenmods, figsize=[12,5])
+
+    for i in range(lenmods):
+        # Get the correct subplot axis
+        if lenmods == 1:
+            axis = ax
+        else:
+            axis = ax[i]
+
+        bfmodel = allmodels[i]
+
+        # First plot the Spectrum
+        axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
+        # Recreate the model from information held in the solution
+        # description
+        mod = recreate_model(self, spectrum, bfmodel, model=model)
+        # now overplot the model
+        if bfmodel.ncomps == 0.0:
+            axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
+        else:
+            for k in range(int(bfmodel.ncomps)):
+                axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+
+    # Create the interactive plot
+    intplot = showplot(fig, ax, keep=True)
+
+    return allmodels, intplot.subplots
+
+def update_models(self, key, models, selection, model='gaussian'):
+    """
+    Here we update the model selection based on the users instructions
+    """
+
+    spectrum = self.indiv_dict[key]
+    if np.size(selection) == 0.0:
+        # If no selection is made - refit manually
+        # Make pyspeckit be quiet
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+            # generate a spectrum
+            spec = get_spec(self, \
+                            spectrum.xtrim, \
+                            spectrum.ytrim, \
+                            spectrum.rms)
+        log.setLevel(old_log)
+        bf = interactive_fitting(self, spectrum, spec, model=model)
+
+        # Now add this as the best-fitting model and add the others to models
+        add_bf_model(spectrum, bf)
+        update_model_list(spectrum, models)
+
+    elif selection[0] != 0.0:
+        # If any spectrum other than the first is selected then swap this to the
+        # model and the current best fit to models
+        bf = models[selection[0]]
+        models.remove(models[selection[0]])
+        # Now add this as the best-fitting model and add the others to models
+        add_bf_model(spectrum, bf)
+        update_model_list(spectrum, models)
+    else:
+        # If the first spectrum was selected then the user has chosen to accept
+        # the current best-fitting solution - so do nothing.
+        pass
+
+def interactive_fitting(self, spectrum, spec, model='gaussian'):
+    """
+    Interactive fitter for stage 6
+    """
+    happy=False
+    while not happy:
+        bf=None
+
+        # Interactive fitting with pyspeckit
+        spec.plotter(xmin=self.ppv_vol[0], \
+                     xmax=self.ppv_vol[1])
+        spec.specfit(interactive=True, \
+                     xmin=self.ppv_vol[0], \
+                     xmax=self.ppv_vol[1])
+        plt.show()
+
+        # Best-fitting model solution
+        bf = fit(spec, idx=spectrum.index, scouse=self)
+
+        print("")
+        print_fit_information(bf, init_guess=False)
+        print("")
+
+        h = input("Are you happy with the fit? (y/n): ")
+        happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
+        print("")
+
+    return bf

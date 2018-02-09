@@ -27,17 +27,17 @@ class InteractivePlot:
     https://gist.github.com/smathot/2011427
     """
 
-    def __init__(self, fig=None, ax=None):
+    def __init__(self, fig=None, ax=None, keep=False):
         """
         """
+
         self.fig = fig
         self.ax = ax
         self.subplots = []
         self.sps = []
-        self.markers = []
-        self.ms = []
         self.nsubplots = np.size(self.ax)
         self.dragFrom = None
+        self.keep = keep
         self.fig.canvas.mpl_connect('button_press_event', self.click)
         self.fig.canvas.mpl_connect('button_release_event', self.release)
         self.fig.canvas.mpl_connect('scroll_event', self.scroll)
@@ -47,7 +47,10 @@ class InteractivePlot:
         """
         Generates the plot
         """
-        pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
+        if self.keep:
+            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit")
+        else:
+            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
         pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
         pyplot.show()
         return self
@@ -76,6 +79,10 @@ class InteractivePlot:
         What happens following mouse click
         """
 
+        if self.keep:
+            col='green'
+        else:
+            col='red'
         # First get the subplot number that was just clicked on
         subPlotNr = self.getSubPlotNr(event)
         # Check to see whether this is already in the list (we don't want
@@ -84,7 +91,6 @@ class InteractivePlot:
         # if not then add it to the list
         if not inlist:
             self.sps.append(subPlotNr)
-            self.ms.append(subPlotNr)
         if subPlotNr == None:
             return
 
@@ -92,8 +98,12 @@ class InteractivePlot:
             if not inlist:
                 # Draw a marker to show that the user has selected a plot
                 subPlot = self.ax[subPlotNr]
-                marker = subPlot.plot(0.9, 0.9, 'rX', transform=subPlot.transAxes, ms=10)
-                self.markers.append(marker[0])
+
+                subPlot.patch.set_facecolor(col)
+
+
+                subPlot.patch.set_alpha(0.1)
+
                 self.fig.canvas.draw()
                 self.subplots = self.sps
             else:
@@ -118,12 +128,12 @@ class InteractivePlot:
             inlist = subPlotNr in self.subplots
             if inlist:
                 subPlot = self.ax[subPlotNr]
-                ms = np.asarray(self.ms)
-                idx = np.squeeze(np.where(ms == subPlotNr))
-                subPlot.lines.remove(self.markers[idx])
-                self.markers.remove(self.markers[idx])
+
+                subPlot.patch.set_facecolor('white')
+                subPlot.patch.set_alpha(0.0)
+
                 self.sps.remove(subPlotNr)
-                self.ms.remove(subPlotNr)
+
             if subPlotNr == None:
                 return
 
@@ -170,10 +180,10 @@ class InteractivePlot:
             subPlot.set_xlim(_xmin, _xmax)
         event.canvas.draw()
 
-def showplot(fig=None, ax=None):
+def showplot(fig=None, ax=None, keep=False):
     """
     This is what begins the interactive plotting
     """
 
-    pl = InteractivePlot(fig, ax)
+    pl = InteractivePlot(fig, ax, keep=keep)
     return pl.show()
