@@ -171,7 +171,7 @@ class scouse(object):
                 nref -= 1.0
 
                 # Randomly select saas to be fit
-                if training_set:
+                if self.training_set:
                     self.sample = get_random_saa(cc, samplesize, r, \
                                                  verbose=verbose)
                     totfit = len(self.sample)
@@ -219,7 +219,7 @@ class scouse(object):
         self.completed_stages.append('s1')
         return self
 
-    def stage_2(self, model='gauss', verbose = False, training_set=False,
+    def stage_2(self, model='gauss', verbose = False,
                 write_ascii=False, autosave=True):
         """
         An interactive program designed to find best-fitting solutions to
@@ -258,7 +258,8 @@ class scouse(object):
                 # process
                 if SAA.to_be_fit:
                     bf = fitting(self, SAA, saa_dict, SAAid, \
-                                 training_set=training_set, init_guess=firstfit)
+                                 training_set=self.training_set, \
+                                 init_guess=firstfit)
                     SAAid = SAA.index
                     firstfit=False
                     count+=1
@@ -284,7 +285,7 @@ class scouse(object):
         return self
 
     def stage_3(self, tol, \
-                model='gaussian', verbose=False, training_set=False, \
+                model='gaussian', verbose=False, \
                 spatial=False, clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data

@@ -15,7 +15,7 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 from astropy import log
-from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list, update_model_list_remdup
+from .indiv_spec_description import *
 from .saa_description import add_indiv_spectra, clean_up, merge_models
 from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
@@ -77,9 +77,12 @@ def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, v
                     progress_bar.show_progress()
                 # Key to access spectrum in dictionary
                 key = SAA.indices_flat[k]
-                bf = fitting_process_parent(self, key, SAA, rsaa, parent_model, model)
+                bf, spec = fitting_process_parent(self, key, SAA, rsaa, parent_model, model)
                 # Add the best-fitting model to the SAA
                 add_model_parent(SAA.indiv_spectra[key], bf)
+                bf = fitting_process_duds(self, key, SAA, rsaa, model, spectrum=spec)
+                # Add the best-fitting model to the SAA
+                add_model_dud(SAA.indiv_spectra[key], bf)
         else:
             for k in range(len(SAA.indices_flat)):
                 if verbose:
@@ -141,22 +144,23 @@ def fitting_process_parent(self, key, SAA, rsaa, parent_model, model = 'gaussian
                 happy = True
 
     log.setLevel(old_log)
-    return bf
+    return bf, spec
 
-def fitting_process_duds(self, key, SAA, rsaa, model = 'gaussian', spatial=False, verbose=False):
+def fitting_process_duds(self, key, SAA, rsaa, model='gaussian', spatial=False, verbose=False, spectrum=None):
     """
     Fitting duds
     """
-    spec=None
+    spec=spectrum
     # Shhh
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         old_log = log.level
         log.setLevel('ERROR')
         # create the spectrum
-        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                              SAA.indiv_spectra[key].ytrim, \
-                              SAA.indiv_spectra[key].rms)
+        if spectrum is None:
+            spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                                  SAA.indiv_spectra[key].ytrim, \
+                                  SAA.indiv_spectra[key].rms)
         bf = fit(spec, idx=key, scouse=self, fit_dud=True)
     log.setLevel(old_log)
 
@@ -509,6 +513,9 @@ def get_model_list(model_list, spectrum, spatial=False):
     Add to model list
     """
     model_list.append(spectrum.model_parent)
+
+    if spectrum.model_dud is not None:
+        model_list.append(spectrum.model_dud)
     if spatial:
         model_list.append(spectrum.model_spatial)
 
