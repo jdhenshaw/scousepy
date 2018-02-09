@@ -80,7 +80,7 @@ class scouse(object):
     def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
-                refine_grid=False, nrefine=3.0):
+                refine_grid=False, nrefine=3.0, autosave=True):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
@@ -91,6 +91,7 @@ class scouse(object):
 
         self = scouse()
         self.filename = filename
+        self.datadirectory = datadirectory
         self.rsaa = rsaa
         self.ppv_vol = ppv_vol
         self.rms_approx = rms_approx
@@ -129,7 +130,9 @@ class scouse(object):
             # Read in the datacube
             self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
             # Generate moment maps
-            momzero, momone, momtwo, momnine = get_moments(self, write_moments, s1dir, filename, verbose)
+            momzero, momone, momtwo, momnine = get_moments(self, write_moments,\
+                                                           s1dir, filename,\
+                                                           verbose)
             # get the coverage / average the subcube spectra
             self.saa_dict = {}
 
@@ -152,17 +155,25 @@ class scouse(object):
 
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
-                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, momzero.value, r, 1.0, verbose)
+                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, \
+                                                    momzero.value, r, 1.0, \
+                                                    verbose)
                 if refine_grid:
-                    mom_zero = refine_momzero(self, momzero.value, delta_v, step_values[i], step_values[i+1])
-                    _cc, _ss, _ids, _frac = define_coverage(self.cube, momzero.value, mom_zero, r, nref, verbose, redefine=True)
+                    mom_zero = refine_momzero(self, momzero.value, delta_v, \
+                                              step_values[i], step_values[i+1])
+                    _cc, _ss, _ids, _frac = define_coverage(self.cube, \
+                                                            momzero.value, \
+                                                            mom_zero, r, nref, \
+                                                            verbose, \
+                                                            redefine=True)
                 else:
                     _cc, _ss, _ids, _frape = cc, ss, ids, frac
                 nref -= 1.0
 
                 # Randomly select saas to be fit
                 if training_set:
-                    self.sample = get_random_saa(cc, samplesize, r, verbose=verbose)
+                    self.sample = get_random_saa(cc, samplesize, r, \
+                                                 verbose=verbose)
                     totfit = len(self.sample)
                 else:
                     if not refine_grid:
@@ -173,7 +184,8 @@ class scouse(object):
                         totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
-                    progress_bar = print_to_terminal(stage='s1', step='coverage', var=totfit)
+                    progress_bar = print_to_terminal(stage='s1', \
+                                                     step='coverage',var=totfit)
 
                 speccount=0
                 for xind in range(np.shape(ss)[2]):
@@ -193,16 +205,22 @@ class scouse(object):
             # plot multiple coverage areas
             plot_rsaa(self.saa_dict, momzero.value, self.rsaa, s1dir, filename)
 
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
+
         endtime = time.time()
 
         if verbose:
-            progress_bar = print_to_terminal(stage='s1', step='end', length=np.size(momzero), var=cc, t1=starttime, t2=endtime)
+            progress_bar = print_to_terminal(stage='s1', step='end', \
+                                             length=np.size(momzero), var=cc, \
+                                             t1=starttime, t2=endtime)
 
         self.completed_stages.append('s1')
         return self
 
     def stage_2(self, model='gauss', verbose = False, training_set=False,
-                write_ascii=False):
+                write_ascii=False, autosave=True):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -239,7 +257,8 @@ class scouse(object):
                 # If the SAA is to be fitted, pass it through the fitting
                 # process
                 if SAA.to_be_fit:
-                    bf = fitting(self, SAA, saa_dict, SAAid, training_set=training_set, init_guess=firstfit)
+                    bf = fitting(self, SAA, saa_dict, SAAid, \
+                                 training_set=training_set, init_guess=firstfit)
                     SAAid = SAA.index
                     firstfit=False
                     count+=1
@@ -252,6 +271,10 @@ class scouse(object):
         if write_ascii:
             output_ascii(self, s2dir)
 
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
+
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
@@ -262,7 +285,7 @@ class scouse(object):
 
     def stage_3(self, tol, \
                 model='gaussian', verbose=False, training_set=False, \
-                spatial=False, clear_cache = True):
+                spatial=False, clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data
         """
@@ -298,10 +321,12 @@ class scouse(object):
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, spatial=spatial, verbose=verbose)
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, \
+                              spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
-            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], spatial=spatial, verbose=verbose)
+            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], \
+                                       spatial=spatial, verbose=verbose)
             # Clean things up a bit
             if clear_cache:
                 clean_SAAs(self, saa_dict)
@@ -312,18 +337,24 @@ class scouse(object):
         compile_key_sets(self, key_set)
 
         # merge multiple rsaa solutions into a single dictionary
-        merge_dictionaries(self, indiv_dictionaries, spatial=spatial, verbose=verbose)
+        merge_dictionaries(self, indiv_dictionaries, \
+                           spatial=spatial, verbose=verbose)
         # remove any duplicate entries
         remove_duplicates(self, verbose=verbose)
 
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_3/s3.scousepy')
+
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s3', step='end', t1=starttime, t2=endtime)
+            progress_bar = print_to_terminal(stage='s3', step='end', \
+                                             t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
         return self
 
-    def stage_4(self, verbose = False):
+    def stage_4(self, verbose=False, autosave=True):
         """
         In this stage we select the best fits out of those performed in stage 3.
         """
@@ -342,15 +373,20 @@ class scouse(object):
         # lowest aic value
         select_best_model(self)
 
-        endtime = time.time()
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_4/s4.scousepy')
 
+        endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s4', step='end', t1=starttime, t2=endtime)
+            progress_bar = print_to_terminal(stage='s4', step='end', \
+                                             t1=starttime, t2=endtime)
 
         self.completed_stages.append('s4')
         return self
 
-    def stage_5(self, blocksize = 6, figsize = None, model = 'gaussian', verbose=False):
+    def stage_5(self, blocksize = 6, figsize = None, model='gaussian', \
+                verbose=False, autosave=True):
         """
         In this stage the user is required to check the best-fitting solutions
         """
@@ -374,16 +410,22 @@ class scouse(object):
 
         self.check_spec_indices = interactive_plot(self, blocksize, figsize, model)
 
-        endtime = time.time()
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
 
+        endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s5', step='end', t1=starttime, t2=endtime, var=np.size(self.check_spec_indices))
+            progress_bar = print_to_terminal(stage='s5', step='end', \
+                                             t1=starttime, t2=endtime, \
+                                             var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
 
         return self
 
-    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], model='gaussian', verbose=False ):
+    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
+                model='gaussian', verbose=False, autosave=True ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -401,17 +443,24 @@ class scouse(object):
         for key in self.check_spec_indices:
             if plot_neighbours:
                 # Find the neighbours
-                indices_adjacent = neighbours(np.shape(self.cube)[1:3], int(key), radius_pix)
+                indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
+                                              int(key), radius_pix)
                 # plot the neighbours
-                plot_neighbour_pixels(self, indices_adjacent, figsize, model=model)
+                plot_neighbour_pixels(self, indices_adjacent, figsize, \
+                                      model=model)
 
-            models, selection = plot_alternatives(self, key, figsize, model=model)
+            models, selection = plot_alternatives(self, key, figsize, \
+                                                  model=model)
             update_models(self, key, models, selection, model=model)
 
-        endtime = time.time()
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
 
+        endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s6', step='end', t1=starttime, t2=endtime)
+            progress_bar = print_to_terminal(stage='s6', step='end', \
+                                             t1=starttime, t2=endtime)
 
         self.completed_stages.append('s6')
 
