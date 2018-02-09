@@ -14,7 +14,8 @@ import numpy as np
 class fit(object):
     #TODO: Need to make this generic for pyspeckit's other models
 
-    def __init__(self, spec, idx=None, scouse=None, fit_dud=False):
+    def __init__(self, spec, idx=None, scouse=None, fit_dud=False, noise=None,
+                 duddata=None):
         """
         Stores the best-fitting model
 
@@ -26,11 +27,13 @@ class fit(object):
             self._ncomps = 0.0
             self._params = [0.0, 0.0, 0.0]
             self._errors = [0.0, 0.0, 0.0]
-            self._residuals = spec.data
+            self._residuals = duddata
+            self._dof = 0.0
             self._chi2 = 0.0
             self._redchi2 = 0.0
             self._aic = 0.0
             self._tau = 0.0
+            self._rms = noise
 
         else:
             self._ncomps = spec.specfit.npeaks
@@ -42,9 +45,9 @@ class fit(object):
             self._redchi2 = spec.specfit.chi2/spec.specfit.dof
             self._aic = get_aic(self, spec)
             self._tau = None
+            self._rms = spec.error[0]
 
         self._residstd = None
-        self._rms = spec.error[0]
 
     @property
     def index(self):
@@ -130,19 +133,6 @@ class fit(object):
 
         """
         return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
-
-def fit_dud_soln(self, spec, idx=None, scouse=None):
-    """
-    If no satisfactory fit can be obtained set values to none
-    """
-    self._ncomps = 0.0
-    self._params = [0.0, 0.0, 0.0]
-    self._errors = [0.0, 0.0, 0.0]
-    self._residuals = spec.data
-    self._chi2 = 0.0
-    self._redchi2 = 0.0
-    self._aic = 0.0
-    self._tau = 0.0
 
 def get_aic(self, spec):
     """
