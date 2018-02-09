@@ -40,5 +40,6 @@ def run_scousepy():
     #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], model = 'gaussian', verbose=verb)
     #s.save_to(datadirectory+filename+'/stage_5/s5.scousepy')
     s = scouse.load_from(datadirectory+filename+'/stage_5/s5.scousepy')
-    print(s.check_spec_indices)
+    s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], verbose=verb)
+
 run_scousepy()

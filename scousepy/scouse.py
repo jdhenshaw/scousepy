@@ -30,6 +30,7 @@ from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
 from .stage_5 import interactive_plot
+from .stage_6 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids, add_flat_ids
@@ -269,7 +270,8 @@ class scouse(object):
         # TODO: Add spatial fitting methodolgy
         # TODO: Not sure if this needs the training set keyword
         # TODO: Write out the best-fitting solutions?
-        # TODO: Need to add 'npars' and what they are to the fit information s
+        # TODO: Need to add 'npars' and what they are to the fit information
+        # TODO: Need to add a zero component fit to all spectra
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -370,7 +372,6 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
 
-        saa_dict = self.saa_dict[0]
         self.check_spec_indices = interactive_plot(self, blocksize, figsize, model)
 
         endtime = time.time()
@@ -379,6 +380,40 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s5', step='end', t1=starttime, t2=endtime, var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
+
+        return self
+
+    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], model='gaussian', verbose=False ):
+        """
+        In this stage the user takes a closer look at the spectra selected in s5
+        """
+
+        s6dir = os.path.join(self.outputdirectory, 'stage_6')
+        self.stagedirs.append(s6dir)
+        # create the stage_6 directory
+        mkdir_s6(self.outputdirectory, s6dir)
+
+        starttime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s6', step='start')
+
+        for key in self.check_spec_indices:
+            if plot_neighbours:
+                # Find the neighbours
+                indices_adjacent = neighbours(np.shape(self.cube)[1:3], int(key), radius_pix)
+                # plot the neighbours
+                plot_neighbour_pixels(self, indices_adjacent, figsize, model=model)
+
+            models, selection = plot_alternatives(self, key, figsize, model=model)
+            update_models(self, key, models, selection, model=model)
+
+        endtime = time.time()
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s6', step='end', t1=starttime, t2=endtime)
+
+        self.completed_stages.append('s6')
 
         return self
 

@@ -63,19 +63,21 @@ def interactive_plot(self, blocksize=7, figsize = None, model='gaussian'):
 
                 # If so - plot the spectrum and its model solution
                 if keycheck:
+                    spectrum = self.indiv_dict[key]
                     # Get the correct subplot axis
                     axis = ax[j]
                     # First plot the Spectrum
-                    axis.plot(self.indiv_dict[key].xtrim, self.indiv_dict[key].ytrim, 'k-', drawstyle='steps', lw=1)
+                    axis.plot(spectrum.xtrim,spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
                     # Recreate the model from information held in the solution
                     # description
-                    mod = recreate_model(self, key, model=model)
+                    bfmodel = spectrum.model
+                    mod = recreate_model(self, spectrum, bfmodel, model=model)
                     # now overplot the model
-                    if self.indiv_dict[key].model.ncomps == 0.0:
-                        axis.plot(self.indiv_dict[key].xtrim, mod[:,0], 'b-', lw=1)
+                    if bfmodel.ncomps == 0.0:
+                        axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
                     else:
-                        for k in range(int(self.indiv_dict[key].model.ncomps)):
-                            axis.plot(self.indiv_dict[key].xtrim, mod[:,k], 'b-', lw=1)
+                        for k in range(int(bfmodel.ncomps)):
+                            axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
 
             # Create the interactive plot
             intplot = showplot(fig, ax)
@@ -192,7 +194,7 @@ def get_spec(self, x, y, rms):
                               xarrkwargs={'unit':'km/s'})
 
 
-def recreate_model(self, key, model='gaussian'):
+def recreate_model(self, spectrum, bf, model='gaussian', alternative=False):
     """
     Recreates model from parameters
     """
@@ -205,19 +207,19 @@ def recreate_model(self, key, model='gaussian'):
         log.setLevel('ERROR')
         # generate a spectrum
         spec = get_spec(self, \
-                        self.indiv_dict[key].xtrim, \
-                        self.indiv_dict[key].ytrim, \
-                        self.indiv_dict[key].rms)
+                        spectrum.xtrim, \
+                        spectrum.ytrim, \
+                        spectrum.rms)
         spec.specfit.fittype = model
         spec.specfit.fitter = spec.specfit.Registry.multifitters[model]
         npars = 3
-        if self.indiv_dict[key].model.ncomps != 0.0:
-            mod = np.zeros([len(self.indiv_dict[key].xtrim), int(self.indiv_dict[key].model.ncomps)])
-            for k in range(int(self.indiv_dict[key].model.ncomps)):
-                modparams = self.indiv_dict[key].model.params[(k*npars):(k*npars)+npars]
-                mod[:,k] = spec.specfit.get_model_frompars(self.indiv_dict[key].xtrim, modparams)
+        if bf.ncomps != 0.0:
+            mod = np.zeros([len(spectrum.xtrim), int(bf.ncomps)])
+            for k in range(int(bf.ncomps)):
+                modparams = bf.params[(k*npars):(k*npars)+npars]
+                mod[:,k] = spec.specfit.get_model_frompars(spectrum.xtrim, modparams)
         else:
-            mod = np.zeros([len(self.indiv_dict[key].xtrim), 1])
+            mod = np.zeros([len(spectrum.xtrim), 1])
         log.setLevel(old_log)
 
     return mod

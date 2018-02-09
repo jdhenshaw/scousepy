@@ -80,6 +80,16 @@ def mkdir_s5(outputdir, s5dir):
         # TODO: error handling
         pass
 
+def mkdir_s6(outputdir, s6dir):
+    """
+    Make the output directory for stage 6
+    """
+    if not os.path.exists(s6dir):
+        os.mkdir(s6dir)
+    else:
+        # TODO: error handling
+        pass
+
 def write_averaged_spectra(cube_header, saa_spectra, r, dir,
                            fits_fmatter='saa_cube_r{}.fits'):
     """
