@@ -285,17 +285,15 @@ class scouse(object):
         return self
 
     def stage_3(self, tol, \
-                model='gaussian', verbose=False, \
+                model='gaussian', njobs=1, verbose=False, \
                 spatial=False, clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data
         """
 
         # TODO: Add spatial fitting methodolgy
-        # TODO: Not sure if this needs the training set keyword
         # TODO: Write out the best-fitting solutions?
         # TODO: Need to add 'npars' and what they are to the fit information
-        # TODO: Need to add a zero component fit to all spectra
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -322,7 +320,8 @@ class scouse(object):
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i], model=model, \
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i],\
+                              model=model, njobs=njobs, \
                               spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]

@@ -9,14 +9,16 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
+import pyspeckit
+import matplotlib.pyplot as plt
+import sys
+import warnings
+
 from astropy.io import fits
 from astropy import units as u
-import sys
 from astropy import wcs
-import pyspeckit
-import warnings
 from astropy import log
-import matplotlib.pyplot as plt
+
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 

@@ -168,6 +168,7 @@ def update_model_list(self, models):
     Compiles all models
     """
     self._model_parent = None
+    self._model_dud = None
     self._model_spatial = None
     self._models = models
 
