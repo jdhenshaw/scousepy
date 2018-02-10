@@ -73,6 +73,7 @@ class scouse(object):
         self.tolerances = None
         self.specres = None
         self.nrefine = None
+        self.model = None
         self.check_spec_indices = []
         self.completed_stages = []
 
@@ -80,7 +81,8 @@ class scouse(object):
     def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
-                refine_grid=False, nrefine=3.0, autosave=True):
+                refine_grid=False, nrefine=3.0, autosave=True, \
+                model='gaussian'):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
@@ -97,6 +99,7 @@ class scouse(object):
         self.rms_approx = rms_approx
         self.sigma_cut = sigma_cut
         self.nrefine = nrefine
+        self.model=model
 
         if training_set:
             self.training_set = True
@@ -219,8 +222,7 @@ class scouse(object):
         self.completed_stages.append('s1')
         return self
 
-    def stage_2(self, model='gauss', verbose = False,
-                write_ascii=False, autosave=True):
+    def stage_2(self, verbose = False, write_ascii=False, autosave=True):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -284,8 +286,7 @@ class scouse(object):
         self.completed_stages.append('s2')
         return self
 
-    def stage_3(self, tol, \
-                model='gaussian', njobs=1, verbose=False, \
+    def stage_3(self, tol, njobs=1, verbose=False, \
                 spatial=False, clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data
@@ -321,8 +322,7 @@ class scouse(object):
             indiv_dictionaries[i] = {}
             # Fit the spectra
             fit_indiv_spectra(self, saa_dict, self.rsaa[i],\
-                              model=model, njobs=njobs, \
-                              spatial=spatial, verbose=verbose)
+                              njobs=njobs, spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
             _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], \
@@ -385,7 +385,7 @@ class scouse(object):
         self.completed_stages.append('s4')
         return self
 
-    def stage_5(self, blocksize = 6, figsize = None, model='gaussian', \
+    def stage_5(self, blocksize = 6, figsize = None, \
                 verbose=False, autosave=True):
         """
         In this stage the user is required to check the best-fitting solutions
@@ -408,7 +408,7 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
 
-        self.check_spec_indices = interactive_plot(self, blocksize, figsize, model)
+        self.check_spec_indices = interactive_plot(self, blocksize, figsize)
 
         # Save the scouse object automatically
         if autosave:
@@ -425,7 +425,7 @@ class scouse(object):
         return self
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
-                model='gaussian', verbose=False, autosave=True ):
+                verbose=False, autosave=True ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -446,12 +446,10 @@ class scouse(object):
                 indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
                                               int(key), radius_pix)
                 # plot the neighbours
-                plot_neighbour_pixels(self, indices_adjacent, figsize, \
-                                      model=model)
+                plot_neighbour_pixels(self, indices_adjacent, figsize)
 
-            models, selection = plot_alternatives(self, key, figsize, \
-                                                  model=model)
-            update_models(self, key, models, selection, model=model)
+            models, selection = plot_alternatives(self, key, figsize)
+            update_models(self, key, models, selection)
 
         # Save the scouse object automatically
         if autosave:

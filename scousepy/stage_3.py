@@ -50,7 +50,7 @@ def initialise_indiv_spectra(self):
             add_indiv_spectra(SAA, indiv_spectra)
 
 
-def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', njobs=1, \
+def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                       spatial=False, verbose=False):
     """
     Automated fitting procedure for individual spectra
@@ -74,7 +74,7 @@ def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', njobs=1, \
 
             # Fitting process is parallelised
             if njobs > 1:
-                args = [self, SAA, parent_model, model]
+                args = [self, SAA, parent_model]
                 inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                 # Send to parallel_map
                 bf = parallel_map(fit_spec, inputs, numcores=njobs)
@@ -89,7 +89,7 @@ def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', njobs=1, \
                 # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
                     key = SAA.indices_flat[k]
-                    args = [self, SAA, parent_model, model]
+                    args = [self, SAA, parent_model]
                     inputs = [[k] + args]
                     inputs = inputs[0]
                     bfs = fit_spec(inputs)
@@ -129,7 +129,7 @@ def fit_spec(inputs):
     Process used for fitting spectra. Returns a best-fit solution and a dud for
     every spectrum.
     """
-    idx, self, SAA, parent_model, model = inputs
+    idx, self, SAA, parent_model = inputs
     key = SAA.indices_flat[idx]
     spec=None
     # Shhh
@@ -144,7 +144,7 @@ def fit_spec(inputs):
                               SAA.indiv_spectra[key].rms)
         log.setLevel(old_log)
 
-    bf = fitting_process_parent(self, SAA, key, spec, parent_model, model)
+    bf = fitting_process_parent(self, SAA, key, spec, parent_model)
     dud = fitting_process_duds(self, SAA, key, None)
     return [bf, dud]
 
@@ -161,7 +161,7 @@ def fit_dud(inputs):
     bf = fitting_process_duds(self, SAA, key, spec)
     return bf
 
-def fitting_process_parent(self, SAA, key, spec, parent_model, model='gaussian'):
+def fitting_process_parent(self, SAA, key, spec, parent_model):
     """
     The process used for fitting individual spectra using the arent SAA solution
     """
@@ -182,7 +182,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model, model='gaussian')
                              clear_all_connections=True,\
                              xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1], \
-                             fittype = model, \
+                             fittype = self.model, \
                              guesses = guesses,\
                              verbose=False)
 

@@ -65,7 +65,7 @@ def neighbours(n_dim, idx, radius_pix):
 
     return indices_adjacent
 
-def plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian'):
+def plot_neighbour_pixels(self, indices_adjacent, figsize):
     """
     Plot neighbours and their model solutions
     """
@@ -94,7 +94,7 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize, model='gaussian'):
             # Recreate the model from information held in the solution
             # description
             bfmodel = spectrum.model
-            mod = recreate_model(self, spectrum, bfmodel, model=model)
+            mod = recreate_model(self, spectrum, bfmodel)
             # now overplot the model
             if bfmodel.ncomps == 0.0:
                 axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
@@ -124,7 +124,7 @@ def keyentry(event):
         plt.close()
         return
 
-def plot_alternatives(self, key, figsize, model='gaussian'):
+def plot_alternatives(self, key, figsize):
     """
     Plot the spectrum to be checked and its alternatives
     """
@@ -158,7 +158,7 @@ def plot_alternatives(self, key, figsize, model='gaussian'):
         axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
         # Recreate the model from information held in the solution
         # description
-        mod = recreate_model(self, spectrum, bfmodel, model=model)
+        mod = recreate_model(self, spectrum, bfmodel)
         # now overplot the model
         if bfmodel.ncomps == 0.0:
             axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
@@ -171,7 +171,7 @@ def plot_alternatives(self, key, figsize, model='gaussian'):
 
     return allmodels, intplot.subplots
 
-def update_models(self, key, models, selection, model='gaussian'):
+def update_models(self, key, models, selection):
     """
     Here we update the model selection based on the users instructions
     """
@@ -190,7 +190,7 @@ def update_models(self, key, models, selection, model='gaussian'):
                             spectrum.ytrim, \
                             spectrum.rms)
         log.setLevel(old_log)
-        bf = interactive_fitting(self, spectrum, spec, model=model)
+        bf = interactive_fitting(self, spectrum, spec)
 
         # Now add this as the best-fitting model and add the others to models
         add_bf_model(spectrum, bf)
@@ -209,7 +209,7 @@ def update_models(self, key, models, selection, model='gaussian'):
         # the current best-fitting solution - so do nothing.
         pass
 
-def interactive_fitting(self, spectrum, spec, model='gaussian'):
+def interactive_fitting(self, spectrum, spec):
     """
     Interactive fitter for stage 6
     """
