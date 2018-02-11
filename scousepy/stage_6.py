@@ -124,7 +124,7 @@ def keyentry(event):
         plt.close()
         return
 
-def plot_alternatives(self, key, figsize):
+def plot_alternatives(self, key, figsize, plot_residuals=False):
     """
     Plot the spectrum to be checked and its alternatives
     """
@@ -165,6 +165,8 @@ def plot_alternatives(self, key, figsize):
         else:
             for k in range(int(bfmodel.ncomps)):
                 axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+        if plot_residuals:
+            axis.plot(spectrum.xtrim, bfmodel.residuals,'g-', drawstyle='steps', lw=1)
 
     # Create the interactive plot
     intplot = showplot(fig, ax, keep=True)

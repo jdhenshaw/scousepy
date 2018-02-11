@@ -19,7 +19,7 @@ from matplotlib import pyplot
 from .interactiveplot import showplot
 from .stage_3 import argsort
 
-def interactive_plot(self, blocksize=7, figsize = None):
+def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False):
     """
     Generate an interactive plot so the user can select fits they would like to
     take a look at again.
@@ -78,6 +78,8 @@ def interactive_plot(self, blocksize=7, figsize = None):
                     else:
                         for k in range(int(bfmodel.ncomps)):
                             axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                    if plot_residuals:
+                        axis.plot(spectrum.xtrim, bfmodel.residuals,'g-', drawstyle='steps', lw=1)
 
             # Create the interactive plot
             intplot = showplot(fig, ax)

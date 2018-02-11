@@ -34,9 +34,9 @@ def run_scousepy():
     #s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
     #s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
     #s = scouse.stage_4(s, verbose=verb)
-    #s = scouse.load_from(datadirectory+filename+'/stage_4/s4.scousepy')
-    #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], verbose=verb)
-    s = scouse.load_from(datadirectory+filename+'/stage_5/s5.scousepy')
-    s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], verbose=verb)
+    s = scouse.load_from(datadirectory+filename+'/stage_4/s4.scousepy')
+    s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb)
+    #s = scouse.load_from(datadirectory+filename+'/stage_5/s5.scousepy')
+    s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, verbose=verb)
 
 run_scousepy()

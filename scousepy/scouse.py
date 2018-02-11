@@ -385,7 +385,7 @@ class scouse(object):
         self.completed_stages.append('s4')
         return self
 
-    def stage_5(self, blocksize = 6, figsize = None, \
+    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
                 verbose=False, autosave=True):
         """
         In this stage the user is required to check the best-fitting solutions
@@ -408,7 +408,8 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
 
-        self.check_spec_indices = interactive_plot(self, blocksize, figsize)
+        self.check_spec_indices = interactive_plot(self, blocksize, figsize,\
+                                                   plot_residuals=plot_residuals)
 
         # Save the scouse object automatically
         if autosave:
@@ -425,7 +426,7 @@ class scouse(object):
         return self
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
-                verbose=False, autosave=True ):
+                plot_residuals=False, verbose=False, autosave=True ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -448,7 +449,7 @@ class scouse(object):
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)
 
-            models, selection = plot_alternatives(self, key, figsize)
+            models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
 
         # Save the scouse object automatically
