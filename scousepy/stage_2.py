@@ -73,7 +73,7 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                              xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1], \
                              guesses=guesses,\
-                             fittype = self.model)
+                             fittype = self.fittype)
                 spec.specfit.plot_fit(show_components=True)
                 spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
 

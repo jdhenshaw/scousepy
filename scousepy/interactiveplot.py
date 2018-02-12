@@ -131,7 +131,10 @@ class InteractivePlot:
             subPlotNr = self.getSubPlotNr(event)
             inlist = subPlotNr in self.subplots
             if inlist:
-                subPlot = self.ax[subPlotNr]
+                if np.size(self.ax) == 1:
+                    subPlot = self.ax
+                else:
+                    subPlot = self.ax[subPlotNr]
 
                 subPlot.patch.set_facecolor('white')
                 subPlot.patch.set_alpha(0.0)

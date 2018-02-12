@@ -73,7 +73,7 @@ class scouse(object):
         self.tolerances = None
         self.specres = None
         self.nrefine = None
-        self.model = None
+        self.fittype = None
         self.check_spec_indices = []
         self.completed_stages = []
 
@@ -82,14 +82,11 @@ class scouse(object):
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
                 refine_grid=False, nrefine=3.0, autosave=True, \
-                model='gaussian'):
+                fittype='gaussian'):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
         """
-
-        # TODO: Check refinement - need to test this on multiple datasets to
-        # make sure it doesn't miss regions.
 
         self = scouse()
         self.filename = filename
@@ -99,7 +96,7 @@ class scouse(object):
         self.rms_approx = rms_approx
         self.sigma_cut = sigma_cut
         self.nrefine = nrefine
-        self.model=model
+        self.fittype=fittype
 
         if training_set:
             self.training_set = True
@@ -230,10 +227,6 @@ class scouse(object):
 
         # TODO: Need to make this method more flexible - it would be good if the
         # user could fit the spectra in stages - minimise_tedium = True
-        # TODO: Add an output option where the solutions are printed to file.
-        # TODO: Allow for zero component fits
-        # TODO: rename output_ascii
-        # TODO: Need to add 'npars' and what they are to the fit information
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
@@ -272,7 +265,7 @@ class scouse(object):
                                                  length=count, t1=fittime, \
                                                  t2=midtime)
         if write_ascii:
-            output_ascii(self, s2dir)
+            output_ascii_saa(self, s2dir)
 
         # Save the scouse object automatically
         if autosave:
@@ -293,8 +286,6 @@ class scouse(object):
         """
 
         # TODO: Add spatial fitting methodolgy
-        # TODO: Write out the best-fitting solutions?
-        # TODO: Need to add 'npars' and what they are to the fit information
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -391,13 +382,6 @@ class scouse(object):
         In this stage the user is required to check the best-fitting solutions
         """
 
-        # TODO: Need to make general for different models - here we use
-        # pyspeckit to reverse engineer the model and plot it. That requires
-        # scouse to know what model was being fitted in the first place.
-        # TODO: Need to go back to stages 2 and 3 and add model type and
-        # parameter list to the solution description - that way it *should be*
-        # easy to reverse engineer the model.
-
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
         self.stagedirs.append(s5dir)
         # create the stage_5 directory
@@ -426,7 +410,8 @@ class scouse(object):
         return self
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
-                plot_residuals=False, verbose=False, autosave=True ):
+                plot_residuals=False, verbose=False, autosave=True, \
+                write_ascii=False ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -455,6 +440,9 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
+
+        if write_ascii:
+            output_ascii_indiv(self, s6dir)
 
         endtime = time.time()
         if verbose:

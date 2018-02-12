@@ -212,13 +212,12 @@ def recreate_model(self, spectrum, bf, alternative=False):
                         spectrum.xtrim, \
                         spectrum.ytrim, \
                         spectrum.rms)
-        spec.specfit.fittype = self.model
-        spec.specfit.fitter = spec.specfit.Registry.multifitters[self.model]
-        npars = 3
+        spec.specfit.fittype = bf.fittype
+        spec.specfit.fitter = spec.specfit.Registry.multifitters[bf.fittype]
         if bf.ncomps != 0.0:
             mod = np.zeros([len(spectrum.xtrim), int(bf.ncomps)])
             for k in range(int(bf.ncomps)):
-                modparams = bf.params[(k*npars):(k*npars)+npars]
+                modparams = bf.params[(k*len(bf.parnames)):(k*len(bf.parnames))+len(bf.parnames)]
                 mod[:,k] = spec.specfit.get_model_frompars(spectrum.xtrim, modparams)
         else:
             mod = np.zeros([len(spectrum.xtrim), 1])

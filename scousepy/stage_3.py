@@ -182,7 +182,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                              clear_all_connections=True,\
                              xmin=self.ppv_vol[0], \
                              xmax=self.ppv_vol[1], \
-                             fittype = self.model, \
+                             fittype = self.fittype, \
                              guesses = guesses,\
                              verbose=False)
 
@@ -554,7 +554,6 @@ def remove_duplicates(self, verbose):
         # update list with only unique aic entries
         uniqmodels = list(uniqmodels)
         update_model_list_remdup(_spectrum, uniqmodels)
-
 
 def get_model_list(model_list, _spectrum, spatial=False):
     """
