@@ -26,6 +26,7 @@ class spectrum(object):
         self._rms = None
         self._model_parent = None
         self._model_spatial = None
+        self._model_dud = None
         self._models = None
         self._model = None
 
@@ -101,6 +102,13 @@ class spectrum(object):
         return self._model_spatial
 
     @property
+    def model_dud(self):
+        """
+        Returns the dud
+        """
+        return self._model_dud
+
+    @property
     def models(self):
         """
         Returns the list of available models
@@ -143,6 +151,12 @@ def add_model_spatial(self, model):
     """
     self._model_spatial = model
 
+def add_model_dud(self, model):
+    """
+    We want to add a dud to every spectrum
+    """
+    self._model_dud = model
+
 def add_bf_model(self, model):
     """
     Selected best fit model solution
@@ -154,6 +168,7 @@ def update_model_list(self, models):
     Compiles all models
     """
     self._model_parent = None
+    self._model_dud = None
     self._model_spatial = None
     self._models = models
 

@@ -19,7 +19,7 @@ from matplotlib import pyplot
 from .interactiveplot import showplot
 from .stage_3 import argsort
 
-def interactive_plot(self, blocksize=7, figsize = None, model='gaussian'):
+def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False):
     """
     Generate an interactive plot so the user can select fits they would like to
     take a look at again.
@@ -71,13 +71,15 @@ def interactive_plot(self, blocksize=7, figsize = None, model='gaussian'):
                     # Recreate the model from information held in the solution
                     # description
                     bfmodel = spectrum.model
-                    mod = recreate_model(self, spectrum, bfmodel, model=model)
+                    mod = recreate_model(self, spectrum, bfmodel)
                     # now overplot the model
                     if bfmodel.ncomps == 0.0:
                         axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
                     else:
                         for k in range(int(bfmodel.ncomps)):
                             axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                    if plot_residuals:
+                        axis.plot(spectrum.xtrim, bfmodel.residuals,'g-', drawstyle='steps', lw=1)
 
             # Create the interactive plot
             intplot = showplot(fig, ax)
@@ -194,7 +196,7 @@ def get_spec(self, x, y, rms):
                               xarrkwargs={'unit':'km/s'})
 
 
-def recreate_model(self, spectrum, bf, model='gaussian', alternative=False):
+def recreate_model(self, spectrum, bf, alternative=False):
     """
     Recreates model from parameters
     """
@@ -210,13 +212,12 @@ def recreate_model(self, spectrum, bf, model='gaussian', alternative=False):
                         spectrum.xtrim, \
                         spectrum.ytrim, \
                         spectrum.rms)
-        spec.specfit.fittype = model
-        spec.specfit.fitter = spec.specfit.Registry.multifitters[model]
-        npars = 3
+        spec.specfit.fittype = bf.fittype
+        spec.specfit.fitter = spec.specfit.Registry.multifitters[bf.fittype]
         if bf.ncomps != 0.0:
             mod = np.zeros([len(spectrum.xtrim), int(bf.ncomps)])
             for k in range(int(bf.ncomps)):
-                modparams = bf.params[(k*npars):(k*npars)+npars]
+                modparams = bf.params[(k*len(bf.parnames)):(k*len(bf.parnames))+len(bf.parnames)]
                 mod[:,k] = spec.specfit.get_model_frompars(spectrum.xtrim, modparams)
         else:
             mod = np.zeros([len(spectrum.xtrim), 1])

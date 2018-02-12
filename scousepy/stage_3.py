@@ -15,10 +15,13 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 from astropy import log
-from .indiv_spec_description import spectrum, add_model_parent, add_model_spatial, update_model_list, update_model_list_remdup
+
+from .indiv_spec_description import *
+from .parallel_map import *
 from .saa_description import add_indiv_spectra, clean_up, merge_models
 from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
+
 
 def initialise_indiv_spectra(self):
     """
@@ -47,118 +50,165 @@ def initialise_indiv_spectra(self):
             add_indiv_spectra(SAA, indiv_spectra)
 
 
-def fit_indiv_spectra(self, saa_dict, rsaa, model = 'gaussian', spatial=False, verbose=False):
+def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
+                      spatial=False, verbose=False):
     """
     Automated fitting procedure for individual spectra
     """
 
-    totspec=0
-    for j in range(len(saa_dict.keys())):
-        # get the relavent SAA
-        SAA = saa_dict[j]
-        if verbose:
-            if SAA.to_be_fit:
-                totspec+=len(SAA.indices_flat)
-            else:
-                totspec+=len(SAA.indices_flat)
-
     if verbose:
         count=0
-        progress_bar = print_to_terminal(stage='s3', step='fitting', length=totspec, var=rsaa)
+        progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
 
     for j in range(len(saa_dict.keys())):
+        if verbose:
+            progress_bar + 1
+            progress_bar.show_progress()
+
         # get the relavent SAA
         SAA = saa_dict[j]
+
         if SAA.to_be_fit:
+            # Get the SAA model solution
             parent_model = SAA.model
-            for k in range(len(SAA.indices_flat)):
-                if verbose:
-                    progress_bar + 1
-                    progress_bar.show_progress()
-                # Key to access spectrum in dictionary
-                key = SAA.indices_flat[k]
-                bf = fitting_process_parent(self, key, SAA, rsaa, parent_model, model)
-                # Add the best-fitting model to the SAA
-                add_model_parent(SAA.indiv_spectra[key], bf)
+
+            # Fitting process is parallelised
+            if njobs > 1:
+                args = [self, SAA, parent_model]
+                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                # Send to parallel_map
+                bf = parallel_map(fit_spec, inputs, numcores=njobs)
+                merged_bfs = [core_bf for core_bf in bf if core_bf is not None]
+                merged_bfs = np.asarray(merged_bfs)
+                for k in range(len(SAA.indices_flat)):
+                    # Add the models to the spectra
+                    key = SAA.indices_flat[k]
+                    add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
+                    add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
+            else:
+                # If njobs = 1 just cycle through
+                for k in range(len(SAA.indices_flat)):
+                    key = SAA.indices_flat[k]
+                    args = [self, SAA, parent_model]
+                    inputs = [[k] + args]
+                    inputs = inputs[0]
+                    bfs = fit_spec(inputs)
+                    add_model_parent(SAA.indiv_spectra[key], bfs[0])
+                    add_model_dud(SAA.indiv_spectra[key], bfs[1])
         else:
-            for k in range(len(SAA.indices_flat)):
-                if verbose:
-                    progress_bar + 1
-                    progress_bar.show_progress()
-                # Key to access spectrum in dictionary
-                key = SAA.indices_flat[k]
-                bf = fitting_process_duds(self, key, SAA, rsaa, model)
-                # Add the best-fitting model to the SAA
-                add_model_parent(SAA.indiv_spectra[key], bf)
+            # Fitting duds
+            if njobs > 1:
+                if len(SAA.indices_flat) != 0:
+                    args = [self, SAA]
+                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                    dud = parallel_map(fit_dud, inputs, numcores=njobs)
+                    merged_duds = [core_bf for core_bf in dud if core_bf is not None]
+                    merged_duds = np.asarray(merged_duds)
+                    for k in range(len(SAA.indices_flat)):
+                        key = SAA.indices_flat[k]
+                        add_model_parent(SAA.indiv_spectra[key], merged_duds[k])
+            else:
+                for k in range(len(SAA.indices_flat)):
+                    key = SAA.indices_flat[k]
+                    args = [self, SAA]
+                    inputs = [[k] + args]
+                    inputs = inputs[0]
+                    dud = fit_dud(inputs)
+                    add_model_parent(SAA.indiv_spectra[key], dud)
 
 def get_spec(self, x, y, rms):
     """
-    Generate the spectrum
+    Generate the spectrum.
     """
     return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
                               doplot=False, unit=self.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'})
+                              xarrkwargs={'unit':'km/s'},verbose=False)
 
-def fitting_process_parent(self, key, SAA, rsaa, parent_model, model = 'gaussian'):
+def fit_spec(inputs):
+    """
+    Process used for fitting spectra. Returns a best-fit solution and a dud for
+    every spectrum.
+    """
+    idx, self, SAA, parent_model = inputs
+    key = SAA.indices_flat[idx]
+    spec=None
+    # Shhh
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        # create the spectrum
+        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
+                              SAA.indiv_spectra[key].ytrim, \
+                              SAA.indiv_spectra[key].rms)
+        log.setLevel(old_log)
+
+    bf = fitting_process_parent(self, SAA, key, spec, parent_model)
+    dud = fitting_process_duds(self, SAA, key, None)
+    return [bf, dud]
+
+def fit_dud(inputs):
+    """
+    Directly fitting duds. Kept separate so that we don't have to generate a
+    spectrum every time.
+    """
+    idx, self, SAA = inputs
+    # Key to access spectrum in dictionary
+    key = SAA.indices_flat[idx]
+    spec = None
+    # Fit a dud
+    bf = fitting_process_duds(self, SAA, key, spec)
+    return bf
+
+def fitting_process_parent(self, SAA, key, spec, parent_model):
     """
     The process used for fitting individual spectra using the arent SAA solution
     """
-    spec=None
+    # Check the model
+    happy = False
+    initfit = True
+    while not happy:
+        if initfit:
+            guesses = np.asarray(parent_model.params)
+        if np.sum(guesses) != 0.0:
+            # Perform fit
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                old_log = log.level
+                log.setLevel('ERROR')
 
-    # Shhh
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-
-        # create the spectrum
-        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                              SAA.indiv_spectra[key].ytrim, \
-                              SAA.indiv_spectra[key].rms)
-        # Check the model
-        happy = False
-        initfit = True
-        while not happy:
-            if initfit:
-                guesses = np.asarray(parent_model.params)
-            if np.sum(guesses) != 0.0:
-                # Perform fit
                 spec.specfit(interactive=False, \
-                            xmin=self.ppv_vol[0], \
-                            xmax=self.ppv_vol[1], \
-                            fittype = model, \
-                            guesses = guesses)
-                # Gen best-fitting model
-                bf = fit(spec, idx=key, scouse=self)
-                # Check the output model, does it satisfy the
-                # conditions?
-                happy, bf, guesses = check_spec(self, parent_model, bf, happy)
-                initfit = False
-            else:
-                # If no satisfactory model can be found - fit
-                # a dud!
-                bf = fit(spec, idx=key, scouse=self, fit_dud=True)
-                happy = True
+                             clear_all_connections=True,\
+                             xmin=self.ppv_vol[0], \
+                             xmax=self.ppv_vol[1], \
+                             fittype = self.fittype, \
+                             guesses = guesses,\
+                             verbose=False)
 
-    log.setLevel(old_log)
+                log.setLevel(old_log)
+            # Gen best-fitting model
+            bf = fit(spec, idx=key, scouse=self)
+
+            # Check the output model, does it satisfy the
+            # conditions?
+            happy, bf, guesses = check_spec(self, parent_model, bf, happy)
+            initfit = False
+        else:
+            # If no satisfactory model can be found - fit a dud!
+            bf = fitting_process_duds(self, SAA, key, None)
+
+            happy = True
+
     return bf
 
-def fitting_process_duds(self, key, SAA, rsaa, model = 'gaussian', spatial=False, verbose=False):
+def fitting_process_duds(self, SAA, key, spec):
     """
     Fitting duds
     """
-    spec=None
-    # Shhh
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-        # create the spectrum
-        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                              SAA.indiv_spectra[key].ytrim, \
-                              SAA.indiv_spectra[key].rms)
-        bf = fit(spec, idx=key, scouse=self, fit_dud=True)
-    log.setLevel(old_log)
+    bf = fit(spec, idx=key, scouse=self, fit_dud=True,\
+             noise=SAA.indiv_spectra[key].rms, \
+             duddata=SAA.indiv_spectra[key].ytrim)
 
     return bf
 
@@ -167,6 +217,7 @@ def check_spec(self, parent_model, bf, happy):
     Here we are going to check the output spectrum against user-defined
     tolerance levels described in Henshaw et al. 2016 and against the SAA fit.
     """
+
     guesses = np.asarray(bf.params)
     condition_passed = np.zeros(3, dtype='bool')
     condition_passed, guesses = check_rms(self, bf, guesses, condition_passed)
@@ -370,9 +421,10 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
         #if SAA.to_be_fit:
             # Get indiv dict
         indiv_spectra = SAA.indiv_spectra
-        for key in indiv_spectra.keys():
-            key_list.append(key)
-            model_list.append(indiv_spectra[key])
+        if np.size(indiv_spectra) != 0:
+            for key in indiv_spectra.keys():
+                key_list.append(key)
+                model_list.append(indiv_spectra[key])
 
     # sort the lists
     key_arr = np.array(key_list)
@@ -391,28 +443,28 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
             # If there is only one instance of this spectrum being fit - we can
             # add it to the dictionary straight away
             if np.size(model_idxs) == 1:
-                spectrum = model_arr[model_idxs]
+                _spectrum = model_arr[model_idxs]
                 model_list = []
-                model_list = get_model_list(model_list, spectrum, spatial)
-                update_model_list(spectrum, model_list)
-                indiv_dict[key] = spectrum
+                model_list = get_model_list(model_list, _spectrum, spatial)
+                update_model_list(_spectrum, model_list)
+                indiv_dict[key] = _spectrum
             else:
                 # if not, we have to compile the solutions into a single object
                 # Take the first one
-                spectrum = model_arr[model_idxs[0]]
+                _spectrum = model_arr[model_idxs[0]]
                 model_list = []
-                model_list = get_model_list(model_list, spectrum, spatial)
+                model_list = get_model_list(model_list, _spectrum, spatial)
                 # Now cycle through the others
                 for i in range(1, np.size(model_idxs)):
-                    spec = model_arr[model_idxs[i]]
-                    model_list = get_model_list(model_list, spec, spatial)
+                    _spec = model_arr[model_idxs[i]]
+                    model_list = get_model_list(model_list, _spec, spatial)
                 # So now the model list should contain every single model
                 # solution that is available from all spectral averaging areas
 
                 # Update the model list of the first spectrum and then update
                 # the dictionary
-                update_model_list(spectrum, model_list)
-                indiv_dict[key] = spectrum
+                update_model_list(_spectrum, model_list)
+                indiv_dict[key] = _spectrum
 
     # this is the complete list of all spectra included in all dictionaries
     key_set = set(key_arr)
@@ -466,8 +518,8 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
             if np.size(idx) != 0:
                 for i in idx:
                     dictionary = indiv_dictionaries[i]
-                    spectrum = dictionary[key]
-                    merge_models(main_spectrum, spectrum)
+                    _spectrum = dictionary[key]
+                    merge_models(main_spectrum, _spectrum)
 
         # Return this new dictionary
         self.indiv_dict = main_dict
@@ -485,9 +537,9 @@ def remove_duplicates(self, verbose):
 
     for key in self.indiv_dict.keys():
         # get the spectrum
-        spectrum = self.indiv_dict[key]
+        _spectrum = self.indiv_dict[key]
         # get the models
-        models = spectrum.models
+        models = _spectrum.models
 
         # extract aic values and identify unique values
         aiclist = []
@@ -501,16 +553,19 @@ def remove_duplicates(self, verbose):
 
         # update list with only unique aic entries
         uniqmodels = list(uniqmodels)
-        update_model_list_remdup(spectrum, uniqmodels)
+        update_model_list_remdup(_spectrum, uniqmodels)
 
-
-def get_model_list(model_list, spectrum, spatial=False):
+def get_model_list(model_list, _spectrum, spatial=False):
     """
     Add to model list
     """
-    model_list.append(spectrum.model_parent)
+
+    model_list.append(_spectrum.model_parent)
+
+    if _spectrum.model_dud is not None:
+        model_list.append(_spectrum.model_dud)
     if spatial:
-        model_list.append(spectrum.model_spatial)
+        model_list.append(_spectrum.model_spatial)
 
     return model_list
 

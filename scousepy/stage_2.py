@@ -9,14 +9,16 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
+import pyspeckit
+import matplotlib.pyplot as plt
+import sys
+import warnings
+
 from astropy.io import fits
 from astropy import units as u
-import sys
 from astropy import wcs
-import pyspeckit
-import warnings
 from astropy import log
-import matplotlib.pyplot as plt
+
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 
@@ -69,7 +71,9 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                              xmax=self.ppv_vol[1])
                 spec.specfit(interactive=False, \
                              xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1], guesses=guesses)
+                             xmax=self.ppv_vol[1], \
+                             guesses=guesses,\
+                             fittype = self.fittype)
                 spec.specfit.plot_fit(show_components=True)
                 spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
 

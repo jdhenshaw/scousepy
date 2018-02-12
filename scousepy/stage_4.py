@@ -16,11 +16,13 @@ def select_best_model(self):
     Selects the best model out of those fitted - that with the smallest aic
     value
     """
+
     for key in self.indiv_dict.keys():
         spectrum = self.indiv_dict[key]
         models = spectrum.models
         ncomps = [mod.ncomps for mod in models]
         findduds = (np.asarray(ncomps) == 0.0)
+
         if np.any(np.asarray(findduds)):
             idx = np.squeeze(np.where(findduds == True))
             dud = models[idx]
@@ -35,6 +37,7 @@ def select_best_model(self):
         else:
             model = dud
             dud = None
+
         if dud is None:
             add_bf_model(self.indiv_dict[key], model)
             update_model_list(self.indiv_dict[key], models)

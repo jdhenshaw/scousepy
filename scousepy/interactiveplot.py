@@ -61,11 +61,16 @@ class InteractivePlot:
         """
         i = 0
         axisNr = None
-        for axis in self.ax:
-            if axis == event.inaxes:
+
+        if np.size(self.ax) != 1:
+            for axis in self.ax:
+                if axis == event.inaxes:
+                    axisNr = i
+                    break
+                i += 1
+        else:
+            if self.ax == event.inaxes:
                 axisNr = i
-                break
-            i += 1
         return axisNr
 
     def selectSubPlot(self, i):
@@ -89,7 +94,7 @@ class InteractivePlot:
         # multiple entries)
         inlist = subPlotNr in self.subplots
         # if not then add it to the list
-        if not inlist:
+        if (not inlist) and (subPlotNr is not None):
             self.sps.append(subPlotNr)
         if subPlotNr == None:
             return
@@ -97,13 +102,12 @@ class InteractivePlot:
         if event.button == 1:
             if not inlist:
                 # Draw a marker to show that the user has selected a plot
-                subPlot = self.ax[subPlotNr]
-
+                if np.size(self.ax) == 1:
+                    subPlot = self.ax
+                else:
+                    subPlot = self.ax[subPlotNr]
                 subPlot.patch.set_facecolor(col)
-
-
                 subPlot.patch.set_alpha(0.1)
-
                 self.fig.canvas.draw()
                 self.subplots = self.sps
             else:
@@ -127,7 +131,10 @@ class InteractivePlot:
             subPlotNr = self.getSubPlotNr(event)
             inlist = subPlotNr in self.subplots
             if inlist:
-                subPlot = self.ax[subPlotNr]
+                if np.size(self.ax) == 1:
+                    subPlot = self.ax
+                else:
+                    subPlot = self.ax[subPlotNr]
 
                 subPlot.patch.set_facecolor('white')
                 subPlot.patch.set_alpha(0.0)

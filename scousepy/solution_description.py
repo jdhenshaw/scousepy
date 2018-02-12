@@ -8,13 +8,18 @@ CONTACT: henshaw@mpia.de
 
 """
 
-from astropy.stats import akaike_info_criterion as aic
 import numpy as np
+import pyspeckit
+import sys
+import warnings
+from astropy import log
+from astropy.stats import akaike_info_criterion as aic
 
 class fit(object):
     #TODO: Need to make this generic for pyspeckit's other models
 
-    def __init__(self, spec, idx=None, scouse=None, fit_dud=False):
+    def __init__(self, spec, idx=None, scouse=None, fit_dud=False, noise=None,
+                 duddata=None):
         """
         Stores the best-fitting model
 
@@ -23,28 +28,22 @@ class fit(object):
         self._index = idx
 
         if fit_dud:
-            self._ncomps = 0.0
-            self._params = [0.0, 0.0, 0.0]
-            self._errors = [0.0, 0.0, 0.0]
-            self._residuals = spec.data
-            self._chi2 = 0.0
-            self._redchi2 = 0.0
-            self._aic = 0.0
-            self._tau = 0.0
+            #quickly and quietly generate a dud spec
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                old_log = log.level
+                log.setLevel('ERROR')
 
+                spec = pyspeckit.Spectrum(data=[0,0], error=[0,0], xarr=[0,0])
+                spec.specfit.fittype = scouse.fittype
+                spec.specfit.fitter = spec.specfit.Registry.multifitters[scouse.fittype]
+
+                log.setLevel(old_log)
+
+            fit_pars_dud(self, spec, scouse, noise, duddata)
         else:
-            self._ncomps = spec.specfit.npeaks
-            self._params = spec.specfit.modelpars
-            self._errors = spec.specfit.modelerrs
-            self._residuals = spec.specfit.residuals
-            self._chi2 = spec.specfit.chi2
-            self._dof = spec.specfit.dof
-            self._redchi2 = spec.specfit.chi2/spec.specfit.dof
-            self._aic = get_aic(self, spec)
-            self._tau = None
+            fit_pars(self, spec, scouse)
 
-        self._residstd = None
-        self._rms = spec.error[0]
 
     @property
     def index(self):
@@ -52,6 +51,20 @@ class fit(object):
         Returns model idx
         """
         return self._index
+
+    @property
+    def fittype(self):
+        """
+        Returns pyspeckit fittype - i.e. the type of model
+        """
+        return self._fittype
+
+    @property
+    def parnames(self):
+        """
+        Returns pyspeckit parnames
+        """
+        return self._parnames
 
     @property
     def ncomps(self):
@@ -131,18 +144,40 @@ class fit(object):
         """
         return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
 
-def fit_dud_soln(self, spec, idx=None, scouse=None):
+def fit_pars_dud(self, spec, scouse, noise, duddata):
     """
-    If no satisfactory fit can be obtained set values to none
+    Sets the parameters for a dud spectrum
     """
+
+    self._fittype = spec.specfit.fittype
+    self._parnames = spec.specfit.fitter.parnames
     self._ncomps = 0.0
-    self._params = [0.0, 0.0, 0.0]
-    self._errors = [0.0, 0.0, 0.0]
-    self._residuals = spec.data
+    self._params = [0.0 for i in range(len(self.parnames))]
+    self._errors = [0.0 for i in range(len(self.parnames))]
+    self._rms = noise
+    self._residuals = duddata
+    self._residstd = None
+    self._dof = 0.0
     self._chi2 = 0.0
     self._redchi2 = 0.0
     self._aic = 0.0
-    self._tau = 0.0
+
+def fit_pars(self, spec, scouse):
+    """
+    Sets the parameters for a spectrum
+    """
+    self._fittype = spec.specfit.fittype
+    self._parnames = spec.specfit.fitter.parnames
+    self._ncomps = spec.specfit.npeaks
+    self._params = spec.specfit.modelpars
+    self._errors = spec.specfit.modelerrs
+    self._rms = spec.error[0]
+    self._residuals = spec.specfit.residuals
+    self._residstd = None
+    self._chi2 = spec.specfit.chi2
+    self._dof = spec.specfit.dof
+    self._redchi2 = spec.specfit.chi2/spec.specfit.dof
+    self._aic = get_aic(self, spec)
 
 def get_aic(self, spec):
     """
@@ -162,22 +197,21 @@ def print_fit_information(self, init_guess=False):
 
     print(self)
     print("")
+    print("Model type: {0}".format(self.fittype))
+    print("")
     print(("Number of components: {0}").format(self.ncomps))
     print("")
     compcount=0
     for i in range(0, int(self.ncomps)):
-        print(("Amplitude:  {0} +/- {1}").format(np.around(self.params[0+i*3], \
-                                                 decimals=5), \
-                                                 np.around(self.errors[0+i*3], \
-                                                 decimals=5)))
-        print(("Centroid:   {0} +/- {1}").format(np.around(self.params[1+i*3], \
-                                                 decimals=5), \
-                                                 np.around(self.errors[1+i*3], \
-                                                 decimals=5)))
-        print(("Dispersion: {0} +/- {1}").format(np.around(self.params[2+i*3], \
-                                                 decimals=5), \
-                                                 np.around(self.errors[2+i*3], \
-                                                 decimals=5)))
+        parlow = int((i*len(self.parnames)))
+        parhigh = int((i*len(self.parnames))+len(self.parnames))
+        parrange = np.arange(parlow,parhigh)
+        for j in range(0, len(self.parnames)):
+            print(("{0}:  {1} +/- {2}").format(self.parnames[j], \
+                                               np.around(self.params[parrange[j]], \
+                                               decimals=5), \
+                                               np.around(self.errors[parrange[j]], \
+                                               decimals=5)))
         print("")
         compcount+=1
     print(("chisq:    {0}").format(np.around(self.chi2, decimals=2)))
