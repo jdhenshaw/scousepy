@@ -74,6 +74,7 @@ class scouse(object):
         self.specres = None
         self.nrefine = None
         self.fittype = None
+        self.fitcount = 0.0
         self.check_spec_indices = []
         self.completed_stages = []
 
@@ -219,52 +220,64 @@ class scouse(object):
         self.completed_stages.append('s1')
         return self
 
-    def stage_2(self, verbose = False, write_ascii=False, autosave=True):
+    def stage_2(self, verbose = False, write_ascii=False, autosave=True,
+                fitrange=None):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
         """
-
-        # TODO: Need to make this method more flexible - it would be good if the
-        # user could fit the spectra in stages - minimise_tedium = True
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
         self.stagedirs.append(s2dir)
         # create the stage_2 directory
         mkdir_s2(self.outputdirectory, s2dir)
 
+        # generate a list of all SAA's (inc. all Rsaas)
+        saa_list = generate_saa_list(self)
+        saa_list = np.asarray(saa_list)
+
+        if fitrange is not None:
+            # Fail safe in case people try to re-run s1 midway through fitting
+            # Without this - it would lose all previously fitted spectra.
+            if np.min(fitrange) != 0.0:
+                saa_dict=self.saa_dict[0]
+                keys=list(saa_dict.keys())
+                SAA=saa_dict[keys[0]]
+                if SAA.model is None:
+                    raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
 
-        # Cycle through potentially multiple Rsaa values
-        for i in range(len(self.rsaa)):
+        # For staged fitting
+        if fitrange==None:
+            fitrange=np.arange(0,int(np.size(saa_list[:,0])))
+        else:
+            if np.max(fitrange)>np.size(saa_list):
+                fitrange=np.arange(int(np.min(fitrange)),int(np.size(saa_list[:,0])))
+            else:
+                fitrange=np.arange(int(np.min(fitrange)),int(np.max(fitrange)))
+
+        # Loop through the SAAs
+        for i in fitrange:
             fittime = time.time()
             firstfit=True
             SAAid=0
-            count=0
-            # Get the relavent SAA dictionary
-            saa_dict = self.saa_dict[i]
-            for j in range(len(saa_dict.keys())):
-                # get the relavent SAA
-                SAA = saa_dict[j]
-                # If the SAA is to be fitted, pass it through the fitting
-                # process
-                if SAA.to_be_fit:
-                    bf = fitting(self, SAA, saa_dict, SAAid, \
-                                 training_set=self.training_set, \
-                                 init_guess=firstfit)
-                    SAAid = SAA.index
-                    firstfit=False
-                    count+=1
+            saa_dict = self.saa_dict[saa_list[i,1]]
+            SAA = saa_dict[saa_list[i,0]]
 
-            midtime=time.time()
-            if verbose:
-                progress_bar = print_to_terminal(stage='s2', step='mid', \
-                                                 length=count, t1=fittime, \
-                                                 t2=midtime)
-        if write_ascii:
+            if SAA.to_be_fit:
+                bf = fitting(self, SAA, saa_dict, SAAid, \
+                             training_set=self.training_set, \
+                             init_guess=firstfit)
+                SAAid = SAA.index
+                firstfit=False
+
+            self.fitcount+=1
+
+        if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
             output_ascii_saa(self, s2dir)
 
         # Save the scouse object automatically
