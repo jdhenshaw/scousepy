@@ -105,3 +105,17 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                          training_set=True, init_guess=init_guess)
 
     return bf
+
+def generate_saa_list(self):
+    """
+    Returns a list constaining all spectral averaging areas.
+    """
+    saa_list=[]
+    for i in range(len(self.rsaa)):
+        saa_dict = self.saa_dict[i]
+        for j in range(len(saa_dict.keys())):
+            # get the relavent SAA
+            SAA = saa_dict[j]
+            saa_list.append([SAA.index, i])
+            
+    return saa_list
