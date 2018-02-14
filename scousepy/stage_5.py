@@ -17,9 +17,10 @@ from astropy import log
 from matplotlib import pyplot
 
 from .interactiveplot import showplot
-from .stage_3 import argsort
+from .stage_3 import argsort, get_spec
 
-def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False):
+def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
+                     blockrange=None):
     """
     Generate an interactive plot so the user can select fits they would like to
     take a look at again.
@@ -33,8 +34,17 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False):
     fit_mask = pad_fits(self, blocksize, nxblocks, nyblocks)
     spec_mask = pad_spec(self, blocksize, nxblocks, nyblocks)
 
+    # For staged checking
+    if blockrange==None:
+        blockrange=np.arange(0,int(nblocks))
+    else:
+        if np.max(blockrange)>int(nblocks):
+            blockrange=np.arange(int(np.min(blockrange)),int(nblocks))
+        else:
+            blockrange=np.arange(int(np.min(blockrange)),int(np.max(blockrange)))
+
     # Cycle through the blocks
-    for i in range(nblocks):
+    for i in blockrange:
         blocknum = i+1
         keep = (blockarr == blocknum)
         speckeys = spec_mask[keep]
@@ -186,21 +196,10 @@ def pad_fits(self, blocksize, nxblocks, nyblocks):
                     fit_mask[j,i]=key
     return fit_mask
 
-def get_spec(self, x, y, rms):
-    """
-    Generate the spectrum
-    """
-
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=self.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'})
-
-
 def recreate_model(self, spectrum, bf, alternative=False):
     """
     Recreates model from parameters
     """
-    # TODO: This needs to be generalised for more complex models
 
     # Make pyspeckit be quiet
     with warnings.catch_warnings():
@@ -224,3 +223,20 @@ def recreate_model(self, spectrum, bf, alternative=False):
         log.setLevel(old_log)
 
     return mod
+
+def check_and_flatten(self, check_spec_indices):
+    """
+    Checks to see if staged_fitting has been initiated. If so it appends
+    current list to the existing one.
+    """
+
+    _check_spec_indices=None
+
+    if np.size(self.check_spec_indices)!=0:
+        _check_spec_indices = [list(self.check_spec_indices) + list(check_spec_indices)]
+        _check_spec_indices = np.asarray(_check_spec_indices)
+        _check_spec_indices = np.unique(_check_spec_indices) # Just in case
+    else:
+        _check_spec_indices = check_spec_indices
+
+    return _check_spec_indices

@@ -75,6 +75,7 @@ class scouse(object):
         self.nrefine = None
         self.fittype = None
         self.fitcount = 0.0
+        self.blockcount = 0.0
         self.check_spec_indices = []
         self.completed_stages = []
 
@@ -206,10 +207,6 @@ class scouse(object):
             # plot multiple coverage areas
             plot_rsaa(self.saa_dict, momzero.value, self.rsaa, s1dir, filename)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
-
         endtime = time.time()
 
         if verbose:
@@ -218,6 +215,11 @@ class scouse(object):
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s1')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
+
         return self
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
@@ -280,16 +282,17 @@ class scouse(object):
         if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
             output_ascii_saa(self, s2dir)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
-
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s2')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
+
         return self
 
     def stage_3(self, tol, njobs=1, verbose=False, \
@@ -346,16 +349,17 @@ class scouse(object):
         # remove any duplicate entries
         remove_duplicates(self, verbose=verbose)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_3/s3.scousepy')
-
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s3', step='end', \
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_3/s3.scousepy')
+
         return self
 
     def stage_4(self, verbose=False, autosave=True):
@@ -377,20 +381,21 @@ class scouse(object):
         # lowest aic value
         select_best_model(self)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_4/s4.scousepy')
-
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s4', step='end', \
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s4')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_4/s4.scousepy')
+
         return self
 
     def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
-                verbose=False, autosave=True):
+                verbose=False, autosave=True, blockrange=None):
         """
         In this stage the user is required to check the best-fitting solutions
         """
@@ -399,18 +404,25 @@ class scouse(object):
         self.stagedirs.append(s5dir)
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
+        
+        if blockrange is not None:
+            # Fail safe in case people try to re-run s1 midway through fitting
+            # Without this - it would lose all previously fitted spectra.
+            if np.min(blockrange) != 0.0:
+                if np.size(self.check_spec_indices) == 0.0:
+                    raise ValueError('Load from autosaved S5 to avoid losing your work!')
 
         starttime = time.time()
 
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
 
-        self.check_spec_indices = interactive_plot(self, blocksize, figsize,\
-                                                   plot_residuals=plot_residuals)
+        check_spec_indices = interactive_plot(self, blocksize, figsize,\
+                                              plot_residuals=plot_residuals,\
+                                              blockrange=blockrange)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
+        # For staged_checking - check and flatten
+        self.check_spec_indices = check_and_flatten(self, check_spec_indices)
 
         endtime = time.time()
         if verbose:
@@ -419,6 +431,10 @@ class scouse(object):
                                              var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
 
         return self
 
@@ -450,10 +466,6 @@ class scouse(object):
             models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
 
-        # Save the scouse object automatically
-        if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
-
         if write_ascii:
             output_ascii_indiv(self, s6dir)
 
@@ -463,6 +475,10 @@ class scouse(object):
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s6')
+
+        # Save the scouse object automatically
+        if autosave:
+            self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
 
         return self
 
