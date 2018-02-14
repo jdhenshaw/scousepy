@@ -48,7 +48,7 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                 spec = get_spec(self, SAA.xtrim, SAA.ytrim, SAA.rms)
                 log.setLevel(old_log)
 
-            # if no initial guess available then begin by fitting interactively
+            # if this is the initial guess then begin by fitting interactively
             if init_guess:
                 # Interactive fitting with pyspeckit
                 spec.plotter(xmin=self.ppv_vol[0], \
@@ -64,7 +64,7 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                 print_fit_information(bf, init_guess=False)
                 print("")
 
-            # else start with an initial guess. If the user isn't happy they
+            # else start with a guess. If the user isn't happy they
             # can enter the interactive fitting mode
             else:
                 spec.plotter(xmin=self.ppv_vol[0], \
@@ -117,5 +117,5 @@ def generate_saa_list(self):
             # get the relavent SAA
             SAA = saa_dict[j]
             saa_list.append([SAA.index, i])
-            
+
     return saa_list

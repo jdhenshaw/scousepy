@@ -264,11 +264,12 @@ class scouse(object):
 
         # Loop through the SAAs
         for i in fitrange:
-            fittime = time.time()
-            firstfit=True
-            SAAid=0
+
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
+            if SAA.index == 0.0:
+                SAAid=0
+                firstfit=True
 
             if SAA.to_be_fit:
                 bf = fitting(self, SAA, saa_dict, SAAid, \
@@ -404,7 +405,7 @@ class scouse(object):
         self.stagedirs.append(s5dir)
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
-        
+
         if blockrange is not None:
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
@@ -440,7 +441,7 @@ class scouse(object):
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
                 plot_residuals=False, verbose=False, autosave=True, \
-                write_ascii=False ):
+                write_ascii=False, specrange=None ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -450,12 +451,29 @@ class scouse(object):
         # create the stage_6 directory
         mkdir_s6(self.outputdirectory, s6dir)
 
+        if specrange is not None:
+            # Fail safe in case people try to re-run s1 midway through fitting
+            # Without this - it would lose all previously fitted spectra.
+            if np.min(specrange) != 0.0:
+                if not 's6' in self.completed_stages:
+                    raise ValueError('Load from autosaved S6 to avoid losing your work!')
+
         starttime = time.time()
 
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='start')
 
-        for key in self.check_spec_indices:
+        # For staged refitting
+        if specrange==None:
+            specrange=np.arange(0,int(np.size(self.check_spec_indices)))
+        else:
+            if np.max(specrange)>int(np.size(self.check_spec_indices)):
+                specrange=np.arange(int(np.min(specrange)),int(np.size(self.check_spec_indices)))
+            else:
+                specrange=np.arange(int(np.min(specrange)),int(np.max(specrange)))
+
+        for i in specrange:
+            key = self.check_spec_indices[i]
             if plot_neighbours:
                 # Find the neighbours
                 indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
