@@ -29,6 +29,7 @@ class spectrum(object):
         self._model_dud = None
         self._models = None
         self._model = None
+        self._decision = 'original'
 
     @property
     def index(self):
@@ -122,6 +123,13 @@ class spectrum(object):
         """
         return self._model
 
+    @property
+    def decision(self):
+        """
+        Returns the decision made in s6 for statistics
+        """
+        return self._decision
+
     def __repr__(self):
         """
         Return a nice printable format for the object.
@@ -177,3 +185,9 @@ def update_model_list_remdup(self, models):
     updates model list following removal of duplicates
     """
     self._models = models
+
+def add_decision(self, decision):
+    """
+    Updates the spectrum with decision made in s6
+    """
+    self._decision = decision

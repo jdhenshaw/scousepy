@@ -198,6 +198,9 @@ def update_models(self, key, models, selection):
         add_bf_model(spectrum, bf)
         update_model_list(spectrum, models)
 
+        decision = 'refit'
+        add_decision(spectrum, decision)
+
     elif selection[0] != 0.0:
         # If any spectrum other than the first is selected then swap this to the
         # model and the current best fit to models
@@ -206,6 +209,10 @@ def update_models(self, key, models, selection):
         # Now add this as the best-fitting model and add the others to models
         add_bf_model(spectrum, bf)
         update_model_list(spectrum, models)
+
+        decision = 'alternative'
+        add_decision(spectrum, decision)
+        
     else:
         # If the first spectrum was selected then the user has chosen to accept
         # the current best-fitting solution - so do nothing.
