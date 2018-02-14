@@ -396,7 +396,8 @@ class scouse(object):
         return self
 
     def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
-                verbose=False, autosave=True, blockrange=None):
+                verbose=False, autosave=True, blockrange=None, repeat=False,
+                newfile=None):
         """
         In this stage the user is required to check the best-fitting solutions
         """
@@ -407,6 +408,8 @@ class scouse(object):
         mkdir_s5(self.outputdirectory, s5dir)
 
         if blockrange is not None:
+            if repeat and (np.min(blockrange)==0.0):
+                self.check_spec_indices=[]
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
             if np.min(blockrange) != 0.0:
@@ -433,15 +436,24 @@ class scouse(object):
 
         self.completed_stages.append('s5')
 
-        # Save the scouse object automatically
+        # Save the scouse object automatically - create a backup if the user
+        # wishes to iterate over s5 + s6
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
+            if repeat:
+                if newfile is not None:
+                    self.save_to(self.datadirectory+self.filename+newfile)
+                else:
+                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
+                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
+                    self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
+            else:
+                self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
 
         return self
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
                 plot_residuals=False, verbose=False, autosave=True, \
-                write_ascii=False, specrange=None ):
+                write_ascii=False, specrange=None, repeat=None, newfile=None ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -491,13 +503,20 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='end', \
                                              t1=starttime, t2=endtime)
-
-        self.completed_stages.append('s6')
-
-        # Save the scouse object automatically
+        # Save the scouse object automatically - create a backup if the user
+        # wishes to iterate over s5 + s6
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
-
+            if repeat:
+                if newfile is not None:
+                    self.save_to(self.datadirectory+self.filename+newfile)
+                else:
+                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
+                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
+                    self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
+            else:
+                self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
+                
+        self.completed_stages.append('s6')
         return self
 
     def __repr__(self):
