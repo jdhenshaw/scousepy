@@ -3,6 +3,7 @@ from astropy.io import fits
 import os
 import sys
 
+
 def run_scousepy():
     # Input values for core SCOUSE stages
     datadirectory    =  './'
@@ -32,12 +33,13 @@ def run_scousepy():
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, fittype=fittype, verbose = verb, training_set=TS, samplesize=1, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
     #s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
     #s = scouse.stage_2(s, verbose=verb, write_ascii=True)
-    #s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
-    #s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
+    s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
+    s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
     #s = scouse.stage_4(s, verbose=verb)
-    s = scouse.load_from(datadirectory+filename+'/stage_6/s6.scousepy')
-    s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, blockrange=[5,50], repeat=True)
+    #s = scouse.load_from(datadirectory+filename+'/stage_6/s6.scousepy')
+    #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb)
     #s = scouse.load_from(datadirectory+filename+'/stage_5/s5.scousepy')
-    #s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb, repeat=True)
+    #s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb)
+    #s = scouse.load_from(datadirectory+filename+'/stage_6/s6.scousepy')
 
 run_scousepy()

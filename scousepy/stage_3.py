@@ -238,6 +238,9 @@ def check_rms(self, bf, guesses, condition_passed):
     Check the rms of the best-fitting model components
     """
 
+    # TODO: This needs to be made general for other models - not sure how to do
+    # this yet.
+
     for i in range(int(bf.ncomps)):
         if (bf.params[i*3] < bf.rms*self.tolerances[0]) or (bf.params[i*3] < bf.errors[i*3]*self.tolerances[0]):
             guesses[i*3] = 0.0
@@ -258,6 +261,9 @@ def check_dispersion(self, bf, parent_model, guesses, condition_passed):
     """
     Check the fwhm of the best-fitting model components
     """
+
+    # TODO: This needs to be made general for other models - not sure how to do
+    # this yet.
 
     for i in range(int(bf.ncomps)):
 
@@ -291,6 +297,9 @@ def check_velocity(self, bf, parent_model, guesses, condition_passed):
     Check the centroid velocity of the best-fitting model components
     """
 
+    # TODO: This needs to be made general for other models - not sure how to do
+    # this yet.
+
     for i in range(int(bf.ncomps)):
 
         # Find the closest matching component in the parent SAA model
@@ -323,6 +332,9 @@ def check_distinct(self, bf, parent_model, guesses, happy):
     """
     Check to see if component pairs can be distinguished
     """
+
+    # TODO: This needs to be made general for other models - not sure how to do
+    # this yet.
 
     fwhmconv = 2.*np.sqrt(2.*np.log(2.))
 
@@ -396,6 +408,9 @@ def find_closest_match(i, bf, parent_model):
     Find the closest matching component in the parent SAA model to the current
     component in bf.
     """
+
+    # TODO: This needs to be made general for other models - not sure how to do
+    # this yet.
 
     diff = np.zeros(int(parent_model.ncomps))
     for j in range(int(parent_model.ncomps)):

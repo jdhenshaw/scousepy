@@ -515,7 +515,7 @@ class scouse(object):
                     self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
             else:
                 self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
-                
+
         self.completed_stages.append('s6')
         return self
 
@@ -544,3 +544,14 @@ class scouse(object):
         """
         from .io import load
         return load(filename)
+
+#==============================================================================#
+# Analysis
+#==============================================================================#
+
+    def compute_stats(self):
+        """
+        Computes some statistics for the fitting process
+        """
+        from .statistics import stats
+        return stats(scouse=self)
