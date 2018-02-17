@@ -100,9 +100,14 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
             bf = fitting(self, SAA, saa_dict, count, \
                          training_set=True, init_guess=init_guess)
         else:
-            guesses = saa_dict[count].model.params
-            bf = fitting(self, SAA, saa_dict, count, guesses=guesses,\
-                         training_set=True, init_guess=init_guess)
+            model = saa_dict[count].model
+            if model is None:
+                bf = fitting(self, SAA, saa_dict, count,\
+                             training_set=True, init_guess=True)
+            else:
+                guesses = saa_dict[count].model.params
+                bf = fitting(self, SAA, saa_dict, count,guesses=guesses, \
+                             training_set=True, init_guess=init_guess)
 
     return bf
 
@@ -116,6 +121,7 @@ def generate_saa_list(self):
         for j in range(len(saa_dict.keys())):
             # get the relavent SAA
             SAA = saa_dict[j]
-            saa_list.append([SAA.index, i])
+            if SAA.to_be_fit:
+                saa_list.append([SAA.index, i])
 
     return saa_list

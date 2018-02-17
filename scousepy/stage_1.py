@@ -10,13 +10,80 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import itertools
+import random
+import sys
+
 from astropy.io import fits
 from astropy import units as u
-import sys
+from astropy.stats import median_absolute_deviation
+
 from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from .io import *
-import random
+
+def compute_noise(self):
+    """
+    Estimate the typical rms noise across the map
+    """
+
+    maskeddata = self.cube.with_mask(np.any(np.isfinite(self.cube._data), axis=0))
+    keep = np.any(np.isfinite(maskeddata._data), axis=0)
+
+    finiteidxs = np.array(np.where(keep))
+    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(self.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
+    random_indices = random.sample(list(flatidxs), k=len(flatidxs))
+    locations = np.array(np.unravel_index(random_indices, np.shape(self.cube)[1:3]))
+
+    if len(locations[0,:]) > 500.0:
+        stop = 500.0
+    else:
+        stop = len(locations[0,:])
+
+    rmsList = []
+    stopcount = 0
+    specidx = 0
+    while stopcount < stop:
+
+        _spectrum = self.cube[:, locations[0, specidx], locations[1, specidx]]._data
+
+        if not np.isnan(_spectrum).any() and not (_spectrum > 0).all():
+            if not np.isnan(_spectrum).any():
+                rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
+                rmsList.append(rmsVal)
+            elif not np.isnan(_spectrum).all():
+                nanmask = ~np.isnan(_spectrum)
+                _spectrum = _spectrum[nanmask]
+                rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
+                rmsList.append(rmsVal)
+            stopcount+=1
+        specidx+=1
+
+    rms = np.median(rmsList)
+
+    return rms
+
+def calc_rms(spectrum):
+    """
+    Returns the spectral rms.
+    """
+
+    # Find all negative values
+    negative_indices = (spectrum < 0.0)
+    spectrum_negative_values = spectrum[negative_indices]
+    reflected_noise = np.concatenate((spectrum[negative_indices],
+                                               abs(spectrum[negative_indices])))
+    # Compute the median absolute deviation
+    MAD = median_absolute_deviation(reflected_noise)
+    # For pure noise you should have roughly half the spectrum negative. If
+    # it isn't then you need to be a bit more conservative
+    if len(spectrum_negative_values) < 0.47*len(spectrum):
+        maximum_value = 3.5*MAD
+    else:
+        maximum_value = 4.0*MAD
+    noise = spectrum[spectrum < abs(maximum_value)]
+    rms = np.sqrt(np.sum(noise**2) / np.size(noise))
+
+    return rms
 
 def get_moments(self, write_moments, dir, filename, verbose):
     """
@@ -29,13 +96,13 @@ def get_moments(self, write_moments, dir, filename, verbose):
     # If upper and lower limits are imposed on the velocity range
     if (self.ppv_vol[0] != 0) & (self.ppv_vol[1] != 0):
         momzero = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment0(axis=0)
+            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment0(axis=0)
         momone = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
+            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
+            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
         slab = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
+            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax= np.argmax(slab._data, axis=0)
@@ -47,13 +114,13 @@ def get_moments(self, write_moments, dir, filename, verbose):
     # If no velocity limits are imposed
     else:
         momzero = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).moment0(axis=0)
+            self.mask_below, self.cube.unit)).moment0(axis=0)
         momone = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).moment1(axis=0)
+            self.mask_below, self.cube.unit)).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit)).linewidth_sigma()
+            self.mask_below, self.cube.unit)).linewidth_sigma()
         slab = self.cube.with_mask(self.cube > u.Quantity(
-            self.rms_approx * self.sigma_cut, self.cube.unit))
+            self.mask_below, self.cube.unit))
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax= np.argmax(slab._data, axis=0)

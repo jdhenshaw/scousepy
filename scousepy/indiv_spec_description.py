@@ -9,6 +9,7 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
+from .saa_description import get_rms
 
 class spectrum(object):
     def __init__(self, coords, flux, \
@@ -23,7 +24,7 @@ class spectrum(object):
         self._x = np.array(scouse.cube.world[:,0,0][0])
         self._y = flux
         self._xtrim, self._ytrim = trim_spectrum(self, scouse)
-        self._rms = None
+        self._rms = get_rms(self, scouse)
         self._model_parent = None
         self._model_spatial = None
         self._model_dud = None
@@ -78,15 +79,7 @@ class spectrum(object):
         """
         Returns the spectral rms.
         """
-        # Find all negative values
-        yneg = self.y[(self.y < 0.0)]
-        # Get the mean/std
-        mean = np.mean(yneg)
-        std = np.std(yneg)
-        # maximum neg = 4 std from mean
-        maxneg = mean-4.*std
-        # compute std over all values within that 4sigma limit and return
-        return np.std(self.y[self.y < abs(maxneg)])
+        return self._rms
 
     @property
     def model_parent(self):

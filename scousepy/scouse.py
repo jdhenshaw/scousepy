@@ -62,7 +62,7 @@ class scouse(object):
         self.rsaa = None
         self.ppv_vol = None
         self.rms_approx = None
-        self.sigma_cut = None
+        self.mask_below = 0.0
         self.training_set = None
         self.sample_size = None
         self.saa_spectra = None
@@ -80,7 +80,7 @@ class scouse(object):
         self.completed_stages = []
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, rms_approx, sigma_cut, \
+    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
                 refine_grid=False, nrefine=3.0, autosave=True, \
@@ -95,10 +95,9 @@ class scouse(object):
         self.datadirectory = datadirectory
         self.rsaa = rsaa
         self.ppv_vol = ppv_vol
-        self.rms_approx = rms_approx
-        self.sigma_cut = sigma_cut
         self.nrefine = nrefine
         self.fittype=fittype
+        self.mask_below=mask_below
 
         if training_set:
             self.training_set = True
@@ -131,10 +130,14 @@ class scouse(object):
             log.setLevel('ERROR')
             # Read in the datacube
             self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+            # Compute typical noise within the spectra
+            self.rms_approx = compute_noise(self)
+
             # Generate moment maps
             momzero, momone, momtwo, momnine = get_moments(self, write_moments,\
                                                            s1dir, filename,\
                                                            verbose)
+
             # get the coverage / average the subcube spectra
             self.saa_dict = {}
 
@@ -244,9 +247,18 @@ class scouse(object):
             if np.min(fitrange) != 0.0:
                 saa_dict=self.saa_dict[0]
                 keys=list(saa_dict.keys())
-                SAA=saa_dict[keys[0]]
-                if SAA.model is None:
-                    raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                cont=True
+                counter=0
+                while cont:
+                    key = keys[counter]
+                    SAA=saa_dict[key]
+                    if SAA.to_be_fit:
+                        if SAA.model is None:
+                            raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                        else:
+                            cont=False
+                    else:
+                        counter+=1
 
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
@@ -257,8 +269,11 @@ class scouse(object):
         if fitrange==None:
             fitrange=np.arange(0,int(np.size(saa_list[:,0])))
         else:
-            if np.max(fitrange)>np.size(saa_list):
-                fitrange=np.arange(int(np.min(fitrange)),int(np.size(saa_list[:,0])))
+            if np.max(fitrange)>=np.size(saa_list[:,0])-1:
+                if np.min(fitrange) >= np.size(saa_list[:,0])-1:
+                    fitrange=[]
+                else:
+                    fitrange=np.arange(int(np.min(fitrange)),int(np.size(saa_list[:,0])))
             else:
                 fitrange=np.arange(int(np.min(fitrange)),int(np.max(fitrange)))
 
@@ -267,9 +282,14 @@ class scouse(object):
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
+
             if SAA.index == 0.0:
                 SAAid=0
                 firstfit=True
+            else:
+                if i == np.min(fitrange):
+                    SAAid=SAA.index
+                    firstfit=True
 
             if SAA.to_be_fit:
                 bf = fitting(self, SAA, saa_dict, SAAid, \

@@ -9,6 +9,9 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
+from astropy.stats import median_absolute_deviation
+
+from .stage_1 import calc_rms
 
 class saa(object):
     def __init__(self, coords, flux, \
@@ -23,7 +26,7 @@ class saa(object):
         self._x = np.array(scouse.cube.world[:,0,0][0])
         self._y = flux
         self._xtrim, self._ytrim = trim_spectrum(self, scouse)
-        self._rms = None
+        self._rms = get_rms(self, scouse)
         self._indices = None
         self._indices_flat = None
         self._model = None
@@ -77,15 +80,8 @@ class saa(object):
         """
         Returns the spectral rms.
         """
-        # Find all negative values
-        yneg = self.y[(self.y < 0.0)]
-        # Get the mean/std
-        mean = np.mean(yneg)
-        std = np.std(yneg)
-        # maximum neg = 4 std from mean
-        maxneg = mean-4.*std
-        # compute std over all values within that 4sigma limit and return
-        return np.std(self.y[self.y < abs(maxneg)])
+
+        return self._rms
 
     @property
     def indices(self):
@@ -131,6 +127,18 @@ class saa(object):
         Return a nice printable format for the object.
         """
         return "<< scousepy SAA; index={0} >>".format(self.index)
+
+def get_rms(self, scouse):
+    """
+    Calculates rms value
+    """
+    spectrum = self.y
+    if not np.isnan(spectrum).any() and not (spectrum > 0).all():
+        rms = calc_rms(spectrum)
+    else:
+        rms = scouse.rms_approx
+
+    return rms
 
 def trim_spectrum(self, scouse=None):
     """
