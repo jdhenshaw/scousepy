@@ -23,32 +23,75 @@ from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
 
 
-def initialise_indiv_spectra(self):
+def initialise_indiv_spectra(self, verbose=False, njobs=1):
     """
     Here, the individual spectra are primed ready for fitting. We create a new
     object for each spectrum and they are contained within a dictionary which
     can be located within the relavent SAA.
     """
+
+    # TODO: parallelise
+
     # Cycle through potentially multiple Rsaa values
     for i in range(len(self.rsaa)):
+
         # Get the relavent SAA dictionary
         saa_dict = self.saa_dict[i]
+
+        if verbose:
+            count=0
+            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=self.rsaa[i])
+
         for j in range(len(saa_dict.keys())):
+
+            if verbose:
+                progress_bar + 1
+                progress_bar.show_progress()
+
             # get the relavent SAA
             SAA = saa_dict[j]
             # Initialise indiv spectra
             indiv_spectra = {}
-
-            for k in range(len(SAA.indices_flat)):
-                indiv_spec = spectrum(np.array([SAA.indices[k,0], \
-                                      SAA.indices[k,1]]), \
-                                      self.cube._data[:,SAA.indices[k,0], \
-                                      SAA.indices[k,1]], \
-                                      idx=SAA.indices_flat[k], \
-                                      scouse=self)
-                indiv_spectra[SAA.indices_flat[k]] = indiv_spec
+            if np.size(SAA.indices_flat) != 0.0:
+                if njobs > 1:
+                    args = [self, SAA]
+                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                    # Send to parallel_map
+                    indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+                    merged_spec = [spec for spec in indiv_spec if spec is not None]
+                    merged_spec = np.asarray(merged_spec)
+                    for k in range(len(SAA.indices_flat)):
+                        # Add the spectra to the dict
+                        key = SAA.indices_flat[k]
+                        indiv_spectra[key] = merged_spec[k]
+                else:
+                    for k in range(len(SAA.indices_flat)):
+                        key = SAA.indices_flat[k]
+                        args = [self, SAA]
+                        inputs = [[k] + args]
+                        inputs = inputs[0]
+                        indiv_spec = get_indiv_spec(inputs)
+                        indiv_spectra[key] = indiv_spec
             add_indiv_spectra(SAA, indiv_spectra)
 
+    if verbose:
+        print("")
+
+def get_indiv_spec(inputs):
+    """
+    Returns a spectrum
+    """
+
+    idx, self, SAA = inputs
+
+    indiv_spec = spectrum(np.array([SAA.indices[idx,0], \
+                          SAA.indices[idx,1]]), \
+                          self.cube._data[:,SAA.indices[idx,0], \
+                          SAA.indices[idx,1]], \
+                          idx=SAA.indices_flat[idx], \
+                          scouse=self)
+
+    return indiv_spec
 
 def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                       spatial=False, verbose=False):
@@ -169,31 +212,38 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
     happy = False
     initfit = True
     while not happy:
-        if initfit:
-            guesses = np.asarray(parent_model.params)
-        if np.sum(guesses) != 0.0:
-            # Perform fit
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                old_log = log.level
-                log.setLevel('ERROR')
+        if np.all(np.isfinite(spec.flux)):
+            if initfit:
+                guesses = np.asarray(parent_model.params)
+            if np.sum(guesses) != 0.0:
 
-                spec.specfit(interactive=False, \
-                             clear_all_connections=True,\
-                             xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1], \
-                             fittype = self.fittype, \
-                             guesses = guesses,\
-                             verbose=False)
+                    # Perform fit
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('ignore')
+                        old_log = log.level
+                        log.setLevel('ERROR')
 
-                log.setLevel(old_log)
-            # Gen best-fitting model
-            bf = fit(spec, idx=key, scouse=self)
+                        spec.specfit(interactive=False, \
+                                    clear_all_connections=True,\
+                                    xmin=self.ppv_vol[0], \
+                                    xmax=self.ppv_vol[1], \
+                                    fittype = self.fittype, \
+                                    guesses = guesses,\
+                                    verbose=False)
 
-            # Check the output model, does it satisfy the
-            # conditions?
-            happy, bf, guesses = check_spec(self, parent_model, bf, happy)
-            initfit = False
+                        log.setLevel(old_log)
+                    # Gen best-fitting model
+                    bf = fit(spec, idx=key, scouse=self)
+
+                    # Check the output model, does it satisfy the
+                    # conditions?
+                    happy, bf, guesses = check_spec(self, parent_model, bf, happy)
+                    initfit = False
+            else:
+                # If no satisfactory model can be found - fit a dud!
+                bf = fitting_process_duds(self, SAA, key, None)
+
+                happy = True
         else:
             # If no satisfactory model can be found - fit a dud!
             bf = fitting_process_duds(self, SAA, key, None)

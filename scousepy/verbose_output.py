@@ -71,6 +71,15 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("Beginning stage_3 analysis...")
             print("")
             progress_bar=[]
+
+        if step=='init':
+            if length != None:
+                print("")
+                print("")
+                print('Initialising spectra: Rsaa = {0}'.format(var))
+                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
+                                                   fill='=', blank='.')
+                print("")
         if step=='fitting':
             if length != None:
                 print("")

@@ -74,7 +74,7 @@ class scouse(object):
         self.specres = None
         self.nrefine = None
         self.fittype = None
-        self.fitcount = 0.0
+        self.fitcount = 0
         self.blockcount = 0.0
         self.check_spec_indices = []
         self.completed_stages = []
@@ -241,24 +241,25 @@ class scouse(object):
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
+        if self.fitcount != 0.0:
+            lower = int(self.fitcount)
+            upper = int(lower+fitrange)
+        else:
+            lower = 0
+            upper = int(lower+fitrange)
+
+
         if fitrange is not None:
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
-            if np.min(fitrange) != 0.0:
-                saa_dict=self.saa_dict[0]
-                keys=list(saa_dict.keys())
-                cont=True
-                counter=0
-                while cont:
-                    key = keys[counter]
-                    SAA=saa_dict[key]
-                    if SAA.to_be_fit:
-                        if SAA.model is None:
-                            raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
-                        else:
-                            cont=False
-                    else:
-                        counter+=1
+            if lower != 0:
+
+                saa_dict_num = saa_list[lower-1, 1]
+                saa_dict = self.saa_dict[saa_dict_num]
+                key = saa_list[lower-1, 0]
+                SAA = saa_dict[key]
+                if SAA.model is None:
+                    raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
 
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
@@ -269,19 +270,26 @@ class scouse(object):
         if fitrange==None:
             fitrange=np.arange(0,int(np.size(saa_list[:,0])))
         else:
-            if np.max(fitrange)>=np.size(saa_list[:,0])-1:
-                if np.min(fitrange) >= np.size(saa_list[:,0])-1:
+            if upper>=np.size(saa_list[:,0]):
+                if lower >= np.size(saa_list[:,0]):
                     fitrange=[]
                 else:
-                    fitrange=np.arange(int(np.min(fitrange)),int(np.size(saa_list[:,0])))
+                    fitrange=np.arange(int(lower),int(np.size(saa_list[:,0])))
             else:
-                fitrange=np.arange(int(np.min(fitrange)),int(np.max(fitrange)))
+                fitrange=np.arange(int(lower),int(upper))
 
         # Loop through the SAAs
         for i in fitrange:
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
+
+            print("")
+            print(SAA)
+            print(SAA.to_be_fit)
+            print(i)
+            print(self.fitcount)
+            print("")
 
             if SAA.index == 0.0:
                 SAAid=0
@@ -300,15 +308,15 @@ class scouse(object):
 
             self.fitcount+=1
 
-        if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
+        print(self.fitcount)
+        if write_ascii and (self.fitcount == np.size(saa_list[:,0])-1):
             output_ascii_saa(self, s2dir)
+            self.completed_stages.append('s2')
 
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
                                              t1=starttime, t2=endtime)
-
-        self.completed_stages.append('s2')
 
         # Save the scouse object automatically
         if autosave:
@@ -340,7 +348,7 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s3', step='start')
 
         # Begin by preparing the spectra and adding them to the relavent SAA
-        initialise_indiv_spectra(self)
+        initialise_indiv_spectra(self, verbose=verbose, njobs=njobs)
 
         key_set = []
         # Cycle through potentially multiple Rsaa values
