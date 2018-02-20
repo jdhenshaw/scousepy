@@ -83,11 +83,11 @@ def get_indiv_spec(inputs):
     """
 
     idx, self, SAA = inputs
+    _coords = np.unravel_index(SAA.indices_flat[idx], \
+                              (np.shape(self.cube)[2], np.shape(self.cube)[1]) )
 
-    indiv_spec = spectrum(np.array([SAA.indices[idx,0], \
-                          SAA.indices[idx,1]]), \
-                          self.cube._data[:,SAA.indices[idx,0], \
-                          SAA.indices[idx,1]], \
+    indiv_spec = spectrum(np.array([_coords[1], _coords[0]]), \
+                          self.cube._data[:,_coords[1], _coords[0]], \
                           idx=SAA.indices_flat[idx], \
                           scouse=self)
 
@@ -159,10 +159,21 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     dud = fit_dud(inputs)
                     add_model_parent(SAA.indiv_spectra[key], dud)
 
-def get_spec(self, x, y, rms):
+def get_flux(self, indiv_spec):
+    """
+    Returns flux for a given spectrum
+    """
+    y=self.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
+    y=y[self.trimids]
+    return y
+
+def get_spec(self, indiv_spec):
     """
     Generate the spectrum.
     """
+    x=self.xtrim
+    y = get_flux(self, indiv_spec)
+    rms=indiv_spec.rms
     return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
                               doplot=False, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'},verbose=False)
@@ -182,9 +193,7 @@ def fit_spec(inputs):
         log.setLevel('ERROR')
 
         # create the spectrum
-        spec = get_spec(self, SAA.indiv_spectra[key].xtrim, \
-                              SAA.indiv_spectra[key].ytrim, \
-                              SAA.indiv_spectra[key].rms)
+        spec = get_spec(self, SAA.indiv_spectra[key])
         log.setLevel(old_log)
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
@@ -256,9 +265,11 @@ def fitting_process_duds(self, SAA, key, spec):
     """
     Fitting duds
     """
+    y=self.cube[:,SAA.indiv_spectra[key].coordinates[0],SAA.indiv_spectra[key].coordinates[1]]
+    y=y[self.trimids]
     bf = fit(spec, idx=key, scouse=self, fit_dud=True,\
              noise=SAA.indiv_spectra[key].rms, \
-             duddata=SAA.indiv_spectra[key].ytrim)
+             duddata=y)
 
     return bf
 
@@ -660,5 +671,4 @@ def clean_SAAs(self, saa_dict):
     for j in range(len(saa_dict.keys())):
         # get the relavent SAA
         SAA = saa_dict[j]
-        if SAA.to_be_fit:
-            clean_up(SAA)
+        clean_up(SAA)

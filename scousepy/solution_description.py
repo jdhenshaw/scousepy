@@ -95,18 +95,11 @@ class fit(object):
         return self._rms
 
     @property
-    def residuals(self):
-        """
-        Returns a residual array the same length as the x axis
-        """
-        return self._residuals
-
-    @property
     def residstd(self):
         """
         Returns the standard deviation of the residuals
         """
-        return np.std(self.residuals)
+        return self._residstd
 
     @property
     def chi2(self):
@@ -155,8 +148,7 @@ def fit_pars_dud(self, spec, scouse, noise, duddata):
     self._params = [0.0 for i in range(len(self.parnames))]
     self._errors = [0.0 for i in range(len(self.parnames))]
     self._rms = noise
-    self._residuals = duddata
-    self._residstd = None
+    self._residstd = np.std(duddata)
     self._dof = 0.0
     self._chi2 = 0.0
     self._redchi2 = 0.0
@@ -172,8 +164,7 @@ def fit_pars(self, spec, scouse):
     self._params = spec.specfit.modelpars
     self._errors = spec.specfit.modelerrs
     self._rms = spec.error[0]
-    self._residuals = spec.specfit.residuals
-    self._residstd = None
+    self._residstd = np.std(spec.specfit.residuals)
     self._chi2 = spec.specfit.chi2
     self._dof = spec.specfit.dof
     self._redchi2 = spec.specfit.chi2/spec.specfit.dof

@@ -22,11 +22,11 @@ from astropy import log
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 
-def get_spec(self, x, y, rms):
+def get_spec(self, y, rms):
     """
     Generate the spectrum
     """
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
+    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=self.xtrim, \
                               doplot=True, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'})
 
@@ -45,7 +45,7 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                 warnings.simplefilter('ignore')
                 old_log = log.level
                 log.setLevel('ERROR')
-                spec = get_spec(self, SAA.xtrim, SAA.ytrim, SAA.rms)
+                spec = get_spec(self, SAA.ytrim, SAA.rms)
                 log.setLevel(old_log)
 
             # if this is the initial guess then begin by fitting interactively

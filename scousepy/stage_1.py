@@ -85,6 +85,15 @@ def calc_rms(spectrum):
 
     return rms
 
+def get_x_axis(self):
+    """
+    Returns x_axis for spectra
+    """
+    x = np.array(self.cube.world[:,0,0][0])
+    trimids = ((x>self.ppv_vol[0])&(x<self.ppv_vol[1]))
+    xtrim = x[trimids]
+    return x, xtrim, trimids
+
 def get_moments(self, write_moments, dir, filename, verbose):
     """
     Create moment maps

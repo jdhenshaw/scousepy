@@ -65,15 +65,17 @@ class scouse(object):
         self.mask_below = 0.0
         self.training_set = None
         self.sample_size = None
-        self.saa_spectra = None
-        self.saa_dict = None
-        self.indiv_dict = None
-        self.key_set = None
-        self.sample = None
         self.tolerances = None
         self.specres = None
         self.nrefine = None
         self.fittype = None
+        self.sample = None
+        self.x = None
+        self.xtrim = None
+        self.trimids=None
+        self.saa_dict = None
+        self.indiv_dict = None
+        self.key_set = None
         self.fitcount = 0
         self.blockcount = 0.0
         self.check_spec_indices = []
@@ -106,6 +108,7 @@ class scouse(object):
             self.training_set = False
             self.samplesize = 0
 
+        # Main routine
         starttime = time.time()
         # Generate file structure
         if outputdir==None:
@@ -128,8 +131,12 @@ class scouse(object):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
+
+
             # Read in the datacube
             self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+            # Generate the x axis common to the fitting process
+            self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
             self.rms_approx = compute_noise(self)
 
@@ -175,8 +182,8 @@ class scouse(object):
                     _cc, _ss, _ids, _frape = cc, ss, ids, frac
                 nref -= 1.0
 
-                # Randomly select saas to be fit
                 if self.training_set:
+                    # Randomly select saas to be fit
                     self.sample = get_random_saa(cc, samplesize, r, \
                                                  verbose=verbose)
                     totfit = len(self.sample)
@@ -191,7 +198,6 @@ class scouse(object):
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1', \
                                                      step='coverage',var=totfit)
-
                 speccount=0
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
@@ -226,7 +232,7 @@ class scouse(object):
         return self
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                fitrange=None):
+                staged=False, nspec=None):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -241,33 +247,40 @@ class scouse(object):
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
-        if self.fitcount != 0.0:
-            lower = int(self.fitcount)
-            upper = int(lower+fitrange)
-        else:
-            lower = 0
-            upper = int(lower+fitrange)
+        # Staged fitting preparation
+        if staged:
+            if self.fitcount != 0.0:
+                lower = int(self.fitcount)
+                upper = int(lower+fitrange)
+            else:
+                lower = 0
+                upper = int(lower+fitrange)
 
-
-        if fitrange is not None:
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
             if lower != 0:
-
-                saa_dict_num = saa_list[lower-1, 1]
-                saa_dict = self.saa_dict[saa_dict_num]
-                key = saa_list[lower-1, 0]
-                SAA = saa_dict[key]
-                if SAA.model is None:
-                    raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                saa_dict=self.saa_dict[0]
+                keys=list(saa_dict.keys())
+                cont=True
+                counter=0
+                while cont:
+                    key = keys[counter]
+                    SAA=saa_dict[key]
+                    if SAA.to_be_fit:
+                        if SAA.model is None:
+                            raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                        else:
+                            cont=False
+                    else:
+                        counter+=1
 
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
 
-        # For staged fitting
-        if fitrange==None:
+        # Set ranges for staged fitting
+        if not staged:
             fitrange=np.arange(0,int(np.size(saa_list[:,0])))
         else:
             if upper>=np.size(saa_list[:,0]):
@@ -283,13 +296,6 @@ class scouse(object):
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
-
-            print("")
-            print(SAA)
-            print(SAA.to_be_fit)
-            print(i)
-            print(self.fitcount)
-            print("")
 
             if SAA.index == 0.0:
                 SAAid=0
@@ -308,7 +314,6 @@ class scouse(object):
 
             self.fitcount+=1
 
-        print(self.fitcount)
         if write_ascii and (self.fitcount == np.size(saa_list[:,0])-1):
             output_ascii_saa(self, s2dir)
             self.completed_stages.append('s2')

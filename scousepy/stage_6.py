@@ -15,6 +15,7 @@ import sys
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
+from .stage_3 import get_flux
 from .stage_5 import *
 
 from .interactiveplot import showplot
@@ -90,17 +91,17 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize):
             # Get the correct subplot axis
             axis = ax[i]
             # First plot the Spectrum
-            axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
+            axis.plot(self.xtrim, get_flux(self, spectrum), 'k-', drawstyle='steps', lw=1)
             # Recreate the model from information held in the solution
             # description
             bfmodel = spectrum.model
-            mod = recreate_model(self, spectrum, bfmodel)
+            mod, res = recreate_model(self, spectrum, bfmodel)
             # now overplot the model
             if bfmodel.ncomps == 0.0:
-                axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
+                axis.plot(self.xtrim, mod[:,0], 'b-', lw=1)
             else:
                 for k in range(int(bfmodel.ncomps)):
-                    axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                    axis.plot(self.xtrim, mod[:,k], 'b-', lw=1)
 
             if i != round((npix/2)-0.5):
                 axis.patch.set_facecolor('blue')
@@ -155,18 +156,18 @@ def plot_alternatives(self, key, figsize, plot_residuals=False):
         bfmodel = allmodels[i]
 
         # First plot the Spectrum
-        axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
+        axis.plot(self.xtrim, get_flux(self, spectrum), 'k-', drawstyle='steps', lw=1)
         # Recreate the model from information held in the solution
         # description
-        mod = recreate_model(self, spectrum, bfmodel)
+        mod,res = recreate_model(self, spectrum, bfmodel)
         # now overplot the model
         if bfmodel.ncomps == 0.0:
-            axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
+            axis.plot(self.xtrim, mod[:,0], 'b-', lw=1)
         else:
             for k in range(int(bfmodel.ncomps)):
-                axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                axis.plot(self.xtrim, mod[:,k], 'b-', lw=1)
         if plot_residuals:
-            axis.plot(spectrum.xtrim, bfmodel.residuals,'g-', drawstyle='steps', lw=1)
+            axis.plot(self.xtrim, res,'g-', drawstyle='steps', lw=1)
 
     # Create the interactive plot
     intplot = showplot(fig, ax, keep=True)
@@ -187,10 +188,8 @@ def update_models(self, key, models, selection):
             old_log = log.level
             log.setLevel('ERROR')
             # generate a spectrum
-            spec = get_spec(self, \
-                            spectrum.xtrim, \
-                            spectrum.ytrim, \
-                            spectrum.rms)
+            spec = get_spec(self, spectrum)
+            
         log.setLevel(old_log)
         bf = interactive_fitting(self, spectrum, spec)
 
@@ -212,7 +211,7 @@ def update_models(self, key, models, selection):
 
         decision = 'alternative'
         add_decision(spectrum, decision)
-        
+
     else:
         # If the first spectrum was selected then the user has chosen to accept
         # the current best-fitting solution - so do nothing.

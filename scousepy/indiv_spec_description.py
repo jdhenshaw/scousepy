@@ -20,11 +20,8 @@ class spectrum(object):
         """
 
         self._index = idx
-        self._coordinates = np.array(coords)
-        self._x = np.array(scouse.cube.world[:,0,0][0])
-        self._y = flux
-        self._xtrim, self._ytrim = trim_spectrum(self, scouse)
-        self._rms = get_rms(self, scouse)
+        self._coordinates = np.array(coords, dtype='int')
+        self._rms = get_rms(self, scouse, flux)
         self._model_parent = None
         self._model_spatial = None
         self._model_dud = None
@@ -45,34 +42,6 @@ class spectrum(object):
         Returns the coordinates of the spectral averaging area.
         """
         return self._coordinates
-
-    @property
-    def x(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._x
-
-    @property
-    def y(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._y
-
-    @property
-    def xtrim(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._xtrim
-
-    @property
-    def ytrim(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._ytrim
 
     @property
     def rms(self):
