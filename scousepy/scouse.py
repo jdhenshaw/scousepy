@@ -251,10 +251,10 @@ class scouse(object):
         if staged:
             if self.fitcount != 0.0:
                 lower = int(self.fitcount)
-                upper = int(lower+fitrange)
+                upper = int(lower+nspec)
             else:
                 lower = 0
-                upper = int(lower+fitrange)
+                upper = int(lower+nspec)
 
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
@@ -314,7 +314,7 @@ class scouse(object):
 
             self.fitcount+=1
 
-        if write_ascii and (self.fitcount == np.size(saa_list[:,0])-1):
+        if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
             output_ascii_saa(self, s2dir)
             self.completed_stages.append('s2')
 

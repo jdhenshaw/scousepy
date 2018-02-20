@@ -52,26 +52,30 @@ def initialise_indiv_spectra(self, verbose=False, njobs=1):
             SAA = saa_dict[j]
             # Initialise indiv spectra
             indiv_spectra = {}
-            if np.size(SAA.indices_flat) != 0.0:
-                if njobs > 1:
-                    args = [self, SAA]
-                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                    # Send to parallel_map
-                    indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
-                    merged_spec = [spec for spec in indiv_spec if spec is not None]
-                    merged_spec = np.asarray(merged_spec)
-                    for k in range(len(SAA.indices_flat)):
-                        # Add the spectra to the dict
-                        key = SAA.indices_flat[k]
-                        indiv_spectra[key] = merged_spec[k]
-                else:
-                    for k in range(len(SAA.indices_flat)):
-                        key = SAA.indices_flat[k]
+            # We only care about the SAA's that are to be fit at this stage
+            if SAA.to_be_fit:
+                if np.size(SAA.indices_flat) != 0.0:
+
+                    # Parallel
+                    if njobs > 1:
                         args = [self, SAA]
-                        inputs = [[k] + args]
-                        inputs = inputs[0]
-                        indiv_spec = get_indiv_spec(inputs)
-                        indiv_spectra[key] = indiv_spec
+                        inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                        # Send to parallel_map
+                        indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+                        merged_spec = [spec for spec in indiv_spec if spec is not None]
+                        merged_spec = np.asarray(merged_spec)
+                        for k in range(len(SAA.indices_flat)):
+                            # Add the spectra to the dict
+                            key = SAA.indices_flat[k]
+                            indiv_spectra[key] = merged_spec[k]
+                    else:
+                        for k in range(len(SAA.indices_flat)):
+                            key = SAA.indices_flat[k]
+                            args = [self, SAA]
+                            inputs = [[k] + args]
+                            inputs = inputs[0]
+                            indiv_spec = get_indiv_spec(inputs)
+                            indiv_spectra[key] = indiv_spec
             add_indiv_spectra(SAA, indiv_spectra)
 
     if verbose:
@@ -111,23 +115,26 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
         # get the relavent SAA
         SAA = saa_dict[j]
 
+        # We only care about those locations we have SAA fits for.
         if SAA.to_be_fit:
+
             # Get the SAA model solution
             parent_model = SAA.model
 
-            # Fitting process is parallelised
+            # Parallel
             if njobs > 1:
-                args = [self, SAA, parent_model]
-                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                # Send to parallel_map
-                bf = parallel_map(fit_spec, inputs, numcores=njobs)
-                merged_bfs = [core_bf for core_bf in bf if core_bf is not None]
-                merged_bfs = np.asarray(merged_bfs)
-                for k in range(len(SAA.indices_flat)):
-                    # Add the models to the spectra
-                    key = SAA.indices_flat[k]
-                    add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
-                    add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
+                if np.size(SAA.indices_flat) != 0.0:
+                    args = [self, SAA, parent_model]
+                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                    # Send to parallel_map
+                    bf = parallel_map(fit_spec, inputs, numcores=njobs)
+                    merged_bfs = [core_bf for core_bf in bf if core_bf is not None]
+                    merged_bfs = np.asarray(merged_bfs)
+                    for k in range(len(SAA.indices_flat)):
+                        # Add the models to the spectra
+                        key = SAA.indices_flat[k]
+                        add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
+                        add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
             else:
                 # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
@@ -138,26 +145,6 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     bfs = fit_spec(inputs)
                     add_model_parent(SAA.indiv_spectra[key], bfs[0])
                     add_model_dud(SAA.indiv_spectra[key], bfs[1])
-        else:
-            # Fitting duds
-            if njobs > 1:
-                if len(SAA.indices_flat) != 0:
-                    args = [self, SAA]
-                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                    dud = parallel_map(fit_dud, inputs, numcores=njobs)
-                    merged_duds = [core_bf for core_bf in dud if core_bf is not None]
-                    merged_duds = np.asarray(merged_duds)
-                    for k in range(len(SAA.indices_flat)):
-                        key = SAA.indices_flat[k]
-                        add_model_parent(SAA.indiv_spectra[key], merged_duds[k])
-            else:
-                for k in range(len(SAA.indices_flat)):
-                    key = SAA.indices_flat[k]
-                    args = [self, SAA]
-                    inputs = [[k] + args]
-                    inputs = inputs[0]
-                    dud = fit_dud(inputs)
-                    add_model_parent(SAA.indiv_spectra[key], dud)
 
 def get_flux(self, indiv_spec):
     """
@@ -186,6 +173,7 @@ def fit_spec(inputs):
     idx, self, SAA, parent_model = inputs
     key = SAA.indices_flat[idx]
     spec=None
+
     # Shhh
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -265,8 +253,8 @@ def fitting_process_duds(self, SAA, key, spec):
     """
     Fitting duds
     """
-    y=self.cube[:,SAA.indiv_spectra[key].coordinates[0],SAA.indiv_spectra[key].coordinates[1]]
-    y=y[self.trimids]
+    spectrum = SAA.indiv_spectra[key]
+    y = get_flux(self, spectrum)
     bf = fit(spec, idx=key, scouse=self, fit_dud=True,\
              noise=SAA.indiv_spectra[key].rms, \
              duddata=y)
@@ -494,13 +482,12 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
     for j in range(len(saa_dict.keys())):
         # get the relavent SAA
         SAA = saa_dict[j]
-        #if SAA.to_be_fit:
-            # Get indiv dict
-        indiv_spectra = SAA.indiv_spectra
-        if np.size(indiv_spectra) != 0:
-            for key in indiv_spectra.keys():
-                key_list.append(key)
-                model_list.append(indiv_spectra[key])
+        if SAA.to_be_fit:
+            indiv_spectra = SAA.indiv_spectra
+            if np.size(indiv_spectra) != 0:
+                for key in indiv_spectra.keys():
+                    key_list.append(key)
+                    model_list.append(indiv_spectra[key])
 
     # sort the lists
     key_arr = np.array(key_list)
@@ -577,15 +564,17 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
                 if key in indiv_dictionaries[i]:
                     keyfound[i] = True
 
+            kf = np.squeeze(np.where(keyfound==True))
+
+            if np.size(kf)==1:
+                idx = [np.asscalar(kf)]
+            else:
+                idx = list(kf)
+
             # If the key is found take the first spectrum and add to the new
             # dictionary
-            idx = list(np.squeeze(np.where(keyfound==True)))
-            if np.size(idx)==1:
-                main_dict[key] = indiv_dictionaries[idx][key]
-                idx.remove(idx)
-            else:
-                main_dict[key] = indiv_dictionaries[idx[0]][key]
-                idx.remove(idx[0])
+            main_dict[key] = indiv_dictionaries[idx[0]][key]
+            idx.remove(idx[0])
 
             # Get the main spectrum
             main_spectrum = main_dict[key]
