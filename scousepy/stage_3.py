@@ -15,7 +15,9 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 import time
+
 from astropy import log
+from astropy import units as u
 
 from .indiv_spec_description import *
 from .parallel_map import *
@@ -135,10 +137,6 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
         # get the relavent SAA
         SAA = saa_dict[j]
 
-        #print("")
-        #print(SAA)
-        #print("")
-
         # We only care about those locations we have SAA fits for.
         if SAA.to_be_fit:
 
@@ -186,12 +184,10 @@ def get_spec_new(self, indiv_spec, template_spectrum):
     y = get_flux(self, indiv_spec)
     rms=indiv_spec.rms
 
-    import numpy.ma as ma
-
-    template_spectrum.data = ma.masked_array(y)
-    template_spectrum.error = ma.masked_array(np.ones(len(y))*rms)
-    template_spectrum.specfit.spectofit = ma.masked_array(y)
-    template_spectrum.specfit.errspec = ma.masked_array(np.ones(len(y))*rms)
+    template_spectrum.data = u.Quantity(y).value
+    template_spectrum.error = u.Quantity(np.ones(len(y))*rms).value
+    template_spectrum.specfit.spectofit = u.Quantity(y).value
+    template_spectrum.specfit.errspec = u.Quantity(np.ones(len(y))*rms).value
 
     return template_spectrum
 
@@ -223,14 +219,11 @@ def fit_spec(inputs):
         old_log = log.level
         log.setLevel('ERROR')
 
-        s = time.time()
         # create the spectrum
-        spec = get_spec(self, SAA.indiv_spectra[key])
+        #spec = get_spec(self, SAA.indiv_spectra[key])
         # create the spectrum
-        #spec = get_spec_new(self, SAA.indiv_spectra[key], template_spectrum)
-        f = time.time()
+        spec = get_spec_new(self, SAA.indiv_spectra[key], template_spectrum)
 
-        #print("pyspeckit_getspec: ", f-s)
         log.setLevel(old_log)
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
@@ -259,7 +252,6 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
     happy = False
     initfit = True
     fit_dud = False
-    s = time.time()
     while not happy:
         if np.all(np.isfinite(np.array(spec.flux))):
             if initfit:
@@ -271,8 +263,6 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                         warnings.simplefilter('ignore')
                         old_log = log.level
                         log.setLevel('ERROR')
-
-                        t1=time.time()
                         spec.specfit(interactive=False, \
                                     clear_all_connections=True,\
                                     xmin=self.ppv_vol[0], \
@@ -280,10 +270,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                                     fittype = self.fittype, \
                                     guesses = guesses,\
                                     verbose=False,\
-                                    use_lmfit=True,\
-                                    reset_selection=True)
-                        t2=time.time()
-                        #print("pyspeckit_fitting: ", t2-t1)
+                                    use_lmfit=True)
                         log.setLevel(old_log)
 
                     modparnames = spec.specfit.fitter.parnames
@@ -311,11 +298,6 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
         bf = fitting_process_duds(self, SAA, key, None)
     else:
         bf = fit(spec, idx=key, scouse=self)
-
-    f = time.time()
-
-    #print("scousepy_fitting: ",  f-s)
-    #print("")
 
     return bf
 
