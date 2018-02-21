@@ -363,6 +363,8 @@ def get_index(parnames, namelist):
     foundname = np.array(foundname)
     idx = np.where(foundname==True)[0]
 
+    print("size idx: ", np.size(idx[0]))
+
     return np.asscalar(idx[0])
 
 def check_rms(self, inputs, guesses, condition_passed):
@@ -420,8 +422,8 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
         diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
 
         # Work out the relative change in velocity dispersion
-        idmin = np.squeeze(np.where(diff == np.min(diff)))
-        relchange = params[int((i*nparams)+idx)]/parent_model.params[int((idmin*nparams)+idx)]
+        idmin = np.where(diff == np.min(diff))[0]
+        relchange = params[int((i*nparams)+idx)]/parent_model.params[int((idmin[0]*nparams)+idx)]
         if relchange < 1.:
             relchange = 1./relchange
 
@@ -462,11 +464,11 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
         diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
 
         # Work out the relative change in velocity dispersion
-        idmin = np.squeeze(np.where(diff == np.min(diff)))
+        idmin = np.where(diff == np.min(diff))[0]
 
         # Limits for tolerance
-        lower_lim = parent_model.params[int((idmin*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
-        upper_lim = parent_model.params[int((idmin*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
+        lower_lim = parent_model.params[int((idmin[0]*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin[0]*nparams)+idxd)])
+        upper_lim = parent_model.params[int((idmin[0]*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin[0]*nparams)+idxd)])
 
         # Does this satisfy the criteria
         if (params[(i*nparams)+idxv] < lower_lim) or \
@@ -522,7 +524,8 @@ def check_distinct(self, inputs, parent_model, guesses, happy):
             diff[(diff==0.0)] = np.nan
 
             # Find the minimum difference (i.e. the adjacent component)
-            idmin = np.squeeze(np.where(diff==np.nanmin(diff)))
+            idmin = np.where(diff==np.nanmin(diff))[0]
+            idmin = idmin[0]
             adjacent_intensity = intlist[idmin]
             adjacent_velocity = velolist[idmin]
             adjacent_dispersion = displist[idmin]
