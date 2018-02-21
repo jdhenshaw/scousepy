@@ -286,6 +286,8 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
 
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
+                    print(guesses)
+                    print(happy)
                     initfit = False
             else:
                 # If no satisfactory model can be found - fit a dud!
@@ -357,9 +359,7 @@ def get_index(parnames, namelist):
     foundname = [pname in namelist for pname in parnames]
     foundname = np.array(foundname)
     idx = np.where(foundname==True)[0]
-    print("")
-    print(np.asscalar(idx[0]))
-    print("")
+
     return np.asscalar(idx[0])
 
 def check_rms(self, inputs, guesses, condition_passed):
