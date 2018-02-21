@@ -152,8 +152,8 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     merged_bfs = [core_bf for core_bf in bfs if core_bf is not None]
                     merged_bfs = np.asarray(merged_bfs)
 
-                    print("")
-                    print(merged_bfs)
+                    #print("")
+                    #print(merged_bfs)
                     for k in range(len(SAA.indices_flat)):
                         # Add the models to the spectra
                         key = SAA.indices_flat[k]
@@ -213,10 +213,10 @@ def fit_spec(inputs):
     idx, self, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
     spec=None
-    print("")
-    print(inputs)
-    print(key)
-    print(template_spectrum.error[0])
+    #print("")
+    #print(inputs)
+    #print(key)
+    #print(template_spectrum.error[0])
     # Shhh
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -230,8 +230,8 @@ def fit_spec(inputs):
 
         log.setLevel(old_log)
 
-    print(SAA.indiv_spectra[key].rms)
-    print(template_spectrum.error[0])
+    #print(SAA.indiv_spectra[key].rms)
+    #print(template_spectrum.error[0])
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
     if bf.ncomps == 0.0:
@@ -251,19 +251,19 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
     initfit = True
     fit_dud = False
 
-    print("")
-    print(SAA)
-    print(SAA.indiv_spectra[key])
-    print("")
+    #print("")
+    #print(SAA)
+    #print(SAA.indiv_spectra[key])
+    #print("")
     while not happy:
         if np.all(np.isfinite(np.array(spec.flux))):
             if initfit:
                 guesses = np.asarray(parent_model.params)
             if np.sum(guesses) != 0.0:
 
-                    print("")
-                    print(guesses)
-                    print("")
+                    #print("")
+                    #print(guesses)
+                    #print("")
                     # Perform fit
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore')
@@ -288,8 +288,8 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
-                    print(_inputs)
-                    print(happy)
+                    #print(_inputs)
+                    #print(happy)
                     initfit = False
             else:
                 # If no satisfactory model can be found - fit a dud!
@@ -302,12 +302,12 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
 
     if fit_dud:
         bf = fitting_process_duds(self, SAA, key, spec)
-        print('fitting dud')
+        #rint('fitting dud')
     else:
         bf = fit(spec, idx=key, scouse=self)
-        print('fitting model')
+        #print('fitting model')
 
-    print("DONE")
+    #print("DONE")
     return bf
 
 def fitting_process_duds(self, SAA, key, spec):
@@ -363,7 +363,7 @@ def get_index(parnames, namelist):
     foundname = np.array(foundname)
     idx = np.where(foundname==True)[0]
 
-    print("size idx: ", np.size(idx[0]))
+    #print("size idx: ", np.size(idx[0]))
 
     return np.asscalar(idx[0])
 
@@ -418,12 +418,15 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
 
     for i in range(int(ncomponents)):
 
+
+        # TODO: Think about what happens when you have two closest matches
         # Find the closest matching component in the parent SAA model
         diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
+        idmin = np.where(diff == np.min(diff))[0]
+        idmin = idmin[0]
 
         # Work out the relative change in velocity dispersion
-        idmin = np.where(diff == np.min(diff))[0]
-        relchange = params[int((i*nparams)+idx)]/parent_model.params[int((idmin[0]*nparams)+idx)]
+        relchange = params[int((i*nparams)+idx)]/parent_model.params[int((idmin*nparams)+idx)]
         if relchange < 1.:
             relchange = 1./relchange
 
@@ -462,13 +465,12 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
 
         # Find the closest matching component in the parent SAA model
         diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
-
-        # Work out the relative change in velocity dispersion
         idmin = np.where(diff == np.min(diff))[0]
+        idmin = idmin[0]
 
         # Limits for tolerance
-        lower_lim = parent_model.params[int((idmin[0]*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin[0]*nparams)+idxd)])
-        upper_lim = parent_model.params[int((idmin[0]*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin[0]*nparams)+idxd)])
+        lower_lim = parent_model.params[int((idmin*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
+        upper_lim = parent_model.params[int((idmin*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
 
         # Does this satisfy the criteria
         if (params[(i*nparams)+idxv] < lower_lim) or \
