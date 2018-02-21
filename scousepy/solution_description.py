@@ -28,6 +28,7 @@ class fit(object):
         self._index = idx
 
         if fit_dud:
+            spec=None
             #quickly and quietly generate a dud spec
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')

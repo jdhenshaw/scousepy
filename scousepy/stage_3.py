@@ -226,37 +226,33 @@ def fit_spec(inputs):
         log.setLevel(old_log)
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
-    dud = fitting_process_duds(self, SAA, key, None)
+    dud = fitting_process_duds(self, SAA, key, spec)
     return [bf, dud]
-
-def fit_dud(inputs):
-    """
-    Directly fitting duds. Kept separate so that we don't have to generate a
-    spectrum every time.
-    """
-    idx, self, SAA = inputs
-    # Key to access spectrum in dictionary
-    key = SAA.indices_flat[idx]
-    spec = None
-    # Fit a dud
-    bf = fitting_process_duds(self, SAA, key, spec)
-    return bf
 
 def fitting_process_parent(self, SAA, key, spec, parent_model):
     """
-    The process used for fitting individual spectra using the arent SAA solution
+    The process used for fitting individual spectra using the parent SAA
+    solution
     """
 
     # Check the model
     happy = False
     initfit = True
     fit_dud = False
+
+    print("")
+    print(SAA)
+    print(SAA.indiv_spectra[key])
+    print("")
     while not happy:
         if np.all(np.isfinite(np.array(spec.flux))):
             if initfit:
                 guesses = np.asarray(parent_model.params)
             if np.sum(guesses) != 0.0:
 
+                    print("")
+                    print(guesses)
+                    print("")
                     # Perform fit
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore')
@@ -279,14 +275,8 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     modrms = spec.error[0]
 
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
-
-                    print("")
-                    print(_inputs)
-                    print("")
-
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
-                    print(guesses)
                     print(happy)
                     initfit = False
             else:
@@ -299,9 +289,11 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
             happy = True
 
     if fit_dud:
-        bf = fitting_process_duds(self, SAA, key, None)
+        bf = fitting_process_duds(self, SAA, key, spec)
+        print('fitting dud')
     else:
         bf = fit(spec, idx=key, scouse=self)
+        print('fitting model')
 
     return bf
 
@@ -309,11 +301,9 @@ def fitting_process_duds(self, SAA, key, spec):
     """
     Fitting duds
     """
-    spectrum = SAA.indiv_spectra[key]
-    y = get_flux(self, spectrum)
     bf = fit(spec, idx=key, scouse=self, fit_dud=True,\
              noise=SAA.indiv_spectra[key].rms, \
-             duddata=y)
+             duddata=np.array(spec.flux))
 
     return bf
 
