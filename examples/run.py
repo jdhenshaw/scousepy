@@ -26,13 +26,13 @@ def run_scousepy():
     njobs = 4
 
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=True)
-    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, fittype=fittype, verbose = verb, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
+    #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, fittype=fittype, verbose = verb, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
     #s = scouse.load_from(datadirectory+filename+'/stage_1/s1.scousepy')
-    s = scouse.stage_2(s, verbose=verb, write_ascii=True)
-    #s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
+    #s = scouse.stage_2(s, verbose=verb, write_ascii=True)
+    s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
     s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
     #s = scouse.load_from(datadirectory+filename+'/stage_3/s3.scousepy')
-    s = scouse.stage_4(s, verbose=verb)
+    #s = scouse.stage_4(s, verbose=verb)
     #s = scouse.load_from(datadirectory+filename+'/stage_6/s6.scousepy')
     #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb)
     #s = scouse.load_from(datadirectory+filename+'/stage_5/s5.scousepy')

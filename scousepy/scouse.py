@@ -373,10 +373,9 @@ class scouse(object):
                 clean_SAAs(self, saa_dict)
             key_set.append(_key_set)
 
-        # At this stage there are multiple key sets - 1 for each rsaa value
+        # At this stage there are multiple key sets: 1 for each rsaa value
         # compile into one.
         compile_key_sets(self, key_set)
-
         # merge multiple rsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries, \
                            spatial=spatial, verbose=verbose)

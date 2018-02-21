@@ -14,6 +14,7 @@ import warnings
 import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
+import time
 from astropy import log
 
 from .indiv_spec_description import *
@@ -29,8 +30,6 @@ def initialise_indiv_spectra(self, verbose=False, njobs=1):
     object for each spectrum and they are contained within a dictionary which
     can be located within the relavent SAA.
     """
-
-    # TODO: parallelise
 
     # Cycle through potentially multiple Rsaa values
     for i in range(len(self.rsaa)):
@@ -97,6 +96,17 @@ def get_indiv_spec(inputs):
 
     return indiv_spec
 
+def generate_template_spectrum(self):
+    """
+    Generate the spectrum.
+    """
+    x=self.xtrim
+    y=self.saa_dict[0][0].ytrim
+    rms=self.saa_dict[0][0].rms
+    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
+                              doplot=False, unit=self.cube.header['BUNIT'],\
+                              xarrkwargs={'unit':'km/s'},verbose=False)
+
 def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                       spatial=False, verbose=False):
     """
@@ -107,6 +117,16 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
         count=0
         progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
 
+    # Shhh
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        template_spectrum = generate_template_spectrum(self)
+
+        log.setLevel(old_log)
+
     for j in range(len(saa_dict.keys())):
         if verbose:
             progress_bar + 1
@@ -114,6 +134,10 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
 
         # get the relavent SAA
         SAA = saa_dict[j]
+
+        #print("")
+        #print(SAA)
+        #print("")
 
         # We only care about those locations we have SAA fits for.
         if SAA.to_be_fit:
@@ -124,7 +148,7 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
             # Parallel
             if njobs > 1:
                 if np.size(SAA.indices_flat) != 0.0:
-                    args = [self, SAA, parent_model]
+                    args = [self, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                     # Send to parallel_map
                     bf = parallel_map(fit_spec, inputs, numcores=njobs)
@@ -138,8 +162,9 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
             else:
                 # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
+                    print(k)
                     key = SAA.indices_flat[k]
-                    args = [self, SAA, parent_model]
+                    args = [self, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args]
                     inputs = inputs[0]
                     bfs = fit_spec(inputs)
@@ -154,6 +179,22 @@ def get_flux(self, indiv_spec):
     y=y[self.trimids]
     return y
 
+def get_spec_new(self, indiv_spec, template_spectrum):
+    """
+    Generate the spectrum
+    """
+    y = get_flux(self, indiv_spec)
+    rms=indiv_spec.rms
+
+    import numpy.ma as ma
+
+    template_spectrum.data = ma.masked_array(y)
+    template_spectrum.error = ma.masked_array(np.ones(len(y))*rms)
+    template_spectrum.specfit.spectofit = ma.masked_array(y)
+    template_spectrum.specfit.errspec = ma.masked_array(np.ones(len(y))*rms)
+
+    return template_spectrum
+
 def get_spec(self, indiv_spec):
     """
     Generate the spectrum.
@@ -161,16 +202,18 @@ def get_spec(self, indiv_spec):
     x=self.xtrim
     y = get_flux(self, indiv_spec)
     rms=indiv_spec.rms
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
+    spec =  pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
                               doplot=False, unit=self.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'},verbose=False)
+
+    return spec
 
 def fit_spec(inputs):
     """
     Process used for fitting spectra. Returns a best-fit solution and a dud for
     every spectrum.
     """
-    idx, self, SAA, parent_model = inputs
+    idx, self, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
     spec=None
 
@@ -180,8 +223,14 @@ def fit_spec(inputs):
         old_log = log.level
         log.setLevel('ERROR')
 
+        s = time.time()
         # create the spectrum
         spec = get_spec(self, SAA.indiv_spectra[key])
+        # create the spectrum
+        #spec = get_spec_new(self, SAA.indiv_spectra[key], template_spectrum)
+        f = time.time()
+
+        #print("pyspeckit_getspec: ", f-s)
         log.setLevel(old_log)
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
@@ -205,11 +254,14 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
     """
     The process used for fitting individual spectra using the arent SAA solution
     """
+
     # Check the model
     happy = False
     initfit = True
+    fit_dud = False
+    s = time.time()
     while not happy:
-        if np.all(np.isfinite(spec.flux)):
+        if np.all(np.isfinite(np.array(spec.flux))):
             if initfit:
                 guesses = np.asarray(parent_model.params)
             if np.sum(guesses) != 0.0:
@@ -220,32 +272,50 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                         old_log = log.level
                         log.setLevel('ERROR')
 
+                        t1=time.time()
                         spec.specfit(interactive=False, \
                                     clear_all_connections=True,\
                                     xmin=self.ppv_vol[0], \
                                     xmax=self.ppv_vol[1], \
                                     fittype = self.fittype, \
                                     guesses = guesses,\
-                                    verbose=False)
-
+                                    verbose=False,\
+                                    use_lmfit=True,\
+                                    reset_selection=True)
+                        t2=time.time()
+                        #print("pyspeckit_fitting: ", t2-t1)
                         log.setLevel(old_log)
-                    # Gen best-fitting model
-                    bf = fit(spec, idx=key, scouse=self)
 
-                    # Check the output model, does it satisfy the
-                    # conditions?
-                    happy, bf, guesses = check_spec(self, parent_model, bf, happy)
+                    modparnames = spec.specfit.fitter.parnames
+                    modncomps = spec.specfit.npeaks
+                    modparams = spec.specfit.modelpars
+                    moderrors = spec.specfit.modelerrs
+                    modrms = spec.error[0]
+
+                    _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
+
+                    happy, guesses = check_spec(self, parent_model, _inputs, happy)
+
                     initfit = False
             else:
                 # If no satisfactory model can be found - fit a dud!
-                bf = fitting_process_duds(self, SAA, key, None)
-
+                fit_dud=True
                 happy = True
         else:
             # If no satisfactory model can be found - fit a dud!
             bf = fitting_process_duds(self, SAA, key, None)
-
+            fit_dud = True
             happy = True
+
+    if fit_dud:
+        bf = fitting_process_duds(self, SAA, key, None)
+    else:
+        bf = fit(spec, idx=key, scouse=self)
+
+    f = time.time()
+
+    #print("scousepy_fitting: ",  f-s)
+    #print("")
 
     return bf
 
@@ -261,40 +331,65 @@ def fitting_process_duds(self, SAA, key, spec):
 
     return bf
 
-def check_spec(self, parent_model, bf, happy):
+def check_spec(self, parent_model, inputs, happy):
     """
     Here we are going to check the output spectrum against user-defined
     tolerance levels described in Henshaw et al. 2016 and against the SAA fit.
     """
 
-    guesses = np.asarray(bf.params)
+    guesses = np.asarray(inputs[2])
     condition_passed = np.zeros(3, dtype='bool')
-    condition_passed, guesses = check_rms(self, bf, guesses, condition_passed)
+    condition_passed, guesses = check_rms(self, inputs, guesses, condition_passed)
+
     if condition_passed[0]:
-        condition_passed, guesses = check_dispersion(self, bf, parent_model, guesses, condition_passed)
+        condition_passed, guesses = check_dispersion(self, inputs, parent_model, guesses, condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
-            condition_passed, guesses = check_velocity(self, bf, parent_model, guesses, condition_passed)
+
+            condition_passed, guesses = check_velocity(self, inputs, parent_model, guesses, condition_passed)
+
             if np.all(condition_passed):
-                if (bf.ncomps == 1):
+                if (inputs[1][0] == 1):
                     happy = True
                 else:
-                    happy, guesses = check_distinct(self, bf, parent_model, guesses, happy)
+                    happy, guesses = check_distinct(self, inputs, parent_model, guesses, happy)
 
-    return happy, bf, guesses
+    return happy, guesses
 
-def check_rms(self, bf, guesses, condition_passed):
+def check_rms(self, inputs, guesses, condition_passed):
     """
     Check the rms of the best-fitting model components
+
+    Notes
+    -----
+
+    I'm comparing one of the parameters in _peaknames against the rms value.
+    This isn't strictly correct for models other than Gaussian, since e.g. Tex
+    isn't equivalent to the amplitude of the model component. However, in the
+    absence of anything else to compare, I will leave this for now and think of
+    something better.
+
     """
 
-    # TODO: This needs to be made general for other models - not sure how to do
-    # this yet.
+    parnames = [pname.lower() for pname in inputs[0]]
+    nparams = np.size(parnames)
+    ncomponents = inputs[1][0]
+    params = inputs[2]
+    errors = inputs[3]
+    rms = inputs[4][0]
 
-    for i in range(int(bf.ncomps)):
-        if (bf.params[i*3] < bf.rms*self.tolerances[0]) or (bf.params[i*3] < bf.errors[i*3]*self.tolerances[0]):
-            guesses[i*3] = 0.0
-            guesses[(i*3)+1] = 0.0
-            guesses[(i*3)+2] = 0.0
+    # Find where the peak is located in the parameter array
+    _peaknames = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
+    foundname = [pname in _peaknames for pname in parnames]
+    foundname = np.array(foundname)
+    idx = np.where(foundname==True)[0]
+    idx = np.asscalar(idx[0])
+
+    # Now check all components to see if they are above the rms threshold
+    for i in range(int(ncomponents)):
+        if (params[(i*nparams)+idx] < rms*self.tolerances[0]) or \
+           (params[(i*nparams)+idx] < errors[(i*nparams)+idx]*self.tolerances[0]):
+            # set to zero
+            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -306,30 +401,41 @@ def check_rms(self, bf, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_dispersion(self, bf, parent_model, guesses, condition_passed):
+def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
     """
     Check the fwhm of the best-fitting model components
     """
 
-    # TODO: This needs to be made general for other models - not sure how to do
-    # this yet.
+    parnames = [pname.lower() for pname in inputs[0]]
+    nparams = np.size(parnames)
+    ncomponents = inputs[1][0]
+    params = inputs[2]
+    errors = inputs[3]
+    rms = inputs[4][0]
 
-    for i in range(int(bf.ncomps)):
+    # Find where the velocity dispersion is located in the parameter array
+    _dispnames = ['dispersion', 'width', 'fwhm']
+    foundname = [pname in _dispnames for pname in parnames]
+    foundname = np.array(foundname)
+    idx = np.where(foundname==True)[0]
+    idx = np.asscalar(idx[0])
+
+    for i in range(int(ncomponents)):
 
         # Find the closest matching component in the parent SAA model
-        diff = find_closest_match(i, bf, parent_model)
+        diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
 
         # Work out the relative change in velocity dispersion
         idmin = np.squeeze(np.where(diff == np.min(diff)))
-        relchange = bf.params[(i*3)+2]/parent_model.params[(idmin*3)+2]
+        relchange = params[(i*nparams)+idx]/parent_model.params[(idmin*nparams)+idx]
         if relchange < 1.:
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (bf.params[(i*3)+2] < self.specres*self.tolerances[1]) or (relchange > self.tolerances[2]):
-            guesses[i*3] = 0.0
-            guesses[(i*3)+1] = 0.0
-            guesses[(i*3)+2] = 0.0
+        if (params[(i*nparams)+idx] < self.specres*self.tolerances[1]) or \
+           (relchange > self.tolerances[2]):
+            # set to zero
+            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -341,31 +447,49 @@ def check_dispersion(self, bf, parent_model, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_velocity(self, bf, parent_model, guesses, condition_passed):
+def check_velocity(self, inputs, parent_model, guesses, condition_passed):
     """
     Check the centroid velocity of the best-fitting model components
     """
 
-    # TODO: This needs to be made general for other models - not sure how to do
-    # this yet.
+    parnames = [pname.lower() for pname in inputs[0]]
+    nparams = np.size(parnames)
+    ncomponents = inputs[1][0]
+    params = inputs[2]
+    errors = inputs[3]
+    rms = inputs[4][0]
 
-    for i in range(int(bf.ncomps)):
+    # Find where the velocity is located in the parameter array
+    _velnames = ['velocity', 'shift', 'centroid', 'center']
+    foundname = [pname in _velnames for pname in parnames]
+    foundname = np.array(foundname)
+    idxv = np.where(foundname==True)[0]
+    idxv = np.asscalar(idxv[0])
+
+    # Find where the velocity dispersion is located in the parameter array
+    _dispnames = ['dispersion', 'width', 'fwhm']
+    foundname = [pname in _dispnames for pname in parnames]
+    foundname = np.array(foundname)
+    idxd = np.where(foundname==True)[0]
+    idxd = np.asscalar(idxd[0])
+
+    for i in range(int(ncomponents)):
 
         # Find the closest matching component in the parent SAA model
-        diff = find_closest_match(i, bf, parent_model)
+        diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
 
         # Work out the relative change in velocity dispersion
         idmin = np.squeeze(np.where(diff == np.min(diff)))
 
         # Limits for tolerance
-        lower_lim = parent_model.params[(idmin*3)+1]-(self.tolerances[3]*parent_model.params[(idmin*3)+2])
-        upper_lim = parent_model.params[(idmin*3)+1]+(self.tolerances[3]*parent_model.params[(idmin*3)+2])
+        lower_lim = parent_model.params[(idmin*nparams)+idxv]-(self.tolerances[3]*parent_model.params[(idmin*nparams)+idxd])
+        upper_lim = parent_model.params[(idmin*nparams)+idxv]+(self.tolerances[3]*parent_model.params[(idmin*nparams)+idxd])
 
         # Does this satisfy the criteria
-        if (bf.params[(i*3)+1] < lower_lim) or (bf.params[(i*3)+1] > upper_lim):
-            guesses[i*3] = 0.0
-            guesses[(i*3)+1] = 0.0
-            guesses[(i*3)+2] = 0.0
+        if (params[(i*nparams)+idxv] < lower_lim) or \
+           (params[(i*nparams)+idxv] > upper_lim):
+            # set to zero
+            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -377,38 +501,66 @@ def check_velocity(self, bf, parent_model, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_distinct(self, bf, parent_model, guesses, happy):
+def check_distinct(self, inputs, parent_model, guesses, happy):
     """
     Check to see if component pairs can be distinguished
     """
 
-    # TODO: This needs to be made general for other models - not sure how to do
-    # this yet.
+    parnames = [pname.lower() for pname in inputs[0]]
+    nparams = np.size(parnames)
+    ncomponents = inputs[1][0]
+    params = inputs[2]
+    errors = inputs[3]
+    rms = inputs[4][0]
+
+    # Find where the peak is located in the parameter array
+    _peaknames = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
+    foundname = [pname in _peaknames for pname in parnames]
+    foundname = np.array(foundname)
+    idxp = np.where(foundname==True)[0]
+    idxp = np.asscalar(idxp[0])
+
+    # Find where the velocity is located in the parameter array
+    _velnames = ['velocity', 'shift', 'centroid']
+    foundname = [pname in _velnames for pname in parnames]
+    foundname = np.array(foundname)
+    idxv = np.where(foundname==True)[0]
+    idxv = np.asscalar(idxv[0])
+
+    # Find where the velocity dispersion is located in the parameter array
+    _dispnames = ['dispersion', 'width', 'fwhm']
+    foundname = [pname in _dispnames for pname in parnames]
+    foundname = np.array(foundname)
+    idxd = np.where(foundname==True)[0]
+    idxd = np.asscalar(idxd[0])
 
     fwhmconv = 2.*np.sqrt(2.*np.log(2.))
 
-    intlist  = [bf.params[(i*3)] for i in range(int(bf.ncomps))]
-    velolist = [bf.params[(i*3)+1] for i in range(int(bf.ncomps))]
-    displist = [bf.params[(i*3)+2] for i in range(int(bf.ncomps))]
+    intlist  = [params[(i*nparams)+idxp] for i in range(int(ncomponents))]
+    velolist = [params[(i*nparams)+idxv] for i in range(int(ncomponents))]
+    displist = [params[(i*nparams)+idxd] for i in range(int(ncomponents))]
 
-    diff = np.zeros(int(bf.ncomps))
-    validvs = np.ones(int(bf.ncomps))
+    diff = np.zeros(int(ncomponents))
+    validvs = np.ones(int(ncomponents))
 
-    for i in range(int(bf.ncomps)):
+    for i in range(int(ncomponents)):
 
         if validvs[i] != 0.0:
 
-            for j in range(int(bf.ncomps)):
+            # Calculate the velocity difference between all components
+            for j in range(int(ncomponents)):
                 diff[j] = abs(velolist[i]-velolist[j])
             diff[(diff==0.0)] = np.nan
 
+            # Find the minimum difference (i.e. the adjacent component)
             idmin = np.squeeze(np.where(diff==np.nanmin(diff)))
-
             adjacent_intensity = intlist[idmin]
             adjacent_velocity = velolist[idmin]
             adjacent_dispersion = displist[idmin]
 
+            # Get the separation between each component and its neighbour
             sep = np.abs(velolist[i] - adjacent_velocity)
+            # Calculate the allowed separation between components
             min_allowed_sep = np.min(np.array([displist[i], adjacent_dispersion]))*fwhmconv
 
             if sep > min_allowed_sep:
@@ -436,10 +588,10 @@ def check_distinct(self, bf, parent_model, guesses, happy):
                 velolist[idmin] = 0.0
                 displist[idmin] = 0.0
 
-    for i in range(int(bf.ncomps)):
-        guesses[(i*3)] = intlist[i]
-        guesses[(i*3)+1] = velolist[i]
-        guesses[(i*3)+2] = displist[i]
+    for i in range(int(ncomponents)):
+        guesses[(i*nparams)+idxp] = intlist[i]
+        guesses[(i*nparams)+idxv] = velolist[i]
+        guesses[(i*nparams)+idxd] = displist[i]
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -452,20 +604,19 @@ def check_distinct(self, bf, parent_model, guesses, happy):
     return happy, guesses
 
 
-def find_closest_match(i, bf, parent_model):
+def find_closest_match(i, nparams, ncomponents, params, parent_model):
     """
     Find the closest matching component in the parent SAA model to the current
     component in bf.
     """
 
-    # TODO: This needs to be made general for other models - not sure how to do
-    # this yet.
-
     diff = np.zeros(int(parent_model.ncomps))
     for j in range(int(parent_model.ncomps)):
-        diff[j] = np.sqrt((bf.params[i*3]-parent_model.params[j*3])**2.+\
-                          (bf.params[(i*3)+1]-parent_model.params[(j*3)+1])**2. + \
-                          (bf.params[(i*3)+2]-parent_model.params[(j*3)+2])**2.)
+        pdiff = 0.0
+        for k in range(nparams):
+            pdiff+=(params[(i*nparams)+k] - parent_model.params[(j*nparams)+k])**2.
+        diff[j] = np.sqrt(pdiff)
+
     return diff
 
 def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):

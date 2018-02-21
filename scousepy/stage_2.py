@@ -55,7 +55,8 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                              xmax=self.ppv_vol[1])
                 spec.specfit(interactive=True, \
                              xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1])
+                             xmax=self.ppv_vol[1],\
+                             show_components=True)
                 plt.show()
                 # Best-fitting model solution
                 bf = fit(spec, idx=SAA.index, scouse=self)

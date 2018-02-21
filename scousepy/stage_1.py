@@ -307,7 +307,7 @@ def calculate_delta_v(self, momone, momnine):
 
 def generate_steps(self, delta_v):
     """
-    Creates logarithmically spaced lag values for structure function computation
+    Creates logarithmically spaced values
     """
     median = np.nanmedian(delta_v)
     step_values = np.logspace(np.log10(median), \
