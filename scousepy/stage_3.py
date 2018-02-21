@@ -149,9 +149,12 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     args = [self, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                     # Send to parallel_map
-                    bf = parallel_map(fit_spec, inputs, numcores=njobs)
-                    merged_bfs = [core_bf for core_bf in bf if core_bf is not None]
+                    bfs = parallel_map(fit_spec, inputs, numcores=njobs)
+                    merged_bfs = [core_bf for core_bf in bfs if core_bf is not None]
                     merged_bfs = np.asarray(merged_bfs)
+
+                    print("")
+                    print(merged_bfs)
                     for k in range(len(SAA.indices_flat)):
                         # Add the models to the spectra
                         key = SAA.indices_flat[k]
@@ -226,7 +229,10 @@ def fit_spec(inputs):
         log.setLevel(old_log)
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
-    dud = fitting_process_duds(self, SAA, key, spec)
+    if bf.ncomps == 0.0:
+        dud = bf
+    else:
+        dud = fitting_process_duds(self, SAA, key, spec)
     return [bf, dud]
 
 def fitting_process_parent(self, SAA, key, spec, parent_model):
