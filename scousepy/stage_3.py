@@ -279,6 +279,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     modrms = spec.error[0]
 
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
+
                     print("")
                     print(_inputs)
                     print("")
@@ -335,6 +336,32 @@ def check_spec(self, parent_model, inputs, happy):
 
     return happy, guesses
 
+def unpack_inputs(inputs):
+    """
+    Unpacks the input list
+    """
+    parnames = [pname.lower() for pname in inputs[0]]
+    nparams = np.size(parnames)
+    ncomponents = inputs[1][0]
+    params = inputs[2]
+    errors = inputs[3]
+    rms = inputs[4][0]
+
+    return parnames, nparams, ncomponents, params, errors, rms
+
+def get_index(parnames, namelist):
+    """
+    Searches for a particular parname in a list and returns the index of where
+    that parname appears
+    """
+    foundname = [pname in namelist for pname in parnames]
+    foundname = np.array(foundname)
+    idx = np.where(foundname==True)[0]
+    print("")
+    print(np.asscalar(idx[0]))
+    print("")
+    return np.asscalar(idx[0])
+
 def check_rms(self, inputs, guesses, condition_passed):
     """
     Check the rms of the best-fitting model components
@@ -350,26 +377,18 @@ def check_rms(self, inputs, guesses, condition_passed):
 
     """
 
-    parnames = [pname.lower() for pname in inputs[0]]
-    nparams = np.size(parnames)
-    ncomponents = inputs[1][0]
-    params = inputs[2]
-    errors = inputs[3]
-    rms = inputs[4][0]
+    parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
 
     # Find where the peak is located in the parameter array
-    _peaknames = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
-    foundname = [pname in _peaknames for pname in parnames]
-    foundname = np.array(foundname)
-    idx = np.where(foundname==True)[0]
-    idx = np.asscalar(idx[0])
+    namelist = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
+    idx = get_index(parnames, namelist)
 
     # Now check all components to see if they are above the rms threshold
     for i in range(int(ncomponents)):
-        if (params[(i*nparams)+idx] < rms*self.tolerances[0]) or \
-           (params[(i*nparams)+idx] < errors[(i*nparams)+idx]*self.tolerances[0]):
+        if (params[int((i*nparams)+idx)] < rms*self.tolerances[0]) or \
+           (params[int((i*nparams)+idx)] < errors[int((i*nparams)+idx)]*self.tolerances[0]):
             # set to zero
-            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
+            guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -386,19 +405,11 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
     Check the fwhm of the best-fitting model components
     """
 
-    parnames = [pname.lower() for pname in inputs[0]]
-    nparams = np.size(parnames)
-    ncomponents = inputs[1][0]
-    params = inputs[2]
-    errors = inputs[3]
-    rms = inputs[4][0]
+    parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
 
     # Find where the velocity dispersion is located in the parameter array
-    _dispnames = ['dispersion', 'width', 'fwhm']
-    foundname = [pname in _dispnames for pname in parnames]
-    foundname = np.array(foundname)
-    idx = np.where(foundname==True)[0]
-    idx = np.asscalar(idx[0])
+    namelist = ['dispersion', 'width', 'fwhm']
+    idx = get_index(parnames, namelist)
 
     for i in range(int(ncomponents)):
 
@@ -407,15 +418,15 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
 
         # Work out the relative change in velocity dispersion
         idmin = np.squeeze(np.where(diff == np.min(diff)))
-        relchange = params[(i*nparams)+idx]/parent_model.params[(idmin*nparams)+idx]
+        relchange = params[int((i*nparams)+idx)]/parent_model.params[int((idmin*nparams)+idx)]
         if relchange < 1.:
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (params[(i*nparams)+idx] < self.specres*self.tolerances[1]) or \
+        if (params[int((i*nparams)+idx)] < self.specres*self.tolerances[1]) or \
            (relchange > self.tolerances[2]):
             # set to zero
-            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
+            guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -432,26 +443,15 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
     Check the centroid velocity of the best-fitting model components
     """
 
-    parnames = [pname.lower() for pname in inputs[0]]
-    nparams = np.size(parnames)
-    ncomponents = inputs[1][0]
-    params = inputs[2]
-    errors = inputs[3]
-    rms = inputs[4][0]
+    parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
 
-    # Find where the velocity is located in the parameter array
-    _velnames = ['velocity', 'shift', 'centroid', 'center']
-    foundname = [pname in _velnames for pname in parnames]
-    foundname = np.array(foundname)
-    idxv = np.where(foundname==True)[0]
-    idxv = np.asscalar(idxv[0])
+    # Find where the peak is located in the parameter array
+    namelist = ['velocity', 'shift', 'centroid', 'center']
+    idxv = get_index(parnames, namelist)
 
     # Find where the velocity dispersion is located in the parameter array
-    _dispnames = ['dispersion', 'width', 'fwhm']
-    foundname = [pname in _dispnames for pname in parnames]
-    foundname = np.array(foundname)
-    idxd = np.where(foundname==True)[0]
-    idxd = np.asscalar(idxd[0])
+    namelist = ['dispersion', 'width', 'fwhm']
+    idxd = get_index(parnames, namelist)
 
     for i in range(int(ncomponents)):
 
@@ -462,14 +462,14 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
         idmin = np.squeeze(np.where(diff == np.min(diff)))
 
         # Limits for tolerance
-        lower_lim = parent_model.params[(idmin*nparams)+idxv]-(self.tolerances[3]*parent_model.params[(idmin*nparams)+idxd])
-        upper_lim = parent_model.params[(idmin*nparams)+idxv]+(self.tolerances[3]*parent_model.params[(idmin*nparams)+idxd])
+        lower_lim = parent_model.params[int((idmin*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
+        upper_lim = parent_model.params[int((idmin*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
 
         # Does this satisfy the criteria
         if (params[(i*nparams)+idxv] < lower_lim) or \
            (params[(i*nparams)+idxv] > upper_lim):
             # set to zero
-            guesses[(i*nparams):(i*nparams)+nparams] = 0.0
+            guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
     violating_comps = (guesses==0.0)
     if np.any(violating_comps):
@@ -486,39 +486,25 @@ def check_distinct(self, inputs, parent_model, guesses, happy):
     Check to see if component pairs can be distinguished
     """
 
-    parnames = [pname.lower() for pname in inputs[0]]
-    nparams = np.size(parnames)
-    ncomponents = inputs[1][0]
-    params = inputs[2]
-    errors = inputs[3]
-    rms = inputs[4][0]
+    parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
 
     # Find where the peak is located in the parameter array
-    _peaknames = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
-    foundname = [pname in _peaknames for pname in parnames]
-    foundname = np.array(foundname)
-    idxp = np.where(foundname==True)[0]
-    idxp = np.asscalar(idxp[0])
+    namelist = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
+    idxp = get_index(parnames, namelist)
 
-    # Find where the velocity is located in the parameter array
-    _velnames = ['velocity', 'shift', 'centroid']
-    foundname = [pname in _velnames for pname in parnames]
-    foundname = np.array(foundname)
-    idxv = np.where(foundname==True)[0]
-    idxv = np.asscalar(idxv[0])
+    # Find where the peak is located in the parameter array
+    namelist = ['velocity', 'shift', 'centroid', 'center']
+    idxv = get_index(parnames, namelist)
 
     # Find where the velocity dispersion is located in the parameter array
-    _dispnames = ['dispersion', 'width', 'fwhm']
-    foundname = [pname in _dispnames for pname in parnames]
-    foundname = np.array(foundname)
-    idxd = np.where(foundname==True)[0]
-    idxd = np.asscalar(idxd[0])
+    namelist = ['dispersion', 'width', 'fwhm']
+    idxd = get_index(parnames, namelist)
 
     fwhmconv = 2.*np.sqrt(2.*np.log(2.))
 
-    intlist  = [params[(i*nparams)+idxp] for i in range(int(ncomponents))]
-    velolist = [params[(i*nparams)+idxv] for i in range(int(ncomponents))]
-    displist = [params[(i*nparams)+idxd] for i in range(int(ncomponents))]
+    intlist  = [params[int((i*nparams)+idxp)] for i in range(int(ncomponents))]
+    velolist = [params[int((i*nparams)+idxv)] for i in range(int(ncomponents))]
+    displist = [params[int((i*nparams)+idxd)] for i in range(int(ncomponents))]
 
     diff = np.zeros(int(ncomponents))
     validvs = np.ones(int(ncomponents))
@@ -594,7 +580,7 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
     for j in range(int(parent_model.ncomps)):
         pdiff = 0.0
         for k in range(nparams):
-            pdiff+=(params[(i*nparams)+k] - parent_model.params[(j*nparams)+k])**2.
+            pdiff+=(params[int((i*nparams)+k)] - parent_model.params[int((j*nparams)+k)])**2.
         diff[j] = np.sqrt(pdiff)
 
     return diff
