@@ -160,7 +160,6 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
             else:
                 # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
-                    print(k)
                     key = SAA.indices_flat[k]
                     args = [self, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args]
@@ -280,6 +279,9 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     modrms = spec.error[0]
 
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
+                    print("")
+                    print(_inputs)
+                    print("")
 
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
@@ -290,7 +292,6 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                 happy = True
         else:
             # If no satisfactory model can be found - fit a dud!
-            bf = fitting_process_duds(self, SAA, key, None)
             fit_dud = True
             happy = True
 
@@ -322,13 +323,10 @@ def check_spec(self, parent_model, inputs, happy):
     guesses = np.asarray(inputs[2])
     condition_passed = np.zeros(3, dtype='bool')
     condition_passed, guesses = check_rms(self, inputs, guesses, condition_passed)
-
     if condition_passed[0]:
         condition_passed, guesses = check_dispersion(self, inputs, parent_model, guesses, condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
-
             condition_passed, guesses = check_velocity(self, inputs, parent_model, guesses, condition_passed)
-
             if np.all(condition_passed):
                 if (inputs[1][0] == 1):
                     happy = True
