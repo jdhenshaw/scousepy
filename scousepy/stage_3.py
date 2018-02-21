@@ -119,16 +119,6 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
         count=0
         progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
 
-    # Shhh
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-
-        template_spectrum = generate_template_spectrum(self)
-
-        log.setLevel(old_log)
-
     for j in range(len(saa_dict.keys())):
         if verbose:
             progress_bar + 1
@@ -139,6 +129,15 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
 
         # We only care about those locations we have SAA fits for.
         if SAA.to_be_fit:
+            # Shhh
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                old_log = log.level
+                log.setLevel('ERROR')
+
+                template_spectrum = generate_template_spectrum(self)
+
+                log.setLevel(old_log)
 
             # Get the SAA model solution
             parent_model = SAA.model
@@ -214,7 +213,10 @@ def fit_spec(inputs):
     idx, self, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
     spec=None
-
+    print("")
+    print(inputs)
+    print(key)
+    print(template_spectrum.error[0])
     # Shhh
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -227,6 +229,9 @@ def fit_spec(inputs):
         spec = get_spec_new(self, SAA.indiv_spectra[key], template_spectrum)
 
         log.setLevel(old_log)
+
+    print(SAA.indiv_spectra[key].rms)
+    print(template_spectrum.error[0])
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
     if bf.ncomps == 0.0:
@@ -283,6 +288,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
+                    print(_inputs)
                     print(happy)
                     initfit = False
             else:
@@ -301,6 +307,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
         bf = fit(spec, idx=key, scouse=self)
         print('fitting model')
 
+    print("DONE")
     return bf
 
 def fitting_process_duds(self, SAA, key, spec):

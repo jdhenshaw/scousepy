@@ -23,7 +23,7 @@ def run_scousepy():
     TS = False
     verb = True
     fittype = 'gaussian'
-    njobs = 4
+    njobs = 1
 
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=True)
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, fittype=fittype, verbose = verb, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
