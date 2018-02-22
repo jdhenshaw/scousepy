@@ -69,7 +69,6 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='start':
             print("")
             print("Beginning stage_3 analysis...")
-            print("")
             progress_bar=[]
 
         if step=='init':

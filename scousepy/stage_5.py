@@ -17,7 +17,7 @@ from astropy import log
 from matplotlib import pyplot
 
 from .interactiveplot import showplot
-from .stage_3 import argsort, get_spec, get_flux
+from .stage_3 import argsort, get_flux
 
 def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
                      blockrange=None):
@@ -96,7 +96,6 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
 
             # Get the indices of the spectra we want to take another look at
             check_spec = get_indices(intplot, speckeys)
-
             # append
             check_spec_indices.append(check_spec)
 
@@ -215,14 +214,27 @@ def recreate_model(self, spectrum, bf, alternative=False):
             for k in range(int(bf.ncomps)):
                 modparams = bf.params[(k*len(bf.parnames)):(k*len(bf.parnames))+len(bf.parnames)]
                 mod[:,k] = spec.specfit.get_model_frompars(self.xtrim, modparams)
-            totmod = np.sum(mod, axis=1)
-            res = get_flux(self, spectrum)-totmod
+            totmod = np.nansum(mod, axis=1)
+            res = (get_flux(self, spectrum)).value-totmod
         else:
             mod = np.zeros([len(self.xtrim), 1])
-            res = get_flux(self, spectrum)
+            res = (get_flux(self, spectrum)).value
         log.setLevel(old_log)
 
     return mod, res
+
+def get_spec(self, indiv_spec):
+    """
+    Generate the spectrum.
+    """
+    x=self.xtrim
+    y = get_flux(self, indiv_spec)
+    rms=indiv_spec.rms
+    spec =  pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
+                              doplot=False, unit=self.cube.header['BUNIT'],\
+                              xarrkwargs={'unit':'km/s'},verbose=False)
+
+    return spec
 
 def check_and_flatten(self, check_spec_indices):
     """

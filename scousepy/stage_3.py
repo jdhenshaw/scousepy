@@ -98,17 +98,6 @@ def get_indiv_spec(inputs):
 
     return indiv_spec
 
-def generate_template_spectrum(self):
-    """
-    Generate the spectrum.
-    """
-    x=self.xtrim
-    y=self.saa_dict[0][0].ytrim
-    rms=self.saa_dict[0][0].rms
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=self.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'},verbose=False)
-
 def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                       spatial=False, verbose=False):
     """
@@ -152,8 +141,6 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     merged_bfs = [core_bf for core_bf in bfs if core_bf is not None]
                     merged_bfs = np.asarray(merged_bfs)
 
-                    #print("")
-                    #print(merged_bfs)
                     for k in range(len(SAA.indices_flat)):
                         # Add the models to the spectra
                         key = SAA.indices_flat[k]
@@ -170,6 +157,17 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                     add_model_parent(SAA.indiv_spectra[key], bfs[0])
                     add_model_dud(SAA.indiv_spectra[key], bfs[1])
 
+def generate_template_spectrum(self):
+    """
+    Generate the spectrum.
+    """
+    x=self.xtrim
+    y=self.saa_dict[0][0].ytrim
+    rms=self.saa_dict[0][0].rms
+    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
+                              doplot=False, unit=self.cube.header['BUNIT'],\
+                              xarrkwargs={'unit':'km/s'},verbose=False)
+
 def get_flux(self, indiv_spec):
     """
     Returns flux for a given spectrum
@@ -178,7 +176,7 @@ def get_flux(self, indiv_spec):
     y=y[self.trimids]
     return y
 
-def get_spec_new(self, indiv_spec, template_spectrum):
+def get_spec(self, indiv_spec, template_spectrum):
     """
     Generate the spectrum
     """
@@ -192,19 +190,6 @@ def get_spec_new(self, indiv_spec, template_spectrum):
 
     return template_spectrum
 
-def get_spec(self, indiv_spec):
-    """
-    Generate the spectrum.
-    """
-    x=self.xtrim
-    y = get_flux(self, indiv_spec)
-    rms=indiv_spec.rms
-    spec =  pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=self.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'},verbose=False)
-
-    return spec
-
 def fit_spec(inputs):
     """
     Process used for fitting spectra. Returns a best-fit solution and a dud for
@@ -213,25 +198,16 @@ def fit_spec(inputs):
     idx, self, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
     spec=None
-    #print("")
-    #print(inputs)
-    #print(key)
-    #print(template_spectrum.error[0])
+
     # Shhh
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         old_log = log.level
         log.setLevel('ERROR')
 
-        # create the spectrum
-        #spec = get_spec(self, SAA.indiv_spectra[key])
-        # create the spectrum
-        spec = get_spec_new(self, SAA.indiv_spectra[key], template_spectrum)
+        spec = get_spec(self, SAA.indiv_spectra[key], template_spectrum)
 
         log.setLevel(old_log)
-
-    #print(SAA.indiv_spectra[key].rms)
-    #print(template_spectrum.error[0])
 
     bf = fitting_process_parent(self, SAA, key, spec, parent_model)
     if bf.ncomps == 0.0:
@@ -250,21 +226,11 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
     happy = False
     initfit = True
     fit_dud = False
-
-    #print("")
-    #print(SAA)
-    #print(SAA.indiv_spectra[key])
-    #print("")
     while not happy:
         if np.all(np.isfinite(np.array(spec.flux))):
             if initfit:
                 guesses = np.asarray(parent_model.params)
             if np.sum(guesses) != 0.0:
-
-                    #print("")
-                    #print(guesses)
-                    #print("")
-                    # Perform fit
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore')
                         old_log = log.level
@@ -288,8 +254,6 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
-                    #print(_inputs)
-                    #print(happy)
                     initfit = False
             else:
                 # If no satisfactory model can be found - fit a dud!
@@ -302,12 +266,9 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
 
     if fit_dud:
         bf = fitting_process_duds(self, SAA, key, spec)
-        #rint('fitting dud')
     else:
         bf = fit(spec, idx=key, scouse=self)
-        #print('fitting model')
 
-    #print("DONE")
     return bf
 
 def fitting_process_duds(self, SAA, key, spec):
@@ -390,8 +351,8 @@ def check_rms(self, inputs, guesses, condition_passed):
 
     # Now check all components to see if they are above the rms threshold
     for i in range(int(ncomponents)):
-        if (params[int((i*nparams)+idx)] < rms*self.tolerances[0]) or \
-           (params[int((i*nparams)+idx)] < errors[int((i*nparams)+idx)]*self.tolerances[0]):
+        if (params[int((i*nparams)+idx)] < rms*self.tolerances[0]): # or \
+           #(params[int((i*nparams)+idx)] < errors[int((i*nparams)+idx)]*self.tolerances[0]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
@@ -410,6 +371,8 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
     Check the fwhm of the best-fitting model components
     """
 
+    fwhmconv = 2.*np.sqrt(2.*np.log(2.))
+
     parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
 
     # Find where the velocity dispersion is located in the parameter array
@@ -418,8 +381,6 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
 
     for i in range(int(ncomponents)):
 
-
-        # TODO: Think about what happens when you have two closest matches
         # Find the closest matching component in the parent SAA model
         diff = find_closest_match(i, nparams, ncomponents, params, parent_model)
         idmin = np.where(diff == np.min(diff))[0]
@@ -431,7 +392,7 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (params[int((i*nparams)+idx)] < self.specres*self.tolerances[1]) or \
+        if (params[int((i*nparams)+idx)]*fwhmconv < self.specres*self.tolerances[1]) or \
            (relchange > self.tolerances[2]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
@@ -577,7 +538,6 @@ def check_distinct(self, inputs, parent_model, guesses, happy):
 
     return happy, guesses
 
-
 def find_closest_match(i, nparams, ncomponents, params, parent_model):
     """
     Find the closest matching component in the parent SAA model to the current
@@ -648,7 +608,6 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
                     model_list = get_model_list(model_list, _spec, spatial)
                 # So now the model list should contain every single model
                 # solution that is available from all spectral averaging areas
-
                 # Update the model list of the first spectrum and then update
                 # the dictionary
                 update_model_list(_spectrum, model_list)
@@ -689,22 +648,18 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
                 if key in indiv_dictionaries[i]:
                     keyfound[i] = True
 
-            kf = np.squeeze(np.where(keyfound==True))
-
-            if np.size(kf)==1:
-                idx = [np.asscalar(kf)]
-            else:
-                idx = list(kf)
-
-            # If the key is found take the first spectrum and add to the new
-            # dictionary
+            idx = np.where(keyfound==True)[0]
             main_dict[key] = indiv_dictionaries[idx[0]][key]
-            idx.remove(idx[0])
+            if np.size(idx) == 1:
+                idx = []
+            else:
+                idx = list(idx)
+                idx.remove(idx[0])
 
             # Get the main spectrum
             main_spectrum = main_dict[key]
-            # Merge spectra from other dictionaries into main_dict
 
+            # Merge spectra from other dictionaries into main_dict
             if np.size(idx) != 0:
                 for i in idx:
                     dictionary = indiv_dictionaries[i]
@@ -736,7 +691,7 @@ def remove_duplicates(self, verbose):
         for i in range(len(models)):
             aiclist.append(models[i].aic)
         aicarr = np.asarray(aiclist)
-        aicarr = np.around(aicarr, decimals=5)
+        aicarr = np.around(aicarr, decimals=2)
         uniqvals, uniqids = np.unique(aicarr, return_index=True)
         models = np.asarray(models)
         uniqmodels = models[uniqids]
