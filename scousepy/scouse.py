@@ -580,7 +580,7 @@ class scouse(object):
 #==============================================================================#
 # Analysis
 #==============================================================================#
-
+    @staticmethod
     def compute_stats(self):
         """
         Computes some statistics for the fitting process
