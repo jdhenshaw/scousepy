@@ -62,7 +62,7 @@ def neighbours(n_dim, idx, radius_pix):
     validids[valid] = idxs[valid,:]
 
     # Package the valid neighburs up and send them back!
-    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim[::-1])) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
+    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim[::-1]) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
 
     return indices_adjacent
 
