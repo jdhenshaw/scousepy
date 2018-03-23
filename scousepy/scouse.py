@@ -179,7 +179,7 @@ class scouse(object):
                                                             verbose, \
                                                             redefine=True)
                 else:
-                    _cc, _ss, _ids, _frape = cc, ss, ids, frac
+                    _cc, _ss, _ids, _frac = cc, ss, ids, frac
                 nref -= 1.0
 
                 if self.training_set:
@@ -189,7 +189,7 @@ class scouse(object):
                     totfit = len(self.sample)
                 else:
                     if not refine_grid:
-                        self.sample = range(len(cc[:,0]))
+                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
                         totfit = len(cc[(np.isfinite(cc[:,0])),0])
                     else:
                         self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
