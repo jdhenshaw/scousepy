@@ -150,7 +150,7 @@ class InteractivePlot:
             return
 
         if event.key == 'enter':
-            pyplot.close()
+            pyplot.close(self.fig.number)
             return
 
     def release(self, event):
@@ -193,4 +193,5 @@ def showplot(fig=None, ax=None, keep=False):
     """
 
     pl = InteractivePlot(fig, ax, keep=keep)
-    return pl.show()
+    pl.show()
+    return pl

@@ -60,7 +60,7 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
                 figsize=figsize
             # Prepare plot
             fig, ax = pyplot.subplots(blocksize, blocksize, figsize=figsize)
-            ax = np.flip(ax,0)
+            ax = ax[::-1]
             ax = [a for axis in ax for a in axis]
 
             # Cycle through the spectra contained within the block
@@ -93,6 +93,9 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
 
             # Create the interactive plot
             intplot = showplot(fig, ax)
+            while plt.fignum_exists(intplot.fig.number):
+                # infinite loop to wait for user input
+                pass
 
             # Get the indices of the spectra we want to take another look at
             check_spec = get_indices(intplot, speckeys)

@@ -49,7 +49,7 @@ def neighbours(n_dim, idx, radius_pix):
     """
 
     # Unravel the index of the selected spectrum
-    unrav_idx = np.unravel_index(idx, np.flip(n_dim,0))
+    unrav_idx = np.unravel_index(idx, n_dim[::-1])
 
     # Get all the adjacent neighbours
     idxs = [tuple(c) for c in np.add(get_offsets(radius_pix), unrav_idx)]
@@ -62,7 +62,7 @@ def neighbours(n_dim, idx, radius_pix):
     validids[valid] = idxs[valid,:]
 
     # Package the valid neighburs up and send them back!
-    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), np.flip(n_dim, 0)) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
+    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim[::-1])) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
 
     return indices_adjacent
 
@@ -80,7 +80,7 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize):
     plt.suptitle("Checking spectrum and its neighbours. Press 'enter' to continue.")
     ax = np.asarray(ax)
     ax = ax.T
-    ax = np.flip(ax,1)
+    ax = ax[:,::-1]
     ax = [a for axis in ax for a in axis]
 
     for i, key in enumerate(indices_adjacent, start=0):

@@ -58,6 +58,11 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
                              xmax=self.ppv_vol[1],\
                              show_components=True)
                 plt.show()
+
+                if not hasattr(spec.specfit, 'fitter'):
+                    raise ValueError("No fitter available for the spectrum."
+                                     "  This can occur if you have plt.ion() set.")
+
                 # Best-fitting model solution
                 bf = fit(spec, idx=SAA.index, scouse=self)
 
@@ -98,7 +103,7 @@ def fitting(self, SAA, saa_dict, count, training_set=False, \
 
     else:
         if init_guess:
-            bf = fitting(self, SAA, saa_dict, count, \
+            bf = fitting(self, SAA, saa_dict, count,
                          training_set=True, init_guess=init_guess)
         else:
             model = saa_dict[count].model
