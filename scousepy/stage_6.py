@@ -109,7 +109,7 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize):
         else:
             # Get the correct subplot axis
             axis = ax[i]
-            axis.plot(0.5, 0.5, 'kX', transform=axis.transAxes, ms=10)
+            axis.plot(0.5, 0.5, 'kx', transform=axis.transAxes, ms=10)
             axis.patch.set_facecolor('blue')
             axis.patch.set_alpha(0.1)
 
