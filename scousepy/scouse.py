@@ -134,7 +134,8 @@ class scouse(object):
 
 
             # Read in the datacube
-            self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+            self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                                       velocity_convention='radio')
             # Generate the x axis common to the fitting process
             self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
