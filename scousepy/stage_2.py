@@ -29,11 +29,14 @@ def get_spec(self, y, rms):
     (we assume by default that the cube has a rest value defined; if it is not,
     refX will be 0 and km/s <-> frq conversions will break)
     """
+    fig = plt.figure(1)
+    fig.clf()
+    ax = fig.gca()
     return pyspeckit.Spectrum(data=y,
                               error=np.ones(len(y))*rms,
                               xarr=self.xtrim,
                               doplot=True,
-                              plotkwargs={'figure': plt.figure(1)},
+                              plotkwargs={'figure': fig, 'axis': ax},
                               unit=self.cube.header['BUNIT'],
                               xarrkwargs={'unit':'km/s',
                                           'refX': self.cube.wcs.wcs.restfrq*u.Hz,
@@ -52,14 +55,31 @@ class Stage2Fitter(object):
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
                 if event.key == 'enter':
-                    thisobject.happy = True
-                    thisobject.bf = fit(thisobject.spec, idx=thisobject.SAA.index,
-                                        scouse=thisobject.self)
-                    thisobject.spec.plotter.clear_all_connections()
+                    if thisobject.init_guess:
+                        print("'enter' key acknowledged.  Moving to next spectrum "
+                              "or next step...")
+                        thisobject.happy = True
+                        thisobject.bf = fit(thisobject.spec, idx=thisobject.SAA.index,
+                                            scouse=thisobject.self)
+                        thisobject.spec.specfit.clear_all_connections()
+                        thisobject.spec.plotter.disconnect()
+                        assert thisobject.spec.plotter._active_gui is None
+                    else:
+                        print("'enter' acknowledged.  Guess initialized.  Showing "
+                              "fit.")
+                        thisobject.firstgo+=1
+                        thisobject.guesses = thisobject.spec.specfit.parinfo.values
+                        thisobject.trainingset_fit(thisobject.spec,
+                                                   init_guess=False,
+                                                   guesses=thisobject.guesses,
+                                                  )
                 elif event.key == 'esc':
                     thisobject.happy = False
+                    thisobject.spec.specfit.clear_all_connections()
+                    assert thisobject.spec.plotter._active_gui is None
+                    thisobject.firstgo+=1
                     thisobject.trainingset_fit(thisobject.spec,
-                                               init_guess=thisobject.firstgo==0,
+                                               init_guess=True, # re-initialize guess
                                                guesses=thisobject.guesses,
                                               )
                 else:
@@ -86,6 +106,7 @@ class Stage2Fitter(object):
             h = input("Are you happy with the fit? (y/n): ")
             thisobject.happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
             print("")
+            thisobject.firstgo+=1
 
             return thisobject.happy
 
@@ -98,27 +119,32 @@ class Stage2Fitter(object):
 
         # if this is the initial guess then begin by fitting interactively
         if init_guess:
+            thisobject.init_guess = True
             # Interactive fitting with pyspeckit
             spec.plotter(xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
                          figure=plt.figure(1),
                         )
-            spec.plotter.clear_all_connections()
+            spec.specfit.clear_all_connections()
+            assert thisobject.spec.plotter._active_gui is None
             spec.specfit(interactive=True,
                          fittype=self.fittype,
                          xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
                          show_components=True)
+            assert thisobject.spec.plotter._active_gui is not None
 
 
         # else start with a guess. If the user isn't happy they
         # can enter the interactive fitting mode
         else:
+            thisobject.init_guess = False
             spec.plotter(xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
                          figure=plt.figure(1),
                         )
-            spec.plotter.clear_all_connections()
+            spec.specfit.clear_all_connections()
+            assert thisobject.spec.plotter._active_gui is None
             spec.specfit(interactive=False,
                          xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
@@ -129,10 +155,10 @@ class Stage2Fitter(object):
                                        clear=False,
                                        color='g',
                                        label=False)
+            assert thisobject.spec.plotter._active_gui is None
 
         log.setLevel(old_log)
 
-        thisobject.firstgo+=1
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
