@@ -39,6 +39,9 @@ from .solution_description import fit
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+Fitter = Stage2Fitter()
+fitting = Fitter.fitting
+
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
 if sys.version_info.major >= 3:
