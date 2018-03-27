@@ -55,6 +55,7 @@ class Stage2Fitter(object):
                     thisobject.happy = True
                     thisobject.bf = fit(thisobject.spec, idx=thisobject.SAA.index,
                                         scouse=thisobject.self)
+                    thisobject.spec.plotter.clear_all_connections()
                 elif event.key == 'esc':
                     thisobject.happy = False
                     thisobject.trainingset_fit(thisobject.spec,
@@ -102,6 +103,7 @@ class Stage2Fitter(object):
                          xmax=self.ppv_vol[1],
                          figure=plt.figure(1),
                         )
+            spec.plotter.clear_all_connections()
             spec.specfit(interactive=True,
                          fittype=self.fittype,
                          xmin=self.ppv_vol[0],
@@ -116,13 +118,17 @@ class Stage2Fitter(object):
                          xmax=self.ppv_vol[1],
                          figure=plt.figure(1),
                         )
+            spec.plotter.clear_all_connections()
             spec.specfit(interactive=False,
                          xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
                          guesses=guesses,
                          fittype=self.fittype)
             spec.specfit.plot_fit(show_components=True)
-            spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
+            spec.specfit.plotresiduals(axis=spec.plotter.axis,
+                                       clear=False,
+                                       color='g',
+                                       label=False)
 
         log.setLevel(old_log)
 
@@ -173,7 +179,10 @@ class Stage2Fitter(object):
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', category=DeprecationWarning)
                 while not thisobject.happy:
-                    plt.pause(0.1)
+                    try:
+                        plt.pause(0.1)
+                    except KeyboardInterrupt:
+                        break
 
             add_model(SAA, thisobject.bf)
             bf = thisobject.bf
