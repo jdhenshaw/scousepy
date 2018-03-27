@@ -300,6 +300,7 @@ class scouse(object):
 
         # Loop through the SAAs
         for i in fitrange:
+            print("Fitting {0} out of {1}".format(i, len(fitrange)))
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
@@ -307,14 +308,13 @@ class scouse(object):
             if SAA.index == 0.0:
                 SAAid=0
                 firstfit=True
-            else:
-                if i == np.min(fitrange):
-                    SAAid=SAA.index
-                    firstfit=True
+            elif i == np.min(fitrange):
+                SAAid=SAA.index
+                firstfit=True
 
             if SAA.to_be_fit:
-                bf = fitting(self, SAA, saa_dict, SAAid, \
-                             training_set=self.training_set, \
+                bf = fitting(self, SAA, saa_dict, SAAid,
+                             training_set=self.training_set,
                              init_guess=firstfit)
                 SAAid = SAA.index
                 firstfit=False

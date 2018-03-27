@@ -47,6 +47,9 @@ def get_spec(self, y, rms):
 
 
 class Stage2Fitter(object):
+    def __init__(thisobject):
+        thisobject.residuals_shown = False
+
     def interactive_callback(thisobject, event):
         """
         A 'callback function' to be triggered when the user selects a fit.
@@ -55,7 +58,7 @@ class Stage2Fitter(object):
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
                 if event.key == 'enter':
-                    if thisobject.init_guess:
+                    if thisobject.residuals_shown:
                         print("'enter' key acknowledged.  Moving to next spectrum "
                               "or next step...")
                         thisobject.happy = True
@@ -134,6 +137,7 @@ class Stage2Fitter(object):
                          show_components=True)
             assert thisobject.spec.plotter._active_gui is not None
 
+            thisobject.residuals_shown = False
 
         # else start with a guess. If the user isn't happy they
         # can enter the interactive fitting mode
@@ -156,6 +160,8 @@ class Stage2Fitter(object):
                                        color='g',
                                        label=False)
             assert thisobject.spec.plotter._active_gui is None
+
+            thisobject.residuals_shown = True
 
         log.setLevel(old_log)
 
@@ -226,7 +232,7 @@ class Stage2Fitter(object):
                 else:
                     guesses = saa_dict[count].model.params
                     bf = thisobject.fitting(self, SAA, saa_dict,
-                                            count,guesses=guesses,
+                                            count, guesses=guesses,
                                             training_set=True,
                                             init_guess=init_guess)
 
