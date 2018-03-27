@@ -233,6 +233,8 @@ class scouse(object):
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
 
+        raw_input("Press enter to continue.")
+
         return self
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
