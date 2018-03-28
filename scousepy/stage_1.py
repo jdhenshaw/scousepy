@@ -113,7 +113,7 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax= np.argmax(slab._data, axis=0)
+        idxmax = slab.apply_numpy_function(np.argmax, axis=0)
         momnine=slab.spectral_axis[idxmax].value
         idnan = (np.isfinite(momtwo.value)==0)
         momnine[idnan] = np.nan
@@ -131,7 +131,7 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.mask_below, self.cube.unit))
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax= np.argmax(slab._data, axis=0)
+        idxmax = slab.apply_numpy_function(np.argmax, axis=0)
         momnine=slab.spectral_axis[idxmax].value
         idnan = (np.isfinite(momtwo.value)==0)
         momnine[idnan] = np.nan
@@ -204,7 +204,7 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
         momzero_cutout = momzero_mod[min(limy):max(limy),
                                      min(limx):max(limx)]
 
-        cube_cutout = cube._data[:,min(limy):max(limy), min(limx):max(limx)]
+        cube_cutout = cube[:,min(limy):max(limy), min(limx):max(limx)]
 
         finite = np.isfinite(momzero_cutout)
         nmask = np.count_nonzero(finite)
@@ -219,7 +219,7 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
                 frac[idy+(idx*len(cov_y))] = fraction
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
                 if not redefine:
-                    spec[:, idy, idx] = np.nanmean(cube_cutout, axis=(1,2))
+                    spec[:, idy, idx] = cube_cutout.mean(axis=(1,2))
                 count=0
 
                 for i in rangex:
