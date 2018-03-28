@@ -145,7 +145,7 @@ class scouse(object):
                 self.cube = cube
 
             if self.cube.spectral_axis.diff()[0] < 0:
-                if np.abs(self.cube.spectral_axis[0] - self.cube[::-1].spectral_axis[-1]) > 1e-5:
+                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
                     raise ImportError("Update to a more recent version of spectral-cube "
                                       " or reverse the axes manually.")
                 self.cube = self.cube[::-1]
