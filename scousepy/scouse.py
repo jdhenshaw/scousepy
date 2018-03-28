@@ -39,6 +39,9 @@ from .solution_description import fit
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+Fitter = Stage2Fitter()
+fitting = Fitter.fitting
+
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
 if sys.version_info.major >= 3:
@@ -83,6 +86,7 @@ class scouse(object):
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
+                cube=None,
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
                 refine_grid=False, nrefine=3.0, autosave=True, \
@@ -134,7 +138,11 @@ class scouse(object):
 
 
             # Read in the datacube
-            self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+            if cube is None:
+                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                                           velocity_convention='radio')
+            else:
+                self.cube = cube
             # Generate the x axis common to the fitting process
             self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
@@ -229,6 +237,9 @@ class scouse(object):
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
 
+        input("Press enter to continue.")
+        plt.close(1)
+
         return self
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
@@ -293,6 +304,7 @@ class scouse(object):
 
         # Loop through the SAAs
         for i in fitrange:
+            print("Fitting {0} out of {1}".format(i, len(fitrange)))
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
@@ -300,14 +312,13 @@ class scouse(object):
             if SAA.index == 0.0:
                 SAAid=0
                 firstfit=True
-            else:
-                if i == np.min(fitrange):
-                    SAAid=SAA.index
-                    firstfit=True
+            elif i == np.min(fitrange):
+                SAAid=SAA.index
+                firstfit=True
 
             if SAA.to_be_fit:
-                bf = fitting(self, SAA, saa_dict, SAAid, \
-                             training_set=self.training_set, \
+                bf = fitting(self, SAA, saa_dict, SAAid,
+                             training_set=self.training_set,
                              init_guess=firstfit)
                 SAAid = SAA.index
                 firstfit=False
@@ -452,13 +463,19 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
+    
 
+        print("pre check_spec_indices")
+        plt.ioff()
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)
+        plt.ion()
+        print("post check_spec_indices interactive plot")
 
         # For staged_checking - check and flatten
         self.check_spec_indices = check_and_flatten(self, check_spec_indices)
+        print("post check_spec_indices check_and_flatten")
 
         endtime = time.time()
         if verbose:
