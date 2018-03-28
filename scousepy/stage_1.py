@@ -26,8 +26,7 @@ def compute_noise(self):
     Estimate the typical rms noise across the map
     """
 
-    maskeddata = self.cube.with_mask(np.any(np.isfinite(self.cube._data), axis=0))
-    keep = np.any(np.isfinite(maskeddata._data), axis=0)
+    keep = cube.mask.include().any(axis=0)
 
     finiteidxs = np.array(np.where(keep))
     flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(self.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
