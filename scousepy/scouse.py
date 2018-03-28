@@ -145,7 +145,9 @@ class scouse(object):
                 self.cube = cube
 
             if self.cube.spectral_axis.diff()[0] < 0:
-                assert self.cube.spectral_axis[0] == self.cube[::-1].spectral_axis[-1],"Update to a more recent version of spectral-cube"
+                if np.abs(self.cube.spectral_axis[0] - self.cube[::-1].spectral_axis[-1]) > 1e-5:
+                    raise ImportError("Update to a more recent version of spectral-cube "
+                                      " or reverse the axes manually.")
                 self.cube = self.cube[::-1]
 
             # Generate the x axis common to the fitting process
