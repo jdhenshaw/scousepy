@@ -43,7 +43,7 @@ def compute_noise(self):
     specidx = 0
     while stopcount < stop:
 
-        _spectrum = self.cube[:, locations[0, specidx], locations[1, specidx]]._data
+        _spectrum = self.cube[:, locations[0, specidx], locations[1, specidx]].value
 
         if not np.isnan(_spectrum).any() and not (_spectrum > 0).all():
             if not np.isnan(_spectrum).any():
