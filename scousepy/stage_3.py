@@ -92,7 +92,7 @@ def get_indiv_spec(inputs):
                               (np.shape(self.cube)[2], np.shape(self.cube)[1]) )
 
     indiv_spec = spectrum(np.array([_coords[1], _coords[0]]), \
-                          self.cube._data[:,_coords[1], _coords[0]], \
+                          self.cube[:,_coords[1], _coords[0]].value, \
                           idx=SAA.indices_flat[idx], \
                           scouse=self)
 
