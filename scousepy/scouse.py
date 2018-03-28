@@ -145,7 +145,7 @@ class scouse(object):
                 self.cube = cube
 
             if self.cube.spectral_axis.diff()[0] < 0:
-                assert cube.spectral_axis[0] == cube[::-1].spectral_axis[-1],"Update to a more recent version of spectral-cube"
+                assert self.cube.spectral_axis[0] == self.cube[::-1].spectral_axis[-1],"Update to a more recent version of spectral-cube"
                 self.cube = self.cube[::-1]
 
             # Generate the x axis common to the fitting process
