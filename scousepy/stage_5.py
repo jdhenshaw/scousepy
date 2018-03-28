@@ -19,7 +19,7 @@ from matplotlib import pyplot
 from .interactiveplot import showplot
 from .stage_3 import argsort, get_flux
 
-def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
+def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
                      blockrange=None):
     """
     Generate an interactive plot so the user can select fits they would like to
@@ -35,7 +35,7 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
     spec_mask = pad_spec(self, blocksize, nxblocks, nyblocks)
 
     # For staged checking
-    if blockrange==None:
+    if blockrange is None:
         blockrange=np.arange(0,int(nblocks))
     else:
         if np.max(blockrange)>int(nblocks):
@@ -53,6 +53,7 @@ def interactive_plot(self, blocksize=7, figsize = None, plot_residuals=False,
         # We are only interested in blocks where there is at least 1 model
         # solution - don't bother with the others
         if np.any(np.isfinite(fitkeys)):
+            print("Checking block {0} of {1}".format(i, len(blockrange)))
 
             if figsize is None:
                 figsize = [14,10]
@@ -247,6 +248,8 @@ def check_and_flatten(self, check_spec_indices):
 
     _check_spec_indices=None
 
+    print("Checking spec indices")
+    print("there are {0} spec indices".format(len(check_spec_indices)))
     if np.size(self.check_spec_indices)!=0:
         _check_spec_indices = [list(self.check_spec_indices) + list(check_spec_indices)]
         _check_spec_indices = np.asarray(_check_spec_indices)

@@ -86,6 +86,7 @@ class scouse(object):
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
+                cube=None,
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
                 refine_grid=False, nrefine=3.0, autosave=True, \
@@ -137,8 +138,11 @@ class scouse(object):
 
 
             # Read in the datacube
-            self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
-                                                                       velocity_convention='radio')
+            if cube is None:
+                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                                           velocity_convention='radio')
+            else:
+                self.cube = cube
             # Generate the x axis common to the fitting process
             self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
@@ -459,13 +463,19 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
+    
 
+        print("pre check_spec_indices")
+        plt.ioff()
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)
+        plt.ion()
+        print("post check_spec_indices interactive plot")
 
         # For staged_checking - check and flatten
         self.check_spec_indices = check_and_flatten(self, check_spec_indices)
+        print("post check_spec_indices check_and_flatten")
 
         endtime = time.time()
         if verbose:
