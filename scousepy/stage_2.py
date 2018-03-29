@@ -132,6 +132,7 @@ class Stage2Fitter(object):
             assert thisobject.spec.plotter._active_gui is None
             spec.specfit(interactive=True,
                          fittype=self.fittype,
+                         print_message=False,
                          xmin=self.ppv_vol[0],
                          xmax=self.ppv_vol[1],
                          show_components=True)
