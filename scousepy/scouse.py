@@ -345,6 +345,10 @@ class scouse(object):
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
 
+        # close all figures before moving on
+        # (only needed for plt.ion() case)
+        plt.close('all')
+
         return self
 
     def stage_3(self, tol, njobs=1, verbose=False, \

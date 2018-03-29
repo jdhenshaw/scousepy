@@ -94,7 +94,7 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
                     axis.get_xaxis().set_ticks([])
                     axis.get_yaxis().set_ticks([])
 
-            plt.subplots_adjust(hspace=0, wspace=0)
+            plt.subplots_adjust(hspace=0.02, wspace=0.02)
             # Create the interactive plot
             intplot = showplot(fig, ax)
             while plt.fignum_exists(intplot.fig.number):
