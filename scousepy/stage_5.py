@@ -91,7 +91,10 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
                             axis.plot(self.xtrim, mod[:,k], 'b-', lw=1)
                     if plot_residuals:
                         axis.plot(self.xtrim, res,'g-', drawstyle='steps', lw=1)
+                    axis.get_xaxis().set_ticks([])
+                    axis.get_yaxis().set_ticks([])
 
+            plt.subplots_adjust(hspace=0, wspace=0)
             # Create the interactive plot
             intplot = showplot(fig, ax)
             while plt.fignum_exists(intplot.fig.number):
