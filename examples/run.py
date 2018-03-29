@@ -4,7 +4,8 @@ import os
 import sys
 
 import pylab as pl
-pl.ioff()
+#pl.ioff()
+pl.ion()
 
 def run_scousepy():
     # Input values for core SCOUSE stages
