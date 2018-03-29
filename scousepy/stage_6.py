@@ -228,8 +228,9 @@ def interactive_fitting(self, spectrum, spec):
         # Interactive fitting with pyspeckit
         spec.plotter(xmin=self.ppv_vol[0], \
                      xmax=self.ppv_vol[1])
-        spec.specfit(interactive=True, \
-                     xmin=self.ppv_vol[0], \
+        spec.specfit(interactive=True,
+                     print_message=False,
+                     xmin=self.ppv_vol[0],
                      xmax=self.ppv_vol[1])
         plt.show()
 

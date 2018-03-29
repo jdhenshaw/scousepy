@@ -476,13 +476,13 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s5', step='start')
     
 
-        print("pre check_spec_indices")
+        # interactive must be forced to 'false' for this section to work
+        interactive_state = plt.matplotlib.rcParams['interactive']
         plt.ioff()
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)
-        plt.ion()
-        print("post check_spec_indices interactive plot")
+        plt.matplotlib.rcParams['interactive'] = interactive_state 
 
         # For staged_checking - check and flatten
         self.check_spec_indices = check_and_flatten(self, check_spec_indices)
@@ -517,6 +517,11 @@ class scouse(object):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
+
+        # temporary fix: eventually, this should look like stage 2, with
+        # interactive figures
+        interactive_state = plt.matplotlib.rcParams['interactive']
+        plt.ioff()
 
         s6dir = os.path.join(self.outputdirectory, 'stage_6')
         self.stagedirs.append(s6dir)
@@ -577,6 +582,10 @@ class scouse(object):
                 self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
 
         self.completed_stages.append('s6')
+
+        # reset the interactive state to whatever it was before
+        plt.matplotlib.rcParams['interactive'] = interactive_state 
+
         return self
 
     def __repr__(self):
