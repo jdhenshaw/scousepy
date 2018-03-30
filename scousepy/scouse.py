@@ -115,7 +115,7 @@ class scouse(object):
         # Main routine
         starttime = time.time()
         # Generate file structure
-        if outputdir==None:
+        if outputdir is None:
             outputdir=datadirectory
 
         # directory structure
@@ -541,7 +541,7 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s6', step='start')
 
         # For staged refitting
-        if specrange==None:
+        if specrange is None:
             specrange=np.arange(0,int(np.size(self.check_spec_indices)))
         else:
             if np.max(specrange)>int(np.size(self.check_spec_indices)):
