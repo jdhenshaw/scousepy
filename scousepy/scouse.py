@@ -489,7 +489,7 @@ class scouse(object):
 
         # interactive must be forced to 'false' for this section to work
         interactive_state = plt.matplotlib.rcParams['interactive']
-        plt.ioff()
+        #plt.ioff()
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)

@@ -16,7 +16,7 @@ import warnings
 from astropy import log
 from matplotlib import pyplot
 
-from .interactiveplot import showplot
+from .interactiveplot import showplot, InteractivePlot
 from .stage_3 import argsort, get_flux
 
 def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
@@ -44,25 +44,34 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
             blockrange=np.arange(int(np.min(blockrange)),int(np.max(blockrange)))
 
     # Cycle through the blocks
-    for i in blockrange:
-        blocknum = i+1
+    #for i in blockrange:
+    #    blocknum = i+1
+
+    def callback_check_spec(blocknum, intplot):
+        keep = (blockarr == blocknum)
+        speckeys = spec_mask[keep]
+
+        # Get the indices of the spectra we want to take another look at
+        check_spec = get_indices(intplot, speckeys)
+        # append
+        check_spec_indices.append(check_spec)
+
+        for ax in axes_flat:
+            ax.cla()
+
+    def plot_blocknum(blocknum, intplot):
+
         keep = (blockarr == blocknum)
         speckeys = spec_mask[keep]
         fitkeys = fit_mask[keep]
 
+
+
         # We are only interested in blocks where there is at least 1 model
         # solution - don't bother with the others
         if np.any(np.isfinite(fitkeys)):
-            print("Checking block {0} of {1}".format(i, len(blockrange)))
+            print("Checking block {0} of {1}".format(blocknum, len(blockrange)))
 
-            if figsize is None:
-                figsize = [14,10]
-            else:
-                figsize=figsize
-            # Prepare plot
-            fig, ax = pyplot.subplots(blocksize, blocksize, figsize=figsize)
-            ax = ax[::-1]
-            ax = [a for axis in ax for a in axis]
 
             # Cycle through the spectra contained within the block
             for j in range(np.size(speckeys)):
@@ -76,9 +85,15 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
                 if keycheck:
                     spectrum = self.indiv_dict[key]
                     # Get the correct subplot axis
-                    axis = ax[j]
+                    axis = axes_flat[j]
+
+                    # clear the axes
+                    # (this is now handled in the other callback)
+                    #axis.cla()
+
                     # First plot the Spectrum
-                    axis.plot(self.xtrim, get_flux(self, spectrum), 'k-', drawstyle='steps', lw=1)
+                    axis.plot(self.xtrim, get_flux(self, spectrum), 'k-',
+                              drawstyle='steps', lw=1)
                     # Recreate the model from information held in the solution
                     # description
                     bfmodel = spectrum.model
@@ -94,17 +109,33 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
                     axis.get_xaxis().set_ticks([])
                     axis.get_yaxis().set_ticks([])
 
-            plt.subplots_adjust(hspace=0.02, wspace=0.02)
-            # Create the interactive plot
-            intplot = showplot(fig, ax)
-            while plt.fignum_exists(intplot.fig.number):
-                # infinite loop to wait for user input
-                pass
+            return True
+        else:
+            return False
 
-            # Get the indices of the spectra we want to take another look at
-            check_spec = get_indices(intplot, speckeys)
-            # append
-            check_spec_indices.append(check_spec)
+    # set up the plot window *once*
+    if figsize is None:
+        figsize = [14,10]
+    # Prepare plot
+    fig, axes = pyplot.subplots(blocksize, blocksize, figsize=figsize)
+    axes_flat = [a for axis in axes[::-1] for a in axis]
+    
+    plt.subplots_adjust(hspace=0.02, wspace=0.02)
+    intplot = showplot(fig, axes_flat, blocknum_ind=0,
+                       blockrange=blockrange,
+                       callback=plot_blocknum,
+                       callback_check_spec=callback_check_spec,
+                      )
+
+    # wait until all the plots have been looped over
+    while not intplot.done:
+        try:
+            plt.pause(0.1)
+        except KeyboardInterrupt:
+            break
+
+    plt.close(intplot.fig.number)
+
 
     # Now flatten
     check_spec_indices = [idx for indices in check_spec_indices for idx in indices]

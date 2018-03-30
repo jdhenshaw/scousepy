@@ -27,7 +27,8 @@ class InteractivePlot:
     https://gist.github.com/smathot/2011427
     """
 
-    def __init__(self, fig=None, ax=None, keep=False):
+    def __init__(self, fig=None, ax=None, keep=False, blockrange=None,
+                 blocknum_ind=0, callback=None, callback_check_spec=None):
         """
         """
 
@@ -42,6 +43,17 @@ class InteractivePlot:
         self.fig.canvas.mpl_connect('button_release_event', self.release)
         self.fig.canvas.mpl_connect('scroll_event', self.scroll)
         self.fig.canvas.mpl_connect('key_press_event', self.keyentry)
+        self.done = False
+        self.blockrange = blockrange
+        self.blocknum_ind = blocknum_ind
+        self.callback = callback
+        self.callback_check_spec = callback_check_spec
+
+    def disconnect(self):
+        self.fig.canvas.mpl_disconnect(self.click)
+        self.fig.canvas.mpl_disconnect(self.release)
+        self.fig.canvas.mpl_disconnect(self.scroll)
+        self.fig.canvas.mpl_disconnect(self.keyentry)
 
     def show(self):
         """
@@ -96,7 +108,7 @@ class InteractivePlot:
         # if not then add it to the list
         if (not inlist) and (subPlotNr is not None):
             self.sps.append(subPlotNr)
-        if subPlotNr == None:
+        if subPlotNr is None:
             return
 
         if event.button == 1:
@@ -126,8 +138,8 @@ class InteractivePlot:
            (event.key == 'd') or \
            (event.key == 'escape'):
 
-           # If any of the above are entered/selected then remove the marker
-           # and the subplot from the list of plots
+            # If any of the above are entered/selected then remove the marker
+            # and the subplot from the list of plots
             subPlotNr = self.getSubPlotNr(event)
             inlist = subPlotNr in self.subplots
             if inlist:
@@ -141,7 +153,7 @@ class InteractivePlot:
 
                 self.sps.remove(subPlotNr)
 
-            if subPlotNr == None:
+            if subPlotNr is None:
                 return
 
             self.fig.canvas.draw()
@@ -150,14 +162,36 @@ class InteractivePlot:
             return
 
         if event.key == 'enter':
-            pyplot.close(self.fig.number)
-            return
+            if pyplot.matplotlib.rcParams['interactive']:
+
+                self.callback_check_spec(self.blockrange[self.blocknum_ind],
+                                         self)
+
+                self.sps = []
+                self.subplots = []
+
+                success = False
+                while not success:
+                    self.blocknum_ind += 1
+                    if self.blocknum_ind < len(self.blockrange):
+                        blocknum = self.blockrange[self.blocknum_ind]
+
+                        success = self.callback(blocknum, self)
+                    else:
+                        success = True
+                        self.done = True
+                        self.disconnect()
+            else:
+                raise ValueError("Please use interactive mode")
+                pyplot.close(self.fig.number)
+
+                self.done = True
 
     def release(self, event):
         """
         This allows the user to zoom
         """
-        if self.dragFrom == None or event.button != 3:
+        if self.dragFrom is None or event.button != 3:
             return
         dragTo = event.xdata
         dx = self.dragFrom - dragTo
@@ -187,11 +221,27 @@ class InteractivePlot:
             subPlot.set_xlim(_xmin, _xmax)
         event.canvas.draw()
 
-def showplot(fig=None, ax=None, keep=False):
+def showplot(fig=None, ax=None, keep=False, blockrange=None, blocknum_ind=1,
+             callback=None, callback_check_spec=None):
     """
     This is what begins the interactive plotting
     """
 
-    pl = InteractivePlot(fig, ax, keep=keep)
+    pl = InteractivePlot(fig, ax, keep=keep, blockrange=blockrange,
+                         blocknum_ind=blocknum_ind, callback=callback,
+                         callback_check_spec=callback_check_spec)
+    # first plot requires a callback
+    # we need this loop because we skip any plots with no valid pixels
+    success = False
+    while not success:
+        pl.blocknum_ind += 1
+        if pl.blocknum_ind < len(pl.blockrange):
+            blocknum = pl.blockrange[pl.blocknum_ind]
+
+            success = pl.callback(blocknum, pl)
+        else:
+            success = True
+            pl.done = True
+
     pl.show()
     return pl
