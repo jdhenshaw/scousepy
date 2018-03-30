@@ -162,6 +162,15 @@ class InteractivePlot:
             return
 
         if event.key == 'enter':
+            if self.blocknum_ind >= len(self.blockrange):
+                # do this to avoid a race condition; this should really be
+                # unreachable but it is if you press 'enter' too many times
+                if not self.done:
+                    raise ValueError("Out-of-range plot encountered, but "
+                                     "plotting not completed.")
+                else:
+                    return
+
             if pyplot.matplotlib.rcParams['interactive']:
 
                 self.callback_check_spec(self.blockrange[self.blocknum_ind],

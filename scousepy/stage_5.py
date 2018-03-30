@@ -133,8 +133,11 @@ def interactive_plot(self, blocksize=7, figsize=None, plot_residuals=False,
             plt.pause(0.1)
         except KeyboardInterrupt:
             break
+    print("Re-check spectra selection completed")
+    print("")
 
     plt.close(intplot.fig.number)
+    plt.close(fig.number)
 
 
     # Now flatten
