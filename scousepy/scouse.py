@@ -218,8 +218,7 @@ class scouse(object):
                     for yind in range(np.shape(ss)[1]):
                         sample = speccount in self.sample
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
-                                     idx=speccount, sample = sample, \
-                                     scouse=self)
+                                  idx=speccount, sample=sample, scouse=self)
                         self.saa_dict[i][speccount] = SAA
                         speccount+=1
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
