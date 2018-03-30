@@ -309,9 +309,16 @@ class scouse(object):
             else:
                 fitrange=np.arange(int(lower),int(upper))
 
+        # determine how many fits we will actually be performing
+        n_to_fit = sum([self.saa_dict[saa_list[ii,1]][saa_list[ii,0]].to_be_fit
+                        for ii in fitrange])
+
+        if n_to_fit <= 0:
+            raise ValueError("No spectra are selected to be fit.")
+
         # Loop through the SAAs
         for i in fitrange:
-            print("Fitting {0} out of {1}".format(i, len(fitrange)))
+            print("Fitting {0} out of {1}".format(i, n_to_fit))
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
@@ -324,9 +331,14 @@ class scouse(object):
                 firstfit=True
 
             if SAA.to_be_fit:
-                bf = fitting(self, SAA, saa_dict, SAAid,
-                             training_set=self.training_set,
-                             init_guess=firstfit)
+                with warnings.catch_warnings():
+                    # This is to catch an annoying matplotlib deprecation warning:
+                    # "Using default event loop until function specific to this GUI is implemented"
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
+
+                    bf = fitting(self, SAA, saa_dict, SAAid,
+                                 training_set=self.training_set,
+                                 init_guess=firstfit)
                 SAAid = SAA.index
                 firstfit=False
 
