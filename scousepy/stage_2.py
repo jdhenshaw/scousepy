@@ -85,13 +85,15 @@ class Stage2Fitter(object):
                                                init_guess=True, # re-initialize guess
                                                guesses=thisobject.guesses,
                                               )
+                elif event.key in ('f', 'F'):
+                    thisobject.residuals_shown = False
                 elif event.key in ('d','D','3',3):
                     # The fit has been performed interactively, but we also
                     # want to print out the nicely-formatted additional
                     # information
-                    thisobject.bf = fit(thisobject.spec, idx=thisobject.SAA.index,
-                                        scouse=thisobject.self)
-                    print_fit_information(thisobject.bf, init_guess=True)
+                    bf = fit(thisobject.spec, idx=thisobject.SAA.index,
+                             scouse=thisobject.self)
+                    print_fit_information(bf, init_guess=True)
                     print("If you are happy with this fit, press Enter.  Otherwise, "
                           "use the 'f' key to re-enter the interactive fitter.")
                     thisobject.happy = None
@@ -101,9 +103,9 @@ class Stage2Fitter(object):
                 # The fit has been performed interactively, but we also
                 # want to print out the nicely-formatted additional
                 # information
-                thisobject.bf = fit(thisobject.spec, idx=thisobject.SAA.index,
-                                    scouse=thisobject.self)
-                print_fit_information(thisobject.bf, init_guess=True)
+                bf = fit(thisobject.spec, idx=thisobject.SAA.index,
+                         scouse=thisobject.self)
+                print_fit_information(bf, init_guess=True)
                 print("If you are happy with this fit, press Enter.  Otherwise, "
                       "use the 'f' key to re-enter the interactive fitter.")
                 thisobject.happy = None
@@ -194,6 +196,10 @@ class Stage2Fitter(object):
                 thisobject.happy = None
                 spec.plotter.axis.figure.canvas.mpl_connect('key_press_event',
                                                             thisobject.interactive_callback)
+                if thisobject.residuals_shown:
+                    bf = fit(thisobject.spec, idx=thisobject.SAA.index,
+                             scouse=thisobject.self)
+                    print_fit_information(bf, init_guess=True)
                 print("If you are happy with this fit, press Enter.  Otherwise, "
                       "use the 'f' key to re-enter the interactive fitter.")
             else:

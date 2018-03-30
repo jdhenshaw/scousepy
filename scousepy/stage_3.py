@@ -574,6 +574,10 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
                     key_list.append(key)
                     model_list.append(indiv_spectra[key])
 
+    if not key_list:
+        # if it's empty, we have a problem
+        raise ValueError("Empty key list found; the SAA has no entries.")
+
     # sort the lists
     key_arr = np.array(key_list)
     model_arr = np.array(model_list)

@@ -317,8 +317,8 @@ class scouse(object):
             raise ValueError("No spectra are selected to be fit.")
 
         # Loop through the SAAs
-        for i in fitrange:
-            print("Fitting {0} out of {1}".format(i, n_to_fit))
+        for i_,i in enumerate(fitrange):
+            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
