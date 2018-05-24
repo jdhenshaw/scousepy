@@ -14,6 +14,7 @@ import sys
 import pyspeckit
 import warnings
 import time
+import string
 
 from astropy import log
 from matplotlib import pyplot
@@ -41,7 +42,7 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         blockrange=np.arange(0,int(nblocks))
     else:
         if np.max(blockrange)>int(nblocks):
-            blockrange=np.arange(int(np.min(blockrange)),int(nblocks))
+            blockrange=np.arange(int(np.min(blockrange)),int(nblocks)+1)
         else:
             blockrange=np.arange(int(np.min(blockrange)),int(np.max(blockrange)))
 
@@ -304,3 +305,95 @@ def check_and_flatten(scouseobject, check_spec_indices):
         _check_spec_indices = check_spec_indices
 
     return _check_spec_indices
+
+def generate_2d_parametermap(scouseobject, spectrum_parameter):
+    """
+    Create a 2D map of a given spectral parameter
+    """
+    blankmap = np.zeros(scouseobject.cube.shape[1:])
+    blankmap[:] = np.nan
+
+    for ind,spec in scouseobject.indiv_dict.items():
+        cy,cx = spec.coordinates
+        blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
+
+    return blankmap
+
+def generate_diagnostic_maps(scouseobject, maps=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2']):
+
+    return {mapname: generate_2d_parametermap(scouseobject, mapname)
+            for mapname in maps}
+
+class DiagnosticImageFigure(object):
+    def __init__(self, scouseobject, fig=None, ax=None, keep=False,
+                 blocksize=7, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
+                 plotkwargs=dict(interpolation='none', origin='lower'),
+                ):
+        """
+        """
+
+        if fig is None:
+            fig = plt.gcf()
+        self.fig = fig
+        if ax is None:
+            ax = plt.gca()
+        self.ax = ax
+        self.fig.canvas.mpl_connect('button_press_event', self.click)
+        self.fig.canvas.mpl_connect('key_press_event', self.keyentry)
+        self.blocksize = blocksize
+        self.scouseobject = scouseobject
+
+        self.mapnames = mapnames
+        self.maps = generate_diagnostic_maps(self.scouseobject, maps=self.mapnames)
+
+        self.plotkwargs = plotkwargs
+
+        self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
+        self.ax.set_title(self.mapnames[0])
+
+        self.done = False
+
+        self.done_block_mask = np.zeros_like(self.maps[self.mapnames[0]])
+        self.done_con = None
+
+        self.check_spec_indices = []
+
+    def disconnect(self):
+        self.fig.canvas.mpl_disconnect(self.click)
+        self.fig.canvas.mpl_disconnect(self.keyentry)
+
+    def show(self):
+        self.fig.canvas.draw()
+
+    def click(self, event):
+        """
+        What happens following mouse click
+        """
+        if event.button == 1:
+
+            cx,cy = event.xdata, event.ydata
+            if None in (cx,cy):
+                return
+
+            nxblocks, nyblocks, blockarr = get_blocks(self.scouseobject, self.blocksize)
+            blockid = blockarr[np.int(cy),np.int(cx)]
+
+            self.check_spec_indices.append(interactive_plot(self.scouseobject, blockrange=[blockid,blockid+1]))
+
+            self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], self.done_block_mask.shape[1]]] = 1
+
+            if self.done_con is not None:
+                for coll in self.ax.collections:
+                    coll.remove()
+            self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
+                                             levels=[0.5, 1.5], alpha=0.2)
+
+    def keyentry(self, event):
+        if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
+            self.ax.set_title(self.mapnames[int(event.key)])
+            self.ax.imshow(self.maps[self.mapnames[int(event.key)]],
+                           **self.plotkwargs
+                          )
+            self.show()
+        if event.key in ('q', 'enter'):
+            self.done = True

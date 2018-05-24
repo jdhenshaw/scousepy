@@ -58,7 +58,7 @@ class Stage2Fitter(object):
 
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
-                if event.key in ('enter', 'q'):
+                if event.key in ('enter'):
                     if self.residuals_shown:
                         print("'enter' key acknowledged.  Moving to next spectrum "
                               "or next step...")
@@ -152,6 +152,8 @@ class Stage2Fitter(object):
                          xmax=scouseobject.ppv_vol[1],
                          figure=plt.figure(1),
                         )
+            # disable mpl key commands (especially 'q')
+            spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
             assert self.spec.plotter._active_gui is None
             spec.specfit(interactive=True,
@@ -172,6 +174,8 @@ class Stage2Fitter(object):
                          xmax=scouseobject.ppv_vol[1],
                          figure=plt.figure(1),
                         )
+            # disable mpl key commands (especially 'q')
+            spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
             assert self.spec.plotter._active_gui is None
             spec.specfit(interactive=False,

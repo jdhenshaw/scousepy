@@ -244,7 +244,6 @@ def showplot(fig=None, ax=None, keep=False, blockrange=None, blocknum_ind=1,
     # we need this loop because we skip any plots with no valid pixels
     success = False
     while not success:
-        pl.blocknum_ind += 1
         if pl.blockrange is not None and pl.blocknum_ind < len(pl.blockrange):
             blocknum = pl.blockrange[pl.blocknum_ind]
 
