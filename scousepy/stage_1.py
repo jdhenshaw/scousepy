@@ -91,6 +91,8 @@ def get_x_axis(self):
     """
     x = np.array(self.cube.world[:,0,0][0])
     trimids = ((x>self.ppv_vol[0])&(x<self.ppv_vol[1]))
+    #if np.any(np.diff(x)) < 0:
+    #    x = x[::-1]
     xtrim = x[trimids]
     return x, xtrim, trimids
 

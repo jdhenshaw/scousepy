@@ -250,7 +250,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     modparams = spec.specfit.modelpars
                     moderrors = spec.specfit.modelerrs
                     modrms = spec.error[0]
-
+                    
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
                     happy, guesses = check_spec(self, parent_model, _inputs, happy)
 
