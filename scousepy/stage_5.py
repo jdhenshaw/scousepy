@@ -329,6 +329,7 @@ class DiagnosticImageFigure(object):
     def __init__(self, scouseobject, fig=None, ax=None, keep=False,
                  blocksize=7, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
                  plotkwargs=dict(interpolation='none', origin='lower'),
+                 savedir=None,
                 ):
         """
         """
@@ -343,14 +344,22 @@ class DiagnosticImageFigure(object):
         self.fig.canvas.mpl_connect('key_press_event', self.keyentry)
         self.blocksize = blocksize
         self.scouseobject = scouseobject
+        self.savedir = savedir
 
         self.mapnames = mapnames
-        self.maps = generate_diagnostic_maps(self.scouseobject, maps=self.mapnames)
+        self.maps = {}
+
+        if savedir is not None:
+            loaded = self.load_maps(savedir)
+            not_loaded = [x for x in self.mapnames if x not in loaded]
+        else:
+            not_loaded = self.mapnames
+
+        self.maps.update(generate_diagnostic_maps(self.scouseobject, maps=not_loaded))
+
+        self.save_maps(self.savedir)
 
         self.plotkwargs = plotkwargs
-
-        self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
-        self.ax.set_title(self.mapnames[0])
 
         self.done = False
 
@@ -359,13 +368,30 @@ class DiagnosticImageFigure(object):
 
         self.check_spec_indices = []
 
-        self.show()
+    def load_maps(self, savedir):
+        loaded = []
+        for mapname in self.mapnames:
+            fn = os.path.join(savedir, "stage5_"+mapname+".fits")
+            if os.path.exists(fn):
+                data = fits.getdata(fn)
+                self.maps[mapname] = data
+                loaded.append(mapname)
+        return loaded
+
+    def save_maps(self, savedir, overwrite=True):
+
+        for mapname in self.mapnames:
+            fh = fits.PrimaryHDU(data=self.maps[mapname], header=self.scouseobject.cube[0,:,:].header)
+            fh.writeto(os.path.join(savedir, "stage5_"+mapname+".fits"), overwrite=overwrite)
 
     def disconnect(self):
         self.fig.canvas.mpl_disconnect(self.click)
         self.fig.canvas.mpl_disconnect(self.keyentry)
 
     def show(self):
+        self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
+        self.ax.set_title(self.mapnames[0])
+
         self.fig.canvas.draw()
 
     def click(self, event):

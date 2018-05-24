@@ -473,11 +473,10 @@ class scouse(object):
         mkdir_s5(self.outputdirectory, s5dir)
 
 
-        dd = DiagnosticImageFigure(self)
+        dd = DiagnosticImageFigure(self, savedir=s5dir)
 
-        for mapname in dd.mapnames:
-            fh = fits.PrimaryHDU(data=dd.maps[mapname], header=self.cube[0,:,:].header)
-            fh.writeto(os.path.join(s5dir, "stage5_"+mapname+".fits"), overwrite=True)
+
+        dd.show()
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
