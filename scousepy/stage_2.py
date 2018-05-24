@@ -92,6 +92,7 @@ class Stage2Fitter(object):
                     # The fit has been performed interactively, but we also
                     # want to print out the nicely-formatted additional
                     # information
+                    self.spec.specfit.button3action(event)
                     bf = fit(self.spec, idx=self.SAA.index,
                              scouse=self.scouseobject)
                     print_fit_information(bf, init_guess=True)

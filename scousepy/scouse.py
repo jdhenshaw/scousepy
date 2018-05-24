@@ -485,7 +485,6 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
-    
 
         # interactive must be forced to 'false' for this section to work
         interactive_state = plt.matplotlib.rcParams['interactive']
@@ -493,7 +492,7 @@ class scouse(object):
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+        plt.matplotlib.rcParams['interactive'] = interactive_state
 
         # For staged_checking - check and flatten
         self.check_spec_indices = check_and_flatten(self, check_spec_indices)
@@ -595,7 +594,7 @@ class scouse(object):
         self.completed_stages.append('s6')
 
         # reset the interactive state to whatever it was before
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+        plt.matplotlib.rcParams['interactive'] = interactive_state
 
         return self
 
