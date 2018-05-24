@@ -472,11 +472,13 @@ class scouse(object):
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
 
+        interactive_state = plt.matplotlib.rcParams['interactive']
+        plt.ion()
 
         dd = DiagnosticImageFigure(self, savedir=s5dir)
 
 
-        dd.show()
+        dd.show_first()
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
@@ -489,6 +491,7 @@ class scouse(object):
                 except KeyboardInterrupt:
                     break
         
+        plt.matplotlib.rcParams['interactive'] = interactive_state 
 
         check_spec_indices = dd.check_spec_indices
 

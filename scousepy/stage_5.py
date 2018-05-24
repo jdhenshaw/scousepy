@@ -392,10 +392,11 @@ class DiagnosticImageFigure(object):
         self.fig.canvas.mpl_disconnect(self.click)
         self.fig.canvas.mpl_disconnect(self.keyentry)
 
-    def show(self):
+    def show_first(self):
         self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
         self.ax.set_title(self.mapnames[0])
 
+    def show(self):
         self.fig.canvas.draw()
 
     def click(self, event):
