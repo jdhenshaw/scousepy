@@ -65,7 +65,10 @@ class InteractivePlot:
                            )
         else:
             pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
-        pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
+        #pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
+        ax = pyplot.gca()
+        [xx.set_visible(False) for xx in ax.get_yticklabels()]
+        [xx.set_visible(False) for xx in ax.get_xticklabels()]
         pyplot.show()
         return self
 
