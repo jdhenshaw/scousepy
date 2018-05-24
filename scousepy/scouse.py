@@ -611,7 +611,7 @@ class scouse(object):
         self.completed_stages.append('s6')
 
         # reset the interactive state to whatever it was before
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+        plt.matplotlib.rcParams['interactive'] = interactive_state
 
         return self
 

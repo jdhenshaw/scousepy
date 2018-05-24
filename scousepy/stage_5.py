@@ -61,14 +61,14 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 
         for ax in axes_flat:
             ax.cla()
+            [xx.set_visible(False) for xx in ax.get_yticklabels()]
+            [xx.set_visible(False) for xx in ax.get_xticklabels()]
 
     def plot_blocknum(blocknum, intplot):
 
         keep = (blockarr == blocknum)
         speckeys = spec_mask[keep]
         fitkeys = fit_mask[keep]
-
-
 
         # We are only interested in blocks where there is at least 1 model
         # solution - don't bother with the others
@@ -122,6 +122,10 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
     # Prepare plot
     fig, axes = pyplot.subplots(blocksize, blocksize, figsize=figsize)
     axes_flat = [a for axis in axes[::-1] for a in axis]
+
+    for ax in axes_flat:
+        [xx.set_visible(False) for xx in ax.get_yticklabels()]#
+        [xx.set_visible(False) for xx in ax.get_xticklabels()]
 
     plt.subplots_adjust(hspace=0.02, wspace=0.02)
     intplot = showplot(fig, axes_flat, blocknum_ind=0,
