@@ -164,9 +164,20 @@ def generate_template_spectrum(scouseobject):
     x=scouseobject.xtrim
     y=scouseobject.saa_dict[0][0].ytrim
     rms=scouseobject.saa_dict[0][0].rms
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=scouseobject.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'},verbose=False)
+
+
+    return pyspeckit.Spectrum(data=y,
+                              error=np.ones(len(y))*rms,
+                              xarr=x,
+                              doplot=False,
+                              unit=scouseobject.cube.header['BUNIT'],
+                              xarrkwargs={'unit':'km/s',
+                                          'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
+                                          # I'm sure there's a way to determine this on the fly...
+                                          'velocity_convention': 'radio',
+                                         },
+                              verbose=False
+                              )
 
 def get_flux(scouseobject, indiv_spec):
     """
