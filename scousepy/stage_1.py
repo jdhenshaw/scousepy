@@ -187,7 +187,7 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
 
-    for cx,cy in ProgressBar(itertools.product(cov_x, cov_y)):
+    for cx,cy in itertools.product(cov_x, cov_y):
         if not redefine:
             if verbose and (count % 1 == 0):
                 progress_bar + 1
