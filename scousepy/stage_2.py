@@ -13,6 +13,7 @@ import pyspeckit
 import matplotlib.pyplot as plt
 import sys
 import warnings
+import time
 
 from astropy.io import fits
 from astropy import units as u
@@ -57,7 +58,7 @@ class Stage2Fitter(object):
 
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
-                if event.key == 'enter':
+                if event.key in ('enter', 'q'):
                     if self.residuals_shown:
                         print("'enter' key acknowledged.  Moving to next spectrum "
                               "or next step...")
@@ -239,7 +240,10 @@ class Stage2Fitter(object):
                 warnings.simplefilter('ignore', category=DeprecationWarning)
                 while not self.happy:
                     try:
-                        plt.pause(0.1)
+                        # using just a few little bits of plt.pause below
+                        plt.gcf().canvas.draw()
+                        plt.gcf().canvas.start_event_loop(0.1)
+                        time.sleep(0.1)
                     except KeyboardInterrupt:
                         break
 

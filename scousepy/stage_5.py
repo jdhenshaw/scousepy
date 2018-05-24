@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import sys
 import pyspeckit
 import warnings
+import time
+
 from astropy import log
 from matplotlib import pyplot
 
@@ -130,7 +132,10 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
     # wait until all the plots have been looped over
     while not intplot.done:
         try:
-            plt.pause(0.1)
+            # using just a few little bits of plt.pause below
+            plt.gcf().canvas.draw()
+            plt.gcf().canvas.start_event_loop(0.1)
+            time.sleep(0.1)
         except KeyboardInterrupt:
             break
     print("Re-check spectra selection completed")
