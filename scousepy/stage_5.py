@@ -403,24 +403,25 @@ class DiagnosticImageFigure(object):
         """
         What happens following mouse click
         """
-        if event.button == 1:
+        if self.fig.canvas.manager.toolbar._active is None:
+            if event.button == 1:
 
-            cx,cy = event.xdata, event.ydata
-            if None in (cx,cy):
-                return
+                cx,cy = event.xdata, event.ydata
+                if None in (cx,cy):
+                    return
 
-            nxblocks, nyblocks, blockarr = get_blocks(self.scouseobject, self.blocksize)
-            blockid = blockarr[np.int(cy),np.int(cx)]
+                nxblocks, nyblocks, blockarr = get_blocks(self.scouseobject, self.blocksize)
+                blockid = blockarr[np.int(cy),np.int(cx)]
 
-            self.check_spec_indices.append(interactive_plot(self.scouseobject, blockrange=[blockid,blockid+1]))
+                self.check_spec_indices.append(interactive_plot(self.scouseobject, blockrange=[blockid,blockid+1]))
 
-            self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], self.done_block_mask.shape[1]]] = 1
+                self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], self.done_block_mask.shape[1]]] = 1
 
-            if self.done_con is not None:
-                for coll in self.ax.collections:
-                    coll.remove()
-            self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
-                                             levels=[0.5, 1.5], alpha=0.2)
+                if self.done_con is not None:
+                    for coll in self.ax.collections:
+                        coll.remove()
+                self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
+                                                 levels=[0.5, 1.5], alpha=0.2)
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
