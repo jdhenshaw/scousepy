@@ -165,7 +165,6 @@ def generate_template_spectrum(scouseobject):
     y=scouseobject.saa_dict[0][0].ytrim
     rms=scouseobject.saa_dict[0][0].rms
 
-
     return pyspeckit.Spectrum(data=y,
                               error=np.ones(len(y))*rms,
                               xarr=x,

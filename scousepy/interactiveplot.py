@@ -65,7 +65,6 @@ class InteractivePlot:
                            )
         else:
             pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
-        pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
         pyplot.show()
         return self
 
