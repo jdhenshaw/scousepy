@@ -29,7 +29,7 @@ from .stage_1 import *
 from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
-from .stage_5 import interactive_plot
+from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
@@ -472,38 +472,52 @@ class scouse(object):
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
 
-        if blockrange is not None:
-            if repeat and (np.min(blockrange)==0.0):
-                self.check_spec_indices=[]
-            # Fail safe in case people try to re-run s1 midway through fitting
-            # Without this - it would lose all previously fitted spectra.
-            if np.min(blockrange) != 0.0:
-                if np.size(self.check_spec_indices) == 0.0:
-                    raise ValueError('Load from autosaved S5 to avoid losing your work!')
 
-        starttime = time.time()
+        dd = DiagnosticImageFigure(self)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+            while not dd.done:
+                try:
+                    # using just a few little bits of plt.pause below
+                    dd.fig.canvas.draw()
+                    dd.fig.canvas.start_event_loop(0.1)
+                    time.sleep(0.1)
+                except KeyboardInterrupt:
+                    break
+        
 
-        if verbose:
-            progress_bar = print_to_terminal(stage='s5', step='start')
+        #if blockrange is not None:
+        #    if repeat and (np.min(blockrange)==0.0):
+        #        self.check_spec_indices=[]
+        #    # Fail safe in case people try to re-run s1 midway through fitting
+        #    # Without this - it would lose all previously fitted spectra.
+        #    if np.min(blockrange) != 0.0:
+        #        if np.size(self.check_spec_indices) == 0.0:
+        #            raise ValueError('Load from autosaved S5 to avoid losing your work!')
+
+        #starttime = time.time()
+
+        #if verbose:
+        #    progress_bar = print_to_terminal(stage='s5', step='start')
     
 
-        # interactive must be forced to 'false' for this section to work
-        interactive_state = plt.matplotlib.rcParams['interactive']
-        #plt.ioff()
-        check_spec_indices = interactive_plot(self, blocksize, figsize,\
-                                              plot_residuals=plot_residuals,\
-                                              blockrange=blockrange)
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+        ## interactive must be forced to 'false' for this section to work
+        #interactive_state = plt.matplotlib.rcParams['interactive']
+        ##plt.ioff()
+        #check_spec_indices = interactive_plot(self, blocksize, figsize,\
+        #                                      plot_residuals=plot_residuals,\
+        #                                      blockrange=blockrange)
+        #plt.matplotlib.rcParams['interactive'] = interactive_state 
 
-        # For staged_checking - check and flatten
-        self.check_spec_indices = check_and_flatten(self, check_spec_indices)
-        print("post check_spec_indices check_and_flatten")
+        ## For staged_checking - check and flatten
+        #self.check_spec_indices = check_and_flatten(self, check_spec_indices)
+        #print("post check_spec_indices check_and_flatten")
 
-        endtime = time.time()
-        if verbose:
-            progress_bar = print_to_terminal(stage='s5', step='end', \
-                                             t1=starttime, t2=endtime, \
-                                             var=np.size(self.check_spec_indices))
+        #endtime = time.time()
+        #if verbose:
+        #    progress_bar = print_to_terminal(stage='s5', step='end', \
+        #                                     t1=starttime, t2=endtime, \
+        #                                     var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
 
