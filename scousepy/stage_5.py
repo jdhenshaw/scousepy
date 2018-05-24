@@ -10,6 +10,7 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 import sys
 import pyspeckit
 import warnings
@@ -17,6 +18,7 @@ import time
 import string
 
 from astropy import log
+from astropy.io import fits
 from astropy.utils.console import ProgressBar
 from matplotlib import pyplot
 
