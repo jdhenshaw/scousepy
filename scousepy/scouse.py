@@ -486,6 +486,8 @@ class scouse(object):
                     break
         
 
+        check_spec_indices = dd.check_spec_indices
+
         #if blockrange is not None:
         #    if repeat and (np.min(blockrange)==0.0):
         #        self.check_spec_indices=[]
@@ -509,9 +511,9 @@ class scouse(object):
         #                                      blockrange=blockrange)
         #plt.matplotlib.rcParams['interactive'] = interactive_state 
 
-        ## For staged_checking - check and flatten
-        #self.check_spec_indices = check_and_flatten(self, check_spec_indices)
-        #print("post check_spec_indices check_and_flatten")
+        # For staged_checking - check and flatten
+        self.check_spec_indices = check_and_flatten(self, check_spec_indices)
+        print("post check_spec_indices check_and_flatten")
 
         #endtime = time.time()
         #if verbose:
