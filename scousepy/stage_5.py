@@ -422,9 +422,11 @@ class DiagnosticImageFigure(object):
                         coll.remove()
                 self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
                                                  levels=[0.5, 1.5], alpha=0.2)
+                print("Number of pixels examined interactively is now {0}".format(self.done_block_mask.sum()))
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
+            print("Showing map number {0}: {1}".format(event.key, self.mapnames[int(event.key)]))
             self.ax.set_title(self.mapnames[int(event.key)])
             self.ax.imshow(self.maps[self.mapnames[int(event.key)]],
                            **self.plotkwargs
