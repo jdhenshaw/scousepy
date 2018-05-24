@@ -474,6 +474,11 @@ class scouse(object):
 
 
         dd = DiagnosticImageFigure(self)
+
+        for mapname in dd.mapnames:
+            fh = fits.PrimaryHDU(data=dd.maps[mapname], header=self.cube[0,:,:].header)
+            fh.writeto(os.path.join(s5dir, "stage5_"+mapname+".fits"), overwrite=True)
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
             while not dd.done:

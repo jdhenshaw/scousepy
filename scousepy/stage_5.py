@@ -359,6 +359,8 @@ class DiagnosticImageFigure(object):
 
         self.check_spec_indices = []
 
+        self.show()
+
     def disconnect(self):
         self.fig.canvas.mpl_disconnect(self.click)
         self.fig.canvas.mpl_disconnect(self.keyentry)
