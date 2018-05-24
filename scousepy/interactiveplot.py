@@ -60,7 +60,9 @@ class InteractivePlot:
         Generates the plot
         """
         if self.keep:
-            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit")
+            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit"
+                            "\nThese are the alternative solutions.  If none is selected, manual refit."
+                           )
         else:
             pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
         pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -162,7 +164,7 @@ class InteractivePlot:
             return
 
         if event.key == 'enter':
-            if self.blocknum_ind >= len(self.blockrange):
+            if self.blockrange is not None and self.blocknum_ind >= len(self.blockrange):
                 # do this to avoid a race condition; this should really be
                 # unreachable but it is if you press 'enter' too many times
                 if not self.done:
@@ -191,7 +193,7 @@ class InteractivePlot:
                         self.done = True
                         self.disconnect()
             else:
-                raise ValueError("Please use interactive mode")
+                #raise ValueError("Please use interactive mode")
                 pyplot.close(self.fig.number)
 
                 self.done = True
@@ -244,7 +246,7 @@ def showplot(fig=None, ax=None, keep=False, blockrange=None, blocknum_ind=1,
     success = False
     while not success:
         pl.blocknum_ind += 1
-        if pl.blocknum_ind < len(pl.blockrange):
+        if pl.blockrange is not None and pl.blocknum_ind < len(pl.blockrange):
             blocknum = pl.blockrange[pl.blocknum_ind]
 
             success = pl.callback(blocknum, pl)
