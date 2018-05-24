@@ -39,6 +39,9 @@ from .solution_description import fit
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+Fitter = Stage2Fitter()
+fitting = Fitter.fitting
+
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
 if sys.version_info.major >= 3:
@@ -65,15 +68,17 @@ class scouse(object):
         self.mask_below = 0.0
         self.training_set = None
         self.sample_size = None
-        self.saa_spectra = None
-        self.saa_dict = None
-        self.indiv_dict = None
-        self.key_set = None
-        self.sample = None
         self.tolerances = None
         self.specres = None
         self.nrefine = None
         self.fittype = None
+        self.sample = None
+        self.x = None
+        self.xtrim = None
+        self.trimids=None
+        self.saa_dict = None
+        self.indiv_dict = None
+        self.key_set = None
         self.fitcount = 0
         self.blockcount = 0.0
         self.check_spec_indices = []
@@ -81,6 +86,7 @@ class scouse(object):
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
+                cube=None,
                 verbose = False, outputdir=None, write_moments=False, \
                 save_fig=True, training_set=False, samplesize=10, \
                 refine_grid=False, nrefine=3.0, autosave=True, \
@@ -106,9 +112,10 @@ class scouse(object):
             self.training_set = False
             self.samplesize = 0
 
+        # Main routine
         starttime = time.time()
         # Generate file structure
-        if outputdir==None:
+        if outputdir is None:
             outputdir=datadirectory
 
         # directory structure
@@ -128,8 +135,23 @@ class scouse(object):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
+
+
             # Read in the datacube
-            self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+            if cube is None:
+                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                                           velocity_convention='radio')
+            else:
+                self.cube = cube
+
+            if self.cube.spectral_axis.diff()[0] < 0:
+                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
+                    raise ImportError("Update to a more recent version of spectral-cube "
+                                      " or reverse the axes manually.")
+                self.cube = self.cube[::-1]
+
+            # Generate the x axis common to the fitting process
+            self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
             self.rms_approx = compute_noise(self)
 
@@ -172,17 +194,17 @@ class scouse(object):
                                                             verbose, \
                                                             redefine=True)
                 else:
-                    _cc, _ss, _ids, _frape = cc, ss, ids, frac
+                    _cc, _ss, _ids, _frac = cc, ss, ids, frac
                 nref -= 1.0
 
-                # Randomly select saas to be fit
                 if self.training_set:
+                    # Randomly select saas to be fit
                     self.sample = get_random_saa(cc, samplesize, r, \
                                                  verbose=verbose)
                     totfit = len(self.sample)
                 else:
                     if not refine_grid:
-                        self.sample = range(len(cc[:,0]))
+                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
                         totfit = len(cc[(np.isfinite(cc[:,0])),0])
                     else:
                         self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
@@ -191,14 +213,12 @@ class scouse(object):
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1', \
                                                      step='coverage',var=totfit)
-
                 speccount=0
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
                         sample = speccount in self.sample
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
-                                     idx=speccount, sample = sample, \
-                                     scouse=self)
+                                  idx=speccount, sample=sample, scouse=self)
                         self.saa_dict[i][speccount] = SAA
                         speccount+=1
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
@@ -223,10 +243,13 @@ class scouse(object):
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
 
+        input("Press enter to continue.")
+        plt.close(1)
+
         return self
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                fitrange=None):
+                staged=False, nspec=None):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -241,33 +264,40 @@ class scouse(object):
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
-        if self.fitcount != 0.0:
-            lower = int(self.fitcount)
-            upper = int(lower+fitrange)
-        else:
-            lower = 0
-            upper = int(lower+fitrange)
+        # Staged fitting preparation
+        if staged:
+            if self.fitcount != 0.0:
+                lower = int(self.fitcount)
+                upper = int(lower+nspec)
+            else:
+                lower = 0
+                upper = int(lower+nspec)
 
-
-        if fitrange is not None:
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
             if lower != 0:
-
-                saa_dict_num = saa_list[lower-1, 1]
-                saa_dict = self.saa_dict[saa_dict_num]
-                key = saa_list[lower-1, 0]
-                SAA = saa_dict[key]
-                if SAA.model is None:
-                    raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                saa_dict=self.saa_dict[0]
+                keys=list(saa_dict.keys())
+                cont=True
+                counter=0
+                while cont:
+                    key = keys[counter]
+                    SAA=saa_dict[key]
+                    if SAA.to_be_fit:
+                        if SAA.model is None:
+                            raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
+                        else:
+                            cont=False
+                    else:
+                        counter+=1
 
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
 
-        # For staged fitting
-        if fitrange==None:
+        # Set ranges for staged fitting
+        if not staged:
             fitrange=np.arange(0,int(np.size(saa_list[:,0])))
         else:
             if upper>=np.size(saa_list[:,0]):
@@ -278,38 +308,42 @@ class scouse(object):
             else:
                 fitrange=np.arange(int(lower),int(upper))
 
+        # determine how many fits we will actually be performing
+        n_to_fit = sum([self.saa_dict[saa_list[ii,1]][saa_list[ii,0]].to_be_fit
+                        for ii in fitrange])
+
+        if n_to_fit <= 0:
+            raise ValueError("No spectra are selected to be fit.")
+
         # Loop through the SAAs
-        for i in fitrange:
+        for i_,i in enumerate(fitrange):
+            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
 
             saa_dict = self.saa_dict[saa_list[i,1]]
             SAA = saa_dict[saa_list[i,0]]
 
-            print("")
-            print(SAA)
-            print(SAA.to_be_fit)
-            print(i)
-            print(self.fitcount)
-            print("")
-
             if SAA.index == 0.0:
                 SAAid=0
                 firstfit=True
-            else:
-                if i == np.min(fitrange):
-                    SAAid=SAA.index
-                    firstfit=True
+            elif i == np.min(fitrange):
+                SAAid=SAA.index
+                firstfit=True
 
             if SAA.to_be_fit:
-                bf = fitting(self, SAA, saa_dict, SAAid, \
-                             training_set=self.training_set, \
-                             init_guess=firstfit)
+                with warnings.catch_warnings():
+                    # This is to catch an annoying matplotlib deprecation warning:
+                    # "Using default event loop until function specific to this GUI is implemented"
+                    warnings.simplefilter('ignore', category=DeprecationWarning)
+
+                    bf = fitting(self, SAA, saa_dict, SAAid,
+                                 training_set=self.training_set,
+                                 init_guess=firstfit)
                 SAAid = SAA.index
                 firstfit=False
 
             self.fitcount+=1
 
-        print(self.fitcount)
-        if write_ascii and (self.fitcount == np.size(saa_list[:,0])-1):
+        if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
             output_ascii_saa(self, s2dir)
             self.completed_stages.append('s2')
 
@@ -321,6 +355,10 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
+
+        # close all figures before moving on
+        # (only needed for plt.ion() case)
+        plt.close('all')
 
         return self
 
@@ -368,10 +406,9 @@ class scouse(object):
                 clean_SAAs(self, saa_dict)
             key_set.append(_key_set)
 
-        # At this stage there are multiple key sets - 1 for each rsaa value
+        # At this stage there are multiple key sets: 1 for each rsaa value
         # compile into one.
         compile_key_sets(self, key_set)
-
         # merge multiple rsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries, \
                            spatial=spatial, verbose=verbose)
@@ -448,13 +485,19 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='start')
+    
 
+        # interactive must be forced to 'false' for this section to work
+        interactive_state = plt.matplotlib.rcParams['interactive']
+        #plt.ioff()
         check_spec_indices = interactive_plot(self, blocksize, figsize,\
                                               plot_residuals=plot_residuals,\
                                               blockrange=blockrange)
+        plt.matplotlib.rcParams['interactive'] = interactive_state 
 
         # For staged_checking - check and flatten
         self.check_spec_indices = check_and_flatten(self, check_spec_indices)
+        print("post check_spec_indices check_and_flatten")
 
         endtime = time.time()
         if verbose:
@@ -486,6 +529,11 @@ class scouse(object):
         In this stage the user takes a closer look at the spectra selected in s5
         """
 
+        # temporary fix: eventually, this should look like stage 2, with
+        # interactive figures
+        interactive_state = plt.matplotlib.rcParams['interactive']
+        plt.ioff()
+
         s6dir = os.path.join(self.outputdirectory, 'stage_6')
         self.stagedirs.append(s6dir)
         # create the stage_6 directory
@@ -504,7 +552,7 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s6', step='start')
 
         # For staged refitting
-        if specrange==None:
+        if specrange is None:
             specrange=np.arange(0,int(np.size(self.check_spec_indices)))
         else:
             if np.max(specrange)>int(np.size(self.check_spec_indices)):
@@ -545,6 +593,10 @@ class scouse(object):
                 self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
 
         self.completed_stages.append('s6')
+
+        # reset the interactive state to whatever it was before
+        plt.matplotlib.rcParams['interactive'] = interactive_state 
+
         return self
 
     def __repr__(self):
@@ -576,7 +628,7 @@ class scouse(object):
 #==============================================================================#
 # Analysis
 #==============================================================================#
-
+    @staticmethod
     def compute_stats(self):
         """
         Computes some statistics for the fitting process

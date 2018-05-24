@@ -23,10 +23,8 @@ class saa(object):
 
         self._index = idx
         self._coordinates = np.array(coords)
-        self._x = np.array(scouse.cube.world[:,0,0][0])
-        self._y = flux
-        self._xtrim, self._ytrim = trim_spectrum(self, scouse)
-        self._rms = get_rms(self, scouse)
+        self._ytrim = trim_spectrum(self, scouse, flux)
+        self._rms = get_rms(self, scouse, flux)
         self._indices = None
         self._indices_flat = None
         self._model = None
@@ -46,27 +44,6 @@ class saa(object):
         Returns the coordinates of the spectral averaging area.
         """
         return self._coordinates
-
-    @property
-    def x(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._x
-
-    @property
-    def y(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._y
-
-    @property
-    def xtrim(self):
-        """
-        Returns the spectrum of the spectral averaging area.
-        """
-        return self._xtrim
 
     @property
     def ytrim(self):
@@ -128,11 +105,11 @@ class saa(object):
         """
         return "<< scousepy SAA; index={0} >>".format(self.index)
 
-def get_rms(self, scouse):
+def get_rms(self, scouse, flux):
     """
     Calculates rms value
     """
-    spectrum = self.y
+    spectrum = flux
     if not np.isnan(spectrum).any() and not (spectrum > 0).all():
         rms = calc_rms(spectrum)
     else:
@@ -140,14 +117,11 @@ def get_rms(self, scouse):
 
     return rms
 
-def trim_spectrum(self, scouse=None):
+def trim_spectrum(self, scouse, flux):
     """
     Trims a spectrum according to the user inputs
     """
-    keep = ((self.x>scouse.ppv_vol[0])&(self.x<scouse.ppv_vol[1]))
-    xtrim = self.x[keep]
-    ytrim = self.y[keep]
-    return xtrim, ytrim
+    return flux[scouse.trimids]
 
 def add_model(self, model):
     """
@@ -167,11 +141,12 @@ def add_flat_ids(self, scouse=None):
     """
     indices_flat = []
     for k in range(len(self.indices[:,0])):
-        idx_x, idx_y = int(self.indices[k,1]),int(self.indices[k,0])
+        idx_y, idx_x = int(self.indices[k,0]),int(self.indices[k,1])
         idx_flat = int(idx_x*scouse.cube.shape[1]+idx_y)
         indices_flat.append(idx_flat)
 
     self._indices_flat = np.asarray(indices_flat)
+    self._indices = None
 
 def add_indiv_spectra(self, dict):
     """

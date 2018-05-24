@@ -19,7 +19,7 @@ class stats(object):
         Computes basic statistics on fitting
         """
 
-        self._nspec = None
+        self._nspec = get_nspec(self, scouse)
         self._nsaa, self._nsaa_indiv = get_nsaa(self,scouse)
         self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouse)
         self._nfits = get_nfits(self, scouse)
@@ -181,11 +181,11 @@ class stats(object):
         return self._nsaa_indiv
 
     @property
-    def nspec(self, scouse=None):
+    def nspec(self):
         """
         Total number of spectra in cube
         """
-        return scouse.cube.shape[1]*scouse.cube.shape[2]
+        return self._nspec
 
 def get_param_stats(self, scouse):
     """
@@ -291,6 +291,12 @@ def get_nfits(self, scouse):
     """
     fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
     return np.size(fits)
+
+def get_nspec(self, scouse):
+    """
+    Gets number of spectra
+    """
+    return scouse.cube.shape[1]*scouse.cube.shape[2]
 
 def get_ncomps(self, scouse):
     """

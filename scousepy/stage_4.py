@@ -11,14 +11,14 @@ CONTACT: henshaw@mpia.de
 import numpy as np
 from .indiv_spec_description import *
 
-def select_best_model(self):
+def select_best_model(scouseobject):
     """
     Selects the best model out of those fitted - that with the smallest aic
     value
     """
 
-    for key in self.indiv_dict.keys():
-        spectrum = self.indiv_dict[key]
+    for key in scouseobject.indiv_dict.keys():
+        spectrum = scouseobject.indiv_dict[key]
         models = spectrum.models
         ncomps = [mod.ncomps for mod in models]
         findduds = (np.asarray(ncomps) == 0.0)
@@ -39,9 +39,9 @@ def select_best_model(self):
             dud = None
 
         if dud is None:
-            add_bf_model(self.indiv_dict[key], model)
-            update_model_list(self.indiv_dict[key], models)
+            add_bf_model(scouseobject.indiv_dict[key], model)
+            update_model_list(scouseobject.indiv_dict[key], models)
         else:
             models.append(dud)
-            add_bf_model(self.indiv_dict[key], model)
-            update_model_list(self.indiv_dict[key], models)
+            add_bf_model(scouseobject.indiv_dict[key], model)
+            update_model_list(scouseobject.indiv_dict[key], models)

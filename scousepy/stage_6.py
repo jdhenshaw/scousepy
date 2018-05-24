@@ -15,6 +15,7 @@ import sys
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
+from .stage_3 import get_flux
 from .stage_5 import *
 
 from .interactiveplot import showplot
@@ -48,7 +49,7 @@ def neighbours(n_dim, idx, radius_pix):
     """
 
     # Unravel the index of the selected spectrum
-    unrav_idx = np.unravel_index(idx, np.flip(n_dim,0))
+    unrav_idx = np.unravel_index(idx, n_dim[::-1])
 
     # Get all the adjacent neighbours
     idxs = [tuple(c) for c in np.add(get_offsets(radius_pix), unrav_idx)]
@@ -61,11 +62,11 @@ def neighbours(n_dim, idx, radius_pix):
     validids[valid] = idxs[valid,:]
 
     # Package the valid neighburs up and send them back!
-    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), np.flip(n_dim, 0)) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
+    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim[::-1]) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
 
     return indices_adjacent
 
-def plot_neighbour_pixels(self, indices_adjacent, figsize):
+def plot_neighbour_pixels(scouseobject, indices_adjacent, figsize):
     """
     Plot neighbours and their model solutions
     """
@@ -79,28 +80,28 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize):
     plt.suptitle("Checking spectrum and its neighbours. Press 'enter' to continue.")
     ax = np.asarray(ax)
     ax = ax.T
-    ax = np.flip(ax,1)
+    ax = ax[:,::-1]
     ax = [a for axis in ax for a in axis]
 
     for i, key in enumerate(indices_adjacent, start=0):
 
         if np.isfinite(key):
 
-            spectrum = self.indiv_dict[key]
+            spectrum = scouseobject.indiv_dict[key]
             # Get the correct subplot axis
             axis = ax[i]
             # First plot the Spectrum
-            axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
+            axis.plot(scouseobject.xtrim, get_flux(scouseobject, spectrum), 'k-', drawstyle='steps', lw=1)
             # Recreate the model from information held in the solution
             # description
             bfmodel = spectrum.model
-            mod = recreate_model(self, spectrum, bfmodel)
+            mod, res = recreate_model(scouseobject, spectrum, bfmodel)
             # now overplot the model
             if bfmodel.ncomps == 0.0:
-                axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
+                axis.plot(scouseobject.xtrim, mod[:,0], 'b-', lw=1)
             else:
                 for k in range(int(bfmodel.ncomps)):
-                    axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                    axis.plot(scouseobject.xtrim, mod[:,k], 'b-', lw=1)
 
             if i != round((npix/2)-0.5):
                 axis.patch.set_facecolor('blue')
@@ -108,7 +109,7 @@ def plot_neighbour_pixels(self, indices_adjacent, figsize):
         else:
             # Get the correct subplot axis
             axis = ax[i]
-            axis.plot(0.5, 0.5, 'kX', transform=axis.transAxes, ms=10)
+            axis.plot(0.5, 0.5, 'kx', transform=axis.transAxes, ms=10)
             axis.patch.set_facecolor('blue')
             axis.patch.set_alpha(0.1)
 
@@ -124,12 +125,12 @@ def keyentry(event):
         plt.close()
         return
 
-def plot_alternatives(self, key, figsize, plot_residuals=False):
+def plot_alternatives(scouseobject, key, figsize, plot_residuals=False):
     """
     Plot the spectrum to be checked and its alternatives
     """
 
-    spectrum = self.indiv_dict[key]
+    spectrum = scouseobject.indiv_dict[key]
     bfmodel = spectrum.model
     alternatives = spectrum.models
 
@@ -155,30 +156,30 @@ def plot_alternatives(self, key, figsize, plot_residuals=False):
         bfmodel = allmodels[i]
 
         # First plot the Spectrum
-        axis.plot(spectrum.xtrim, spectrum.ytrim, 'k-', drawstyle='steps', lw=1)
+        axis.plot(scouseobject.xtrim, get_flux(scouseobject, spectrum), 'k-', drawstyle='steps', lw=1)
         # Recreate the model from information held in the solution
         # description
-        mod = recreate_model(self, spectrum, bfmodel)
+        mod,res = recreate_model(scouseobject, spectrum, bfmodel)
         # now overplot the model
         if bfmodel.ncomps == 0.0:
-            axis.plot(spectrum.xtrim, mod[:,0], 'b-', lw=1)
+            axis.plot(scouseobject.xtrim, mod[:,0], 'b-', lw=1)
         else:
             for k in range(int(bfmodel.ncomps)):
-                axis.plot(spectrum.xtrim, mod[:,k], 'b-', lw=1)
+                axis.plot(scouseobject.xtrim, mod[:,k], 'b-', lw=1)
         if plot_residuals:
-            axis.plot(spectrum.xtrim, bfmodel.residuals,'g-', drawstyle='steps', lw=1)
+            axis.plot(scouseobject.xtrim, res,'g-', drawstyle='steps', lw=1)
 
     # Create the interactive plot
     intplot = showplot(fig, ax, keep=True)
 
     return allmodels, intplot.subplots
 
-def update_models(self, key, models, selection):
+def update_models(scouseobject, key, models, selection):
     """
     Here we update the model selection based on the users instructions
     """
 
-    spectrum = self.indiv_dict[key]
+    spectrum = scouseobject.indiv_dict[key]
     if np.size(selection) == 0.0:
         # If no selection is made - refit manually
         # Make pyspeckit be quiet
@@ -187,12 +188,10 @@ def update_models(self, key, models, selection):
             old_log = log.level
             log.setLevel('ERROR')
             # generate a spectrum
-            spec = get_spec(self, \
-                            spectrum.xtrim, \
-                            spectrum.ytrim, \
-                            spectrum.rms)
+            spec = get_spec(scouseobject, spectrum)
+
         log.setLevel(old_log)
-        bf = interactive_fitting(self, spectrum, spec)
+        bf = interactive_fitting(scouseobject, spectrum, spec)
 
         # Now add this as the best-fitting model and add the others to models
         add_bf_model(spectrum, bf)
@@ -212,13 +211,13 @@ def update_models(self, key, models, selection):
 
         decision = 'alternative'
         add_decision(spectrum, decision)
-        
+
     else:
         # If the first spectrum was selected then the user has chosen to accept
         # the current best-fitting solution - so do nothing.
         pass
 
-def interactive_fitting(self, spectrum, spec):
+def interactive_fitting(scouseobject, spectrum, spec):
     """
     Interactive fitter for stage 6
     """
@@ -227,15 +226,16 @@ def interactive_fitting(self, spectrum, spec):
         bf=None
 
         # Interactive fitting with pyspeckit
-        spec.plotter(xmin=self.ppv_vol[0], \
-                     xmax=self.ppv_vol[1])
-        spec.specfit(interactive=True, \
-                     xmin=self.ppv_vol[0], \
-                     xmax=self.ppv_vol[1])
+        spec.plotter(xmin=scouseobject.ppv_vol[0], \
+                     xmax=scouseobject.ppv_vol[1])
+        spec.specfit(interactive=True,
+                     print_message=False,
+                     xmin=scouseobject.ppv_vol[0],
+                     xmax=scouseobject.ppv_vol[1])
         plt.show()
 
         # Best-fitting model solution
-        bf = fit(spec, idx=spectrum.index, scouse=self)
+        bf = fit(spec, idx=spectrum.index, scouse=scouseobject)
 
         print("")
         print_fit_information(bf, init_guess=False)

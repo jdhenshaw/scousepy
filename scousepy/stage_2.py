@@ -22,102 +22,256 @@ from astropy import log
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 
-def get_spec(self, x, y, rms):
+def get_spec(scouseobject, y, rms):
     """
     Generate the spectrum
+
+    (we assume by default that the cube has a rest value defined; if it is not,
+    refX will be 0 and km/s <-> frq conversions will break)
     """
-    return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=True, unit=self.cube.header['BUNIT'],\
-                              xarrkwargs={'unit':'km/s'})
+    fig = plt.figure(1)
+    fig.clf()
+    ax = fig.gca()
+    return pyspeckit.Spectrum(data=y,
+                              error=np.ones(len(y))*rms,
+                              xarr=scouseobject.xtrim,
+                              doplot=True,
+                              plotkwargs={'figure': fig, 'axis': ax},
+                              unit=scouseobject.cube.header['BUNIT'],
+                              xarrkwargs={'unit':'km/s',
+                                          'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
+                                          # I'm sure there's a way to determine this on the fly...
+                                          'velocity_convention': 'radio',
+                                         }
+                             )
 
-def fitting(self, SAA, saa_dict, count, training_set=False, \
-            init_guess=False, guesses=None):
 
-    if training_set:
-        happy=False
-        firstgo = 0
-        while not happy:
-            spec=None
-            bf=None
+class Stage2Fitter(object):
+    def __init__(self):
+        self.residuals_shown = False
+
+    def interactive_callback(self, event):
+        """
+        A 'callback function' to be triggered when the user selects a fit.
+        """
+
+        if plt.matplotlib.rcParams['interactive']:
+            if hasattr(event, 'key'):
+                if event.key == 'enter':
+                    if self.residuals_shown:
+                        print("'enter' key acknowledged.  Moving to next spectrum "
+                              "or next step...")
+                        self.happy = True
+                        self.bf = fit(self.spec, idx=self.SAA.index,
+                                            scouse=self.scouseobject)
+                        self.spec.specfit.clear_all_connections()
+                        self.spec.plotter.disconnect()
+                        assert self.spec.plotter._active_gui is None
+                    else:
+                        print("'enter' acknowledged.  Guess initialized.  Showing "
+                              "fit.")
+                        self.firstgo+=1
+                        self.guesses = self.spec.specfit.parinfo.values
+                        self.trainingset_fit(self.spec,
+                                                   init_guess=False,
+                                                   guesses=self.guesses,
+                                                  )
+                elif event.key == 'esc':
+                    self.happy = False
+                    self.spec.specfit.clear_all_connections()
+                    assert self.spec.plotter._active_gui is None
+                    self.firstgo+=1
+                    self.trainingset_fit(self.spec,
+                                               init_guess=True, # re-initialize guess
+                                               guesses=self.guesses,
+                                              )
+                elif event.key in ('f', 'F'):
+                    self.residuals_shown = False
+                elif event.key in ('d','D','3',3):
+                    # The fit has been performed interactively, but we also
+                    # want to print out the nicely-formatted additional
+                    # information
+                    bf = fit(self.spec, idx=self.SAA.index,
+                             scouse=self.scouseobject)
+                    print_fit_information(bf, init_guess=True)
+                    print("If you are happy with this fit, press Enter.  Otherwise, "
+                          "use the 'f' key to re-enter the interactive fitter.")
+                    self.happy = None
+                else:
+                    self.happy = None
+            elif hasattr(event, 'button') and event.button in ('d','D','3',3):
+                # The fit has been performed interactively, but we also
+                # want to print out the nicely-formatted additional
+                # information
+                bf = fit(self.spec, idx=self.SAA.index,
+                         scouse=self.scouseobject)
+                print_fit_information(bf, init_guess=True)
+                print("If you are happy with this fit, press Enter.  Otherwise, "
+                      "use the 'f' key to re-enter the interactive fitter.")
+                self.happy = None
+            else:
+                self.happy = None
+        else:
+            # this should only happen if not triggered by a callback
+            assert event == 'noninteractive'
+
+            # Best-fitting model solution
+            self.bf = fit(self.spec, idx=self.SAA.index,
+                                scouse=self.scouseobject)
+
+            if self.firstgo == 0:
+                print("")
+                print_fit_information(self.bf, init_guess=True)
+                print("")
+            else:
+                print("")
+                print_fit_information(self.bf, init_guess=False)
+                print("")
+
+            h = input("Are you happy with the fit? (y/n): ")
+            self.happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
+            print("")
+            self.firstgo+=1
+
+            return self.happy
+
+    def trainingset_fit(self, spec, init_guess=False, guesses=None):
+        self.guesses = guesses
+        scouseobject = self.scouseobject
+
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        # if this is the initial guess then begin by fitting interactively
+        if init_guess:
+            self.init_guess = True
+            # Interactive fitting with pyspeckit
+            spec.plotter(xmin=scouseobject.ppv_vol[0],
+                         xmax=scouseobject.ppv_vol[1],
+                         figure=plt.figure(1),
+                        )
+            spec.specfit.clear_all_connections()
+            assert self.spec.plotter._active_gui is None
+            spec.specfit(interactive=True,
+                         fittype=scouseobject.fittype,
+                         print_message=False,
+                         xmin=scouseobject.ppv_vol[0],
+                         xmax=scouseobject.ppv_vol[1],
+                         show_components=True)
+            assert self.spec.plotter._active_gui is not None
+
+            self.residuals_shown = False
+
+        # else start with a guess. If the user isn't happy they
+        # can enter the interactive fitting mode
+        else:
+            self.init_guess = False
+            spec.plotter(xmin=scouseobject.ppv_vol[0],
+                         xmax=scouseobject.ppv_vol[1],
+                         figure=plt.figure(1),
+                        )
+            spec.specfit.clear_all_connections()
+            assert self.spec.plotter._active_gui is None
+            spec.specfit(interactive=False,
+                         xmin=scouseobject.ppv_vol[0],
+                         xmax=scouseobject.ppv_vol[1],
+                         guesses=guesses,
+                         fittype=scouseobject.fittype)
+            spec.specfit.plot_fit(show_components=True)
+            spec.specfit.plotresiduals(axis=spec.plotter.axis,
+                                       clear=False,
+                                       color='g',
+                                       label=False)
+            assert self.spec.plotter._active_gui is None
+
+            self.residuals_shown = True
+
+        log.setLevel(old_log)
+
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+
+            if plt.matplotlib.rcParams['interactive']:
+                self.happy = None
+                spec.plotter.axis.figure.canvas.mpl_connect('key_press_event',
+                                                            self.interactive_callback)
+                if self.residuals_shown:
+                    bf = fit(self.spec, idx=self.SAA.index,
+                             scouse=self.scouseobject)
+                    print_fit_information(bf, init_guess=True)
+                print("If you are happy with this fit, press Enter.  Otherwise, "
+                      "use the 'f' key to re-enter the interactive fitter.")
+            else:
+                plt.show()
+                self.happy = self.interactive_callback('noninteractive')
+
+            if not hasattr(spec.specfit, 'fitter'):
+                raise ValueError("No fitter available for the spectrum."
+                                 "  This can occur if you have plt.ion() set"
+                                 " or if you did not fit the spectrum."
+                                )
+
+    def fitting(self, scouseobject, SAA, saa_dict, count, training_set=False,
+                init_guess=False, guesses=None):
+
+        self.SAA = SAA
+        self.scouseobject = scouseobject
+
+        if training_set:
+            self.happy=False
+            self.firstgo = 0
+
             # Generate the spectrum for pyspeckit to fit
             # Shhh noisy
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                 old_log = log.level
                 log.setLevel('ERROR')
-                spec = get_spec(self, SAA.xtrim, SAA.ytrim, SAA.rms)
+                spec = get_spec(scouseobject, SAA.ytrim, SAA.rms)
                 log.setLevel(old_log)
 
-            # if this is the initial guess then begin by fitting interactively
-            if init_guess:
-                # Interactive fitting with pyspeckit
-                spec.plotter(xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1])
-                spec.specfit(interactive=True, \
-                             xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1])
-                plt.show()
-                # Best-fitting model solution
-                bf = fit(spec, idx=SAA.index, scouse=self)
+            self.spec = spec
+            self.trainingset_fit(spec, init_guess=init_guess,
+                                       guesses=guesses)
 
-                print("")
-                print_fit_information(bf, init_guess=False)
-                print("")
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=DeprecationWarning)
+                while not self.happy:
+                    try:
+                        plt.pause(0.1)
+                    except KeyboardInterrupt:
+                        break
 
-            # else start with a guess. If the user isn't happy they
-            # can enter the interactive fitting mode
-            else:
-                spec.plotter(xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1])
-                spec.specfit(interactive=False, \
-                             xmin=self.ppv_vol[0], \
-                             xmax=self.ppv_vol[1], \
-                             guesses=guesses,\
-                             fittype = self.fittype)
-                spec.specfit.plot_fit(show_components=True)
-                spec.specfit.plotresiduals(axis=spec.plotter.axis,clear=False,color='g',label=False)
+            add_model(SAA, self.bf)
+            bf = self.bf
 
-                plt.show()
-                bf = fit(spec, idx=SAA.index, scouse=self)
-
-                if firstgo == 0:
-                    print("")
-                    print_fit_information(bf, init_guess=True)
-                    print("")
-                else:
-                    print("")
-                    print_fit_information(bf, init_guess=False)
-                    print("")
-
-            h = input("Are you happy with the fit? (y/n): ")
-            happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
-            print("")
-            firstgo+=1
-        add_model(SAA, bf)
-
-    else:
-        if init_guess:
-            bf = fitting(self, SAA, saa_dict, count, \
-                         training_set=True, init_guess=init_guess)
         else:
-            model = saa_dict[count].model
-            if model is None:
-                bf = fitting(self, SAA, saa_dict, count,\
-                             training_set=True, init_guess=True)
+            if init_guess:
+                bf = self.fitting(scouseobject, SAA, saa_dict, count,
+                                        training_set=True,
+                                        init_guess=init_guess)
             else:
-                guesses = saa_dict[count].model.params
-                bf = fitting(self, SAA, saa_dict, count,guesses=guesses, \
-                             training_set=True, init_guess=init_guess)
+                model = saa_dict[count].model
+                if model is None:
+                    bf = self.fitting(scouseobject, SAA, saa_dict, count,
+                                            training_set=True, init_guess=True)
+                else:
+                    guesses = saa_dict[count].model.params
+                    bf = self.fitting(scouseobject, SAA, saa_dict,
+                                            count, guesses=guesses,
+                                            training_set=True,
+                                            init_guess=init_guess)
 
-    return bf
+        return bf
 
-def generate_saa_list(self):
+def generate_saa_list(scouseobject):
     """
     Returns a list constaining all spectral averaging areas.
     """
     saa_list=[]
-    for i in range(len(self.rsaa)):
-        saa_dict = self.saa_dict[i]
+    for i in range(len(scouseobject.rsaa)):
+        saa_dict = scouseobject.saa_dict[i]
         for j in range(len(saa_dict.keys())):
             # get the relavent SAA
             SAA = saa_dict[j]

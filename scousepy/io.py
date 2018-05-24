@@ -129,10 +129,13 @@ def output_ascii_saa(self, outputdir):
 
     for i in range(len(self.rsaa)):
         saa_dict = self.saa_dict[i]
-        table = make_table(self, saa_dict, saa=True)
-        table.write(outputdir+'/saa_model_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
-                    overwrite=True, delimiter='\t')
-    return
+        if any(SAA.to_be_fit for SAA in saa_dict.values()):
+            table = make_table(self, saa_dict, saa=True)
+            table.write(outputdir+'/saa_model_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
+                        overwrite=True, delimiter='\t')
+        else:
+            # I don't know how we got to this case, but I encountered it at least once.
+            print("No fits were found for the {0}'th spectral averaging area.".format(i))
 
 def output_ascii_indiv(self, outputdir):
     """
