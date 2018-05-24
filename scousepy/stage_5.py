@@ -17,6 +17,7 @@ import time
 import string
 
 from astropy import log
+from astropy.utils.console import ProgressBar
 from matplotlib import pyplot
 
 from .interactiveplot import showplot, InteractivePlot
@@ -313,7 +314,7 @@ def generate_2d_parametermap(scouseobject, spectrum_parameter):
     blankmap = np.zeros(scouseobject.cube.shape[1:])
     blankmap[:] = np.nan
 
-    for ind,spec in scouseobject.indiv_dict.items():
+    for ind,spec in ProgressBar(scouseobject.indiv_dict.items()):
         cy,cx = spec.coordinates
         blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
 
