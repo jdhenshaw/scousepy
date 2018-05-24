@@ -129,12 +129,14 @@ def get_moments(self, write_moments, dir, filename, verbose):
             self.mask_below, self.cube.unit)).moment1(axis=0)
         momtwo = self.cube.with_mask(self.cube > u.Quantity(
             self.mask_below, self.cube.unit)).linewidth_sigma()
-        slab = self.cube.with_mask(self.cube > u.Quantity(
+        slab = self.cube
+        maskslab = self.cube.with_mask(self.cube > u.Quantity(
             self.mask_below, self.cube.unit))
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
         momnine=slab.spectral_axis[idxmax].value
+        momnine[~maskslab.mask.include().any(axis=0)] = np.nan
         idnan = (np.isfinite(momtwo.value)==0)
         momnine[idnan] = np.nan
         momnine = momnine * u.km/u.s
