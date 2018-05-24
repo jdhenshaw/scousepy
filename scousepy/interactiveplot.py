@@ -163,7 +163,7 @@ class InteractivePlot:
 
             return
 
-        if event.key == 'enter':
+        if event.key in ('enter','q'):
             if self.blockrange is not None and self.blocknum_ind >= len(self.blockrange):
                 # do this to avoid a race condition; this should really be
                 # unreachable but it is if you press 'enter' too many times
