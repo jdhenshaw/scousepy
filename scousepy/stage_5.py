@@ -104,12 +104,14 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
                     # description
                     bfmodel = spectrum.model
                     mod, res = recreate_model(scouseobject, spectrum, bfmodel)
+                    totmod = mod.sum(axis=1)
                     # now overplot the model
                     if bfmodel.ncomps == 0.0:
                         axis.plot(scouseobject.xtrim, mod[:,0], 'b-', lw=1)
                     else:
                         for k in range(int(bfmodel.ncomps)):
                             axis.plot(scouseobject.xtrim, mod[:,k], 'b-', lw=1)
+                    axis.plot(scouseobject.xtrim, totmod, 'r-', lw=1, zorder=-5)
                     if plot_residuals:
                         axis.plot(scouseobject.xtrim, res,'g-', drawstyle='steps', lw=1)
                     axis.get_xaxis().set_ticks([])
