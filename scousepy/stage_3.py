@@ -26,7 +26,7 @@ from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
 
 
-def initialise_indiv_spectra(self, verbose=False, njobs=1):
+def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
     """
     Here, the individual spectra are primed ready for fitting. We create a new
     object for each spectrum and they are contained within a dictionary which
@@ -34,14 +34,14 @@ def initialise_indiv_spectra(self, verbose=False, njobs=1):
     """
 
     # Cycle through potentially multiple Rsaa values
-    for i in range(len(self.rsaa)):
+    for i in range(len(scouseobject.rsaa)):
 
         # Get the relavent SAA dictionary
-        saa_dict = self.saa_dict[i]
+        saa_dict = scouseobject.saa_dict[i]
 
         if verbose:
             count=0
-            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=self.rsaa[i])
+            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.rsaa[i])
 
         for j in range(len(saa_dict.keys())):
 
@@ -59,7 +59,7 @@ def initialise_indiv_spectra(self, verbose=False, njobs=1):
 
                     # Parallel
                     if njobs > 1:
-                        args = [self, SAA]
+                        args = [scouseobject, SAA]
                         inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                         # Send to parallel_map
                         indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
@@ -72,7 +72,7 @@ def initialise_indiv_spectra(self, verbose=False, njobs=1):
                     else:
                         for k in range(len(SAA.indices_flat)):
                             key = SAA.indices_flat[k]
-                            args = [self, SAA]
+                            args = [scouseobject, SAA]
                             inputs = [[k] + args]
                             inputs = inputs[0]
                             indiv_spec = get_indiv_spec(inputs)
@@ -87,18 +87,18 @@ def get_indiv_spec(inputs):
     Returns a spectrum
     """
 
-    idx, self, SAA = inputs
+    idx, scouseobject, SAA = inputs
     _coords = np.unravel_index(SAA.indices_flat[idx], \
-                              (np.shape(self.cube)[2], np.shape(self.cube)[1]) )
+                              (np.shape(scouseobject.cube)[2], np.shape(scouseobject.cube)[1]) )
 
     indiv_spec = spectrum(np.array([_coords[1], _coords[0]]), \
-                          self.cube[:,_coords[1], _coords[0]].value, \
+                          scouseobject.cube[:,_coords[1], _coords[0]].value, \
                           idx=SAA.indices_flat[idx], \
-                          scouse=self)
+                          scouse=scouseobject)
 
     return indiv_spec
 
-def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
+def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
                       spatial=False, verbose=False):
     """
     Automated fitting procedure for individual spectra
@@ -124,7 +124,7 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                 old_log = log.level
                 log.setLevel('ERROR')
 
-                template_spectrum = generate_template_spectrum(self)
+                template_spectrum = generate_template_spectrum(scouseobject)
 
                 log.setLevel(old_log)
 
@@ -134,7 +134,7 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
             # Parallel
             if njobs > 1:
                 if np.size(SAA.indices_flat) != 0.0:
-                    args = [self, SAA, parent_model, template_spectrum]
+                    args = [scouseobject, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                     # Send to parallel_map
                     bfs = parallel_map(fit_spec, inputs, numcores=njobs)
@@ -150,37 +150,37 @@ def fit_indiv_spectra(self, saa_dict, rsaa, njobs=1, \
                 # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
                     key = SAA.indices_flat[k]
-                    args = [self, SAA, parent_model, template_spectrum]
+                    args = [scouseobject, SAA, parent_model, template_spectrum]
                     inputs = [[k] + args]
                     inputs = inputs[0]
                     bfs = fit_spec(inputs)
                     add_model_parent(SAA.indiv_spectra[key], bfs[0])
                     add_model_dud(SAA.indiv_spectra[key], bfs[1])
 
-def generate_template_spectrum(self):
+def generate_template_spectrum(scouseobject):
     """
     Generate the spectrum.
     """
-    x=self.xtrim
-    y=self.saa_dict[0][0].ytrim
-    rms=self.saa_dict[0][0].rms
+    x=scouseobject.xtrim
+    y=scouseobject.saa_dict[0][0].ytrim
+    rms=scouseobject.saa_dict[0][0].rms
     return pyspeckit.Spectrum(data=y, error=np.ones(len(y))*rms, xarr=x, \
-                              doplot=False, unit=self.cube.header['BUNIT'],\
+                              doplot=False, unit=scouseobject.cube.header['BUNIT'],\
                               xarrkwargs={'unit':'km/s'},verbose=False)
 
-def get_flux(self, indiv_spec):
+def get_flux(scouseobject, indiv_spec):
     """
     Returns flux for a given spectrum
     """
-    y=self.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
-    y=y[self.trimids]
+    y=scouseobject.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
+    y=y[scouseobject.trimids]
     return y
 
-def get_spec(self, indiv_spec, template_spectrum):
+def get_spec(scouseobject, indiv_spec, template_spectrum):
     """
     Generate the spectrum
     """
-    y = get_flux(self, indiv_spec)
+    y = get_flux(scouseobject, indiv_spec)
     rms=indiv_spec.rms
 
     template_spectrum.data = u.Quantity(y).value
@@ -195,7 +195,7 @@ def fit_spec(inputs):
     Process used for fitting spectra. Returns a best-fit solution and a dud for
     every spectrum.
     """
-    idx, self, SAA, parent_model, template_spectrum = inputs
+    idx, scouseobject, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
     spec=None
 
@@ -205,18 +205,18 @@ def fit_spec(inputs):
         old_log = log.level
         log.setLevel('ERROR')
 
-        spec = get_spec(self, SAA.indiv_spectra[key], template_spectrum)
+        spec = get_spec(scouseobject, SAA.indiv_spectra[key], template_spectrum)
 
         log.setLevel(old_log)
 
-    bf = fitting_process_parent(self, SAA, key, spec, parent_model)
+    bf = fitting_process_parent(scouseobject, SAA, key, spec, parent_model)
     if bf.ncomps == 0.0:
         dud = bf
     else:
-        dud = fitting_process_duds(self, SAA, key, spec)
+        dud = fitting_process_duds(scouseobject, SAA, key, spec)
     return [bf, dud]
 
-def fitting_process_parent(self, SAA, key, spec, parent_model):
+def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
     """
     The process used for fitting individual spectra using the parent SAA
     solution
@@ -237,9 +237,9 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                         log.setLevel('ERROR')
                         spec.specfit(interactive=False, \
                                     clear_all_connections=True,\
-                                    xmin=self.ppv_vol[0], \
-                                    xmax=self.ppv_vol[1], \
-                                    fittype = self.fittype, \
+                                    xmin=scouseobject.ppv_vol[0], \
+                                    xmax=scouseobject.ppv_vol[1], \
+                                    fittype = scouseobject.fittype, \
                                     guesses = guesses,\
                                     verbose=False,\
                                     use_lmfit=True)
@@ -252,7 +252,7 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
                     modrms = spec.error[0]
 
                     _inputs = [modparnames, [modncomps], modparams, moderrors, [modrms]]
-                    happy, guesses = check_spec(self, parent_model, _inputs, happy)
+                    happy, guesses = check_spec(scouseobject, parent_model, _inputs, happy)
 
                     initfit = False
             else:
@@ -265,23 +265,23 @@ def fitting_process_parent(self, SAA, key, spec, parent_model):
             happy = True
 
     if fit_dud:
-        bf = fitting_process_duds(self, SAA, key, spec)
+        bf = fitting_process_duds(scouseobject, SAA, key, spec)
     else:
-        bf = fit(spec, idx=key, scouse=self)
+        bf = fit(spec, idx=key, scouse=scouseobject)
 
     return bf
 
-def fitting_process_duds(self, SAA, key, spec):
+def fitting_process_duds(scouseobject, SAA, key, spec):
     """
     Fitting duds
     """
-    bf = fit(spec, idx=key, scouse=self, fit_dud=True,\
+    bf = fit(spec, idx=key, scouse=scouseobject, fit_dud=True,\
              noise=SAA.indiv_spectra[key].rms, \
              duddata=np.array(spec.flux))
 
     return bf
 
-def check_spec(self, parent_model, inputs, happy):
+def check_spec(scouseobject, parent_model, inputs, happy):
     """
     Here we are going to check the output spectrum against user-defined
     tolerance levels described in Henshaw et al. 2016 and against the SAA fit.
@@ -289,16 +289,16 @@ def check_spec(self, parent_model, inputs, happy):
 
     guesses = np.asarray(inputs[2])
     condition_passed = np.zeros(3, dtype='bool')
-    condition_passed, guesses = check_rms(self, inputs, guesses, condition_passed)
+    condition_passed, guesses = check_rms(scouseobject, inputs, guesses, condition_passed)
     if condition_passed[0]:
-        condition_passed, guesses = check_dispersion(self, inputs, parent_model, guesses, condition_passed)
+        condition_passed, guesses = check_dispersion(scouseobject, inputs, parent_model, guesses, condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
-            condition_passed, guesses = check_velocity(self, inputs, parent_model, guesses, condition_passed)
+            condition_passed, guesses = check_velocity(scouseobject, inputs, parent_model, guesses, condition_passed)
             if np.all(condition_passed):
                 if (inputs[1][0] == 1):
                     happy = True
                 else:
-                    happy, guesses = check_distinct(self, inputs, parent_model, guesses, happy)
+                    happy, guesses = check_distinct(scouseobject, inputs, parent_model, guesses, happy)
 
     return happy, guesses
 
@@ -328,7 +328,7 @@ def get_index(parnames, namelist):
 
     return np.asscalar(idx[0])
 
-def check_rms(self, inputs, guesses, condition_passed):
+def check_rms(scouseobject, inputs, guesses, condition_passed):
     """
     Check the rms of the best-fitting model components
 
@@ -351,8 +351,8 @@ def check_rms(self, inputs, guesses, condition_passed):
 
     # Now check all components to see if they are above the rms threshold
     for i in range(int(ncomponents)):
-        if (params[int((i*nparams)+idx)] < rms*self.tolerances[0]): # or \
-           #(params[int((i*nparams)+idx)] < errors[int((i*nparams)+idx)]*self.tolerances[0]):
+        if (params[int((i*nparams)+idx)] < rms*scouseobject.tolerances[0]): # or \
+           #(params[int((i*nparams)+idx)] < errors[int((i*nparams)+idx)]*scouseobject.tolerances[0]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
@@ -366,7 +366,7 @@ def check_rms(self, inputs, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
+def check_dispersion(scouseobject, inputs, parent_model, guesses, condition_passed):
     """
     Check the fwhm of the best-fitting model components
     """
@@ -392,8 +392,8 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (params[int((i*nparams)+idx)]*fwhmconv < self.specres*self.tolerances[1]) or \
-           (relchange > self.tolerances[2]):
+        if (params[int((i*nparams)+idx)]*fwhmconv < scouseobject.specres*scouseobject.tolerances[1]) or \
+           (relchange > scouseobject.tolerances[2]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
@@ -407,7 +407,7 @@ def check_dispersion(self, inputs, parent_model, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_velocity(self, inputs, parent_model, guesses, condition_passed):
+def check_velocity(scouseobject, inputs, parent_model, guesses, condition_passed):
     """
     Check the centroid velocity of the best-fitting model components
     """
@@ -430,8 +430,8 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
         idmin = idmin[0]
 
         # Limits for tolerance
-        lower_lim = parent_model.params[int((idmin*nparams)+idxv)]-(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
-        upper_lim = parent_model.params[int((idmin*nparams)+idxv)]+(self.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
+        lower_lim = parent_model.params[int((idmin*nparams)+idxv)]-(scouseobject.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
+        upper_lim = parent_model.params[int((idmin*nparams)+idxv)]+(scouseobject.tolerances[3]*parent_model.params[int((idmin*nparams)+idxd)])
 
         # Does this satisfy the criteria
         if (params[(i*nparams)+idxv] < lower_lim) or \
@@ -449,7 +449,7 @@ def check_velocity(self, inputs, parent_model, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_distinct(self, inputs, parent_model, guesses, happy):
+def check_distinct(scouseobject, inputs, parent_model, guesses, happy):
     """
     Check to see if component pairs can be distinguished
     """
@@ -553,7 +553,7 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
 
     return diff
 
-def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):
+def compile_spectra(scouseobject, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):
     """
     Here we compile all best-fitting models into a single dictionary.
     """
@@ -586,7 +586,7 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
     model_arr = model_arr[sortidx]
 
     # Cycle through all the spectra
-    for key in range(self.cube.shape[1]*self.cube.shape[2]):
+    for key in range(scouseobject.cube.shape[1]*scouseobject.cube.shape[2]):
 
         # Find all instances of key in the key_arr
         model_idxs = np.squeeze(np.where(key_arr == key))
@@ -623,19 +623,19 @@ def compile_spectra(self, saa_dict, indiv_dict, rsaa, spatial=False, verbose=Fal
 
     return key_set
 
-def compile_key_sets(self, key_set):
+def compile_key_sets(scouseobject, key_set):
     """
     Returns unqiue keys
     """
-    if len(self.rsaa) == 1:
+    if len(scouseobject.rsaa) == 1:
         key_set=key_set[0]
-        self.key_set = key_set
+        scouseobject.key_set = key_set
     else:
         key_set = [key for keys in key_set for key in keys]
         key_set = set(key_set)
-        self.key_set = list(key_set)
+        scouseobject.key_set = list(key_set)
 
-def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
+def merge_dictionaries(scouseobject, indiv_dictionaries, spatial=False, verbose=False):
     """
     There is now a dictionary for each Rsaa - merge these into a single one
     """
@@ -644,10 +644,10 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
         progress_bar = print_to_terminal(stage='s3', step='merge', length=0)
 
     main_dict={}
-    if len(self.rsaa)>1:
-        for key in self.key_set:
+    if len(scouseobject.rsaa)>1:
+        for key in scouseobject.key_set:
             # Search dictionaries for found keys
-            keyfound = np.zeros(len(self.rsaa), dtype='bool')
+            keyfound = np.zeros(len(scouseobject.rsaa), dtype='bool')
             for i in range(len(indiv_dictionaries.keys())):
                 if key in indiv_dictionaries[i]:
                     keyfound[i] = True
@@ -671,22 +671,22 @@ def merge_dictionaries(self, indiv_dictionaries, spatial=False, verbose=False):
                     merge_models(main_spectrum, _spectrum)
 
         # Return this new dictionary
-        self.indiv_dict = main_dict
+        scouseobject.indiv_dict = main_dict
     else:
         main_dictionary = indiv_dictionaries[0]
         # Return this new dictionary
-        self.indiv_dict = main_dictionary
+        scouseobject.indiv_dict = main_dictionary
 
-def remove_duplicates(self, verbose):
+def remove_duplicates(scouseobject, verbose):
     """
     Removes duplicate models from the model dictionary
     """
     if verbose:
         progress_bar = print_to_terminal(stage='s3', step='duplicates', length=0)
 
-    for key in self.indiv_dict.keys():
+    for key in scouseobject.indiv_dict.keys():
         # get the spectrum
-        _spectrum = self.indiv_dict[key]
+        _spectrum = scouseobject.indiv_dict[key]
         # get the models
         models = _spectrum.models
 
@@ -735,7 +735,7 @@ def argsort(data, reversed=False):
     sortidx = np.array(list(sortidx))
     return sortidx
 
-def clean_SAAs(self, saa_dict):
+def clean_SAAs(scouseobject, saa_dict):
     """
     This is to save space - there is lots of (often duplicated) information
     stored within the SAAs - get rid of this.

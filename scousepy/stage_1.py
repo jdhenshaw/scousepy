@@ -21,17 +21,17 @@ from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from .io import *
 
-def compute_noise(self):
+def compute_noise(scouseobject):
     """
     Estimate the typical rms noise across the map
     """
 
-    keep = self.cube.mask.include().any(axis=0)
+    keep = scouseobject.cube.mask.include().any(axis=0)
 
     finiteidxs = np.array(np.where(keep))
-    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(self.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
+    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(scouseobject.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
     random_indices = random.sample(list(flatidxs), k=len(flatidxs))
-    locations = np.array(np.unravel_index(random_indices, np.shape(self.cube)[1:3]))
+    locations = np.array(np.unravel_index(random_indices, np.shape(scouseobject.cube)[1:3]))
 
     if len(locations[0,:]) > 500.0:
         stop = 500.0
@@ -43,7 +43,7 @@ def compute_noise(self):
     specidx = 0
     while stopcount < stop:
 
-        _spectrum = self.cube[:, locations[0, specidx], locations[1, specidx]].value
+        _spectrum = scouseobject.cube[:, locations[0, specidx], locations[1, specidx]].value
 
         if not np.isnan(_spectrum).any() and not (_spectrum > 0).all():
             if not np.isnan(_spectrum).any():
@@ -84,16 +84,16 @@ def calc_rms(spectrum):
 
     return rms
 
-def get_x_axis(self):
+def get_x_axis(scouseobject):
     """
     Returns x_axis for spectra
     """
-    x = np.array(self.cube.world[:,0,0][0])
-    trimids = ((x>self.ppv_vol[0])&(x<self.ppv_vol[1]))
+    x = np.array(scouseobject.cube.world[:,0,0][0])
+    trimids = ((x>scouseobject.ppv_vol[0])&(x<scouseobject.ppv_vol[1]))
     xtrim = x[trimids]
     return x, xtrim, trimids
 
-def get_moments(self, write_moments, dir, filename, verbose):
+def get_moments(scouseobject, write_moments, dir, filename, verbose):
     """
     Create moment maps
     """
@@ -102,16 +102,16 @@ def get_moments(self, write_moments, dir, filename, verbose):
         progress_bar = print_to_terminal(stage='s1', step='moments')
 
     # If upper and lower limits are imposed on the velocity range
-    if (self.ppv_vol[0] != 0) & (self.ppv_vol[1] != 0):
-        momzero = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment0(axis=0)
-        momone = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).moment1(axis=0)
-        momtwo = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s).linewidth_sigma()
-        slab = self.cube.spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
-        maskslab = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).spectral_slab(self.ppv_vol[0]*u.km/u.s,self.ppv_vol[1]*u.km/u.s)
+    if (scouseobject.ppv_vol[0] != 0) & (scouseobject.ppv_vol[1] != 0):
+        momzero = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s).moment0(axis=0)
+        momone = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s).moment1(axis=0)
+        momtwo = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s).linewidth_sigma()
+        slab = scouseobject.cube.spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
+        maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
@@ -123,15 +123,15 @@ def get_moments(self, write_moments, dir, filename, verbose):
 
     # If no velocity limits are imposed
     else:
-        momzero = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).moment0(axis=0)
-        momone = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).moment1(axis=0)
-        momtwo = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit)).linewidth_sigma()
-        slab = self.cube
-        maskslab = self.cube.with_mask(self.cube > u.Quantity(
-            self.mask_below, self.cube.unit))
+        momzero = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).moment0(axis=0)
+        momone = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).moment1(axis=0)
+        momtwo = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit)).linewidth_sigma()
+        slab = scouseobject.cube
+        maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
+            scouseobject.mask_below, scouseobject.cube.unit))
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
@@ -236,10 +236,10 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
 
     return coverage, spec, ids, frac
 
-def get_rsaa(self):
+def get_rsaa(scouseobject):
     rsaa = []
-    for i in range(1, int(self.nrefine)+1):
-        newrsaa = self.rsaa[0]/i
+    for i in range(1, int(scouseobject.nrefine)+1):
+        newrsaa = scouseobject.rsaa[0]/i
         if newrsaa > 0.5:
             rsaa.append(newrsaa)
     return rsaa
@@ -299,7 +299,7 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
     plt.draw()
     plt.show()
 
-def calculate_delta_v(self, momone, momnine):
+def calculate_delta_v(scouseobject, momone, momnine):
 
     # Generate an empty array
     delta_v = np.empty(np.shape(momone))
@@ -308,17 +308,17 @@ def calculate_delta_v(self, momone, momnine):
 
     return delta_v
 
-def generate_steps(self, delta_v):
+def generate_steps(scouseobject, delta_v):
     """
     Creates logarithmically spaced values
     """
     median = np.nanmedian(delta_v)
     step_values = np.logspace(np.log10(median), \
                               np.log10(np.nanmax(delta_v)), \
-                              self.nrefine )
+                              scouseobject.nrefine )
     return list(step_values)
 
-def refine_momzero(self, momzero, delta_v, minval, maxval):
+def refine_momzero(scouseobject, momzero, delta_v, minval, maxval):
     """
     Refines momzero based on upper/lower lims of delta_v
     """
