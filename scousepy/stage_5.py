@@ -428,9 +428,10 @@ class DiagnosticImageFigure(object):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
             print("Showing map number {0}: {1}".format(event.key, self.mapnames[int(event.key)]))
             self.ax.set_title(self.mapnames[int(event.key)])
+            for im in ax.images:
+                im.remove()
             self.ax.imshow(self.maps[self.mapnames[int(event.key)]],
-                           **self.plotkwargs
-                          )
+                           **self.plotkwargs)
             self.show()
         if event.key in ('q', 'enter'):
             self.done = True
