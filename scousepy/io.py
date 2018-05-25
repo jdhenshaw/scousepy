@@ -31,13 +31,8 @@ def mkdir_s1(outputdir, s1dir):
     """
     Make the output directory for stage 1
     """
-    # TODO: error handling
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
-        os.mkdir(s1dir)
-    else:
-        shutil.rmtree(outputdir) #removes all the subdirectories!
-        os.mkdir(outputdir)
         os.mkdir(s1dir)
 
 def mkdir_s2(outputdir, s2dir):
