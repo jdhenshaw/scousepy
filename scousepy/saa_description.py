@@ -21,7 +21,7 @@ class saa(BaseSpectrum):
         Stores all the information regarding individual spectral averaging areas
         """
 
-        super(BaseSpectrum, self).__init__(scouse, flux, idx=idx, scouse=scouse)
+        super(saa, self).__init__(scouse, flux, idx=idx, scouse=scouse)
         self._ytrim = trim_spectrum(self, scouse, flux)
         self._indices = None
         self._indices_flat = None
