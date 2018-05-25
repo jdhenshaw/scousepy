@@ -60,11 +60,11 @@ class InteractivePlot:
         Generates the plot
         """
         if self.keep:
-            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit"
+            pyplot.suptitle("Click: select spectrum; 'a': select all spectra; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit"
                             "\nThese are the alternative solutions.  If none is selected, manual refit."
                            )
         else:
-            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue")
+            pyplot.suptitle("Click: select spectrum; 'a': select all spectra; 'r' or 'd': Deselect spectrum; Enter: Continue")
         pyplot.show()
         return self
 
@@ -84,6 +84,7 @@ class InteractivePlot:
         else:
             if self.ax == event.inaxes:
                 axisNr = i
+
         return axisNr
 
     def selectSubPlot(self, i):
@@ -159,6 +160,30 @@ class InteractivePlot:
 
             self.fig.canvas.draw()
             self.subplots = self.sps
+
+            return
+
+        if event.key in ('a'):
+            # Select all spectra
+            if self.keep:
+                col='green'
+            else:
+                col='red'
+
+            # You need to set self.sps to an empty list in the case where you
+            # select all, otherwise weird things happen.
+            self.sps = []
+            axisNr = 0
+            for ax in self.ax:
+                subPlotNr = axisNr
+                self.sps.append(subPlotNr)
+
+                subPlot = self.ax[subPlotNr]
+                subPlot.patch.set_facecolor(col)
+                subPlot.patch.set_alpha(0.1)
+                self.fig.canvas.draw()
+                self.subplots = self.sps
+                axisNr+=1
 
             return
 

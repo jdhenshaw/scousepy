@@ -29,18 +29,18 @@ def run_scousepy():
     njobs = 1
 
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=True)
-    if os.path.exists(datadirectory+filename+'/stage_1/s1.scousepy'):
-        s = scouse.load_from(datadirectory+filename+'/stage_1/s1.scousepy')
-    else:
-        s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, fittype=fittype, verbose = verb, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
-    if os.path.exists(datadirectory+filename+'/stage_2/s2.scousepy'):
-        s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
-    else:
-        s = scouse.stage_2(s, verbose=verb, write_ascii=True)
-    if os.path.exists(datadirectory+filename+'/stage_3/s3.scousepy'):
-        s = scouse.load_from(datadirectory+filename+'/stage_3/s3.scousepy')
-    else:
-        s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
+    #if os.path.exists(datadirectory+filename+'/stage_1/s1.scousepy'):
+    #    s = scouse.load_from(datadirectory+filename+'/stage_1/s1.scousepy')
+    #else:
+    #    s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, fittype=fittype, verbose = verb, refine_grid=RG, nrefine = nRG, write_moments=True, save_fig=True)
+    #if os.path.exists(datadirectory+filename+'/stage_2/s2.scousepy'):
+    #    s = scouse.load_from(datadirectory+filename+'/stage_2/s2.scousepy')
+    #else:
+    #    s = scouse.stage_2(s, verbose=verb, write_ascii=True)
+    #if os.path.exists(datadirectory+filename+'/stage_3/s3.scousepy'):
+    #    s = scouse.load_from(datadirectory+filename+'/stage_3/s3.scousepy')
+    #else:
+    #    s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
     if os.path.exists(datadirectory+filename+'/stage_4/s4.scousepy'):
         s = scouse.load_from(datadirectory+filename+'/stage_4/s4.scousepy')
     else:

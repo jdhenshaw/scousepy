@@ -82,6 +82,7 @@ class scouse(object):
         self.fitcount = 0
         self.blockcount = 0.0
         self.check_spec_indices = []
+        self.check_block_indices = []
         self.completed_stages = []
 
     @staticmethod
@@ -466,6 +467,7 @@ class scouse(object):
         """
         In this stage the user is required to check the best-fitting solutions
         """
+        self.check_block_indices=[]
 
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
         self.stagedirs.append(s5dir)
@@ -475,8 +477,7 @@ class scouse(object):
         interactive_state = plt.matplotlib.rcParams['interactive']
         plt.ion()
 
-        dd = DiagnosticImageFigure(self, savedir=s5dir)
-
+        dd = DiagnosticImageFigure(self, blocksize=blocksize,savedir=s5dir)
 
         dd.show_first()
 
@@ -490,10 +491,11 @@ class scouse(object):
                     time.sleep(0.1)
                 except KeyboardInterrupt:
                     break
-        
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+
+        plt.matplotlib.rcParams['interactive'] = interactive_state
 
         check_spec_indices = dd.check_spec_indices
+        check_block_indices = dd.check_block_indices
 
         #if blockrange is not None:
         #    if repeat and (np.min(blockrange)==0.0):
@@ -508,7 +510,7 @@ class scouse(object):
 
         #if verbose:
         #    progress_bar = print_to_terminal(stage='s5', step='start')
-    
+
 
         ## interactive must be forced to 'false' for this section to work
         #interactive_state = plt.matplotlib.rcParams['interactive']
@@ -516,11 +518,17 @@ class scouse(object):
         #check_spec_indices = interactive_plot(self, blocksize, figsize,\
         #                                      plot_residuals=plot_residuals,\
         #                                      blockrange=blockrange)
-        #plt.matplotlib.rcParams['interactive'] = interactive_state 
+        #plt.matplotlib.rcParams['interactive'] = interactive_state
 
         # For staged_checking - check and flatten
-        self.check_spec_indices = check_and_flatten(self, check_spec_indices)
-        print("post check_spec_indices check_and_flatten")
+        self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
+        self.check_spec_indices = np.asarray(self.check_spec_indices)
+        self.check_block_indices = np.asarray(self.check_block_indices)
+        print("")
+        print(self.check_spec_indices)
+        print("")
+        print(self.check_block_indices)
+        print("")
 
         #endtime = time.time()
         #if verbose:
