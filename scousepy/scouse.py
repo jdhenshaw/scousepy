@@ -556,7 +556,8 @@ class scouse(object):
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
                 plot_residuals=False, verbose=False, autosave=True, \
-                write_ascii=False, specrange=None, repeat=None, newfile=None ):
+                write_ascii=False, specrange=None, repeat=None, newfile=None,\
+                njobs=1 ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -609,7 +610,7 @@ class scouse(object):
             update_models(self, key, models, selection)
 
         # block fitting
-        blockdict={}
+        block_dict={}
         spec = np.zeros(np.shape(self.cube)[0])
         for blocknum in self.check_block_indices:
             block_indices = get_block_indices(self, blocknum)
@@ -628,13 +629,75 @@ class scouse(object):
             # Create a pseudo-SAA
             SAA = saa([blocknum,blocknum], spec,
                       idx=blocknum, sample=True, scouse=self)
-            blockdict[blocknum] = SAA
+            block_dict[blocknum] = SAA
             add_ids(SAA, list(np.flip(coords,1)))
             add_flat_ids(SAA, scouse=self)
 
+            indiv_spectra = {}
+            # Parallel
+            if njobs > 1:
+                args = [self, SAA]
+                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                # Send to parallel_map
+                indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+                merged_spec = [spec for spec in indiv_spec if spec is not None]
+                merged_spec = np.asarray(merged_spec)
+                for k in range(len(SAA.indices_flat)):
+                    # Add the spectra to the dict
+                    key = SAA.indices_flat[k]
+                    indiv_spectra[key] = merged_spec[k]
+            else:
+                for k in range(len(SAA.indices_flat)):
+                    key = SAA.indices_flat[k]
+                    args = [self, SAA]
+                    inputs = [[k] + args]
+                    inputs = inputs[0]
+                    indiv_spec = get_indiv_spec(inputs)
+                    indiv_spectra[key] = indiv_spec
+            add_indiv_spectra(SAA, indiv_spectra)
 
 
-            sys.exit()
+        # determine how many fits we will actually be performing
+        n_to_fit = sum([block_dict[blocknum].to_be_fit
+                        for blocknum in self.check_block_indices])
+
+        # Loop through the SAAs
+        for i_,i in enumerate(self.check_block_indices):
+            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
+            SAA = block_dict[self.check_block_indices[i_]]
+
+            with warnings.catch_warnings():
+                # This is to catch an annoying matplotlib deprecation warning:
+                # "Using default event loop until function specific to this GUI is implemented"
+                warnings.simplefilter('ignore', category=DeprecationWarning)
+
+                bf = fitting(self, SAA, block_dict, self.check_block_indices[i_],
+                             training_set=self.training_set,
+                             init_guess=True)
+
+        indiv_dictionary = {}
+        # Fit the spectra
+        fit_indiv_spectra(self, block_dict, 0,\
+                          njobs=njobs, spatial=False, verbose=False)
+
+        for i_,i in enumerate(self.check_block_indices):
+            SAA = block_dict[self.check_block_indices[i_]]
+            for key in SAA.indices_flat:
+                spectrum = self.indiv_dict[key]
+                bfmodel = spectrum.model
+                alternatives = spectrum.models
+                models = []
+                models.append([bfmodel])
+                models.append(alternatives)
+
+                # Flatten
+                models = [mod for mods in models for mod in mods]
+
+                # Now add this as the best-fitting model and add the others to models
+                add_bf_model(spectrum, SAA.indiv_spectra[key].model_parent)
+                update_model_list(spectrum, models)
+                decision = 'refit'
+                add_decision(spectrum, decision)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

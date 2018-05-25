@@ -108,16 +108,17 @@ def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
         count=0
         progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
 
-    for j in range(len(saa_dict.keys())):
+    for _key in saa_dict.keys():
         if verbose:
             progress_bar + 1
             progress_bar.show_progress()
 
         # get the relavent SAA
-        SAA = saa_dict[j]
+        SAA = saa_dict[_key]
 
         # We only care about those locations we have SAA fits for.
         if SAA.to_be_fit:
+
             # Shhh
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
@@ -574,9 +575,9 @@ def compile_spectra(scouseobject, saa_dict, indiv_dict, rsaa, spatial=False, ver
     key_list = []
     model_list = []
 
-    for j in range(len(saa_dict.keys())):
+    for _key in saa_dict.keys():
         # get the relavent SAA
-        SAA = saa_dict[j]
+        SAA = saa_dict[_key]
         if SAA.to_be_fit:
             indiv_spectra = SAA.indiv_spectra
             if np.size(indiv_spectra) != 0:
