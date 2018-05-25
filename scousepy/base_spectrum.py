@@ -25,6 +25,11 @@ class BaseSpectrum(object):
         self._model_dud = None
         self._models = None
         self._model = None
+        self._flux = flux
+
+    @property
+    def flux(self):
+        return self._flux
 
     @property
     def index(self):

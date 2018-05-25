@@ -119,7 +119,8 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 
             return True
         else:
-            return False
+            print("Nothing to plot for this block; no fits available.")
+            return True
 
     # set up the plot window *once*
     if figsize is None:

@@ -27,6 +27,15 @@ class saa(BaseSpectrum):
         self._indiv_spectra = None
         self._sample = sample
 
+    @classmethod
+    def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):
+        return cls(coords=indiv_spectrum.coordinates,
+                   flux=indiv_spectrum.flux,
+                   scouse=scouse,
+                   idx=indiv_spectrum.index,
+                   sample=sample
+                  )
+
     @property
     def ytrim(self):
         """
