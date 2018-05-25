@@ -56,7 +56,7 @@ except NameError:
 
 class scouse(object):
 
-    def __init__(self, filename=None, outputdir=None):
+    def __init__(self, filename=None, outputdir=None, fittype=None):
 
         self.filename = filename
         if outputdir is not None:
@@ -72,7 +72,7 @@ class scouse(object):
         self.tolerances = None
         self.specres = None
         self.nrefine = None
-        self.fittype = None
+        self.fittype = fittype
         self.sample = None
         self.x = None
         self.xtrim = None
@@ -126,13 +126,13 @@ class scouse(object):
         fitting will be implemented.
         """
 
-        self = scouse()
-        self.filename = filename
+        if outputdir is None:
+            outputdir=datadirectory
+        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir)
         self.datadirectory = datadirectory
         self.rsaa = rsaa
         self.ppv_vol = ppv_vol
         self.nrefine = nrefine
-        self.fittype=fittype
         self.mask_below=mask_below
 
         if training_set:
@@ -144,13 +144,9 @@ class scouse(object):
 
         # Main routine
         starttime = time.time()
-        # Generate file structure
-        if outputdir is None:
-            outputdir=datadirectory
 
         # directory structure
         fitsfile = os.path.join(datadirectory, self.filename+'.fits')
-        self.outputdirectory = os.path.join(outputdir, filename)
         s1dir = os.path.join(outputdir, self.filename, 'stage_1')
         self.stagedirs.append(s1dir)
 
