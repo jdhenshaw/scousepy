@@ -14,36 +14,18 @@ from astropy.stats import median_absolute_deviation
 from .stage_1 import calc_rms
 
 class saa(object):
-    def __init__(self, coords, flux, \
-                 idx=None, scouse=None, sample = False):
+
+    def __init__(self, scouse, flux, sample=False, **kwargs):
+        super(self, BaseSpectrum).__init__(scouse, flux, **kwargs)
         """
         Stores all the information regarding individual spectral averaging areas
 
         """
-
-        self._index = idx
-        self._coordinates = np.array(coords)
         self._ytrim = trim_spectrum(self, scouse, flux)
-        self._rms = get_rms(self, scouse, flux)
         self._indices = None
         self._indices_flat = None
-        self._model = None
         self._indiv_spectra = None
         self._sample = sample
-
-    @property
-    def index(self):
-        """
-        Returns the index of the spectral averaging area.
-        """
-        return self._index
-
-    @property
-    def coordinates(self):
-        """
-        Returns the coordinates of the spectral averaging area.
-        """
-        return self._coordinates
 
     @property
     def ytrim(self):
@@ -51,14 +33,6 @@ class saa(object):
         Returns the spectrum of the spectral averaging area.
         """
         return self._ytrim
-
-    @property
-    def rms(self):
-        """
-        Returns the spectral rms.
-        """
-
-        return self._rms
 
     @property
     def indices(self):
@@ -75,13 +49,6 @@ class saa(object):
         averaging area.
         """
         return self._indices_flat
-
-    @property
-    def model(self):
-        """
-        Returns the best-fitting model to the spectral averaging area.
-        """
-        return self._model
 
     @property
     def to_be_fit(self):
