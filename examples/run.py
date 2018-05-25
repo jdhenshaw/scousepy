@@ -62,5 +62,7 @@ def run_scousepy():
     else:
         s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb)
 
+    return s
 
-run_scousepy()
+
+s = run_scousepy()
