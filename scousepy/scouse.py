@@ -117,11 +117,10 @@ class scouse(object):
             self.rms_approx = compute_noise(self)
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
-                cube=None,
-                verbose = False, outputdir=None, write_moments=False, \
-                save_fig=True, training_set=False, samplesize=10, \
-                refine_grid=False, nrefine=3.0, autosave=True, \
+    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0,
+                cube=None, verbose = False, outputdir=None,
+                write_moments=False, save_fig=True, training_set=False,
+                samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
                 fittype='gaussian'):
         """
         Initial steps - here scousepy identifies the spatial area over which the
@@ -165,10 +164,9 @@ class scouse(object):
 
             self.load_cube(fitsfile=fitsfile)
 
-
             # Generate moment maps
-            momzero, momone, momtwo, momnine = get_moments(self, write_moments,\
-                                                           s1dir, filename,\
+            momzero, momone, momtwo, momnine = get_moments(self, write_moments,
+                                                           s1dir, filename,
                                                            verbose)
 
             # get the coverage / average the subcube spectra
@@ -193,16 +191,16 @@ class scouse(object):
 
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
-                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, \
-                                                    momzero.value, r, 1.0, \
+                cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
+                                                    momzero.value, r, 1.0,
                                                     verbose)
                 if refine_grid:
-                    mom_zero = refine_momzero(self, momzero.value, delta_v, \
+                    mom_zero = refine_momzero(self, momzero.value, delta_v,
                                               step_values[i], step_values[i+1])
-                    _cc, _ss, _ids, _frac = define_coverage(self.cube, \
-                                                            momzero.value, \
-                                                            mom_zero, r, nref, \
-                                                            verbose, \
+                    _cc, _ss, _ids, _frac = define_coverage(self.cube,
+                                                            momzero.value,
+                                                            mom_zero, r, nref,
+                                                            verbose,
                                                             redefine=True)
                 else:
                     _cc, _ss, _ids, _frac = cc, ss, ids, frac
@@ -210,7 +208,7 @@ class scouse(object):
 
                 if self.training_set:
                     # Randomly select saas to be fit
-                    self.sample = get_random_saa(cc, samplesize, r, \
+                    self.sample = get_random_saa(cc, samplesize, r,
                                                  verbose=verbose)
                     totfit = len(self.sample)
                 else:
@@ -222,8 +220,9 @@ class scouse(object):
                         totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
-                    progress_bar = print_to_terminal(stage='s1', \
-                                                     step='coverage',var=totfit)
+                    progress_bar = print_to_terminal(stage='s1',
+                                                     step='coverage',
+                                                     var=totfit)
                 speccount=0
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
@@ -244,8 +243,8 @@ class scouse(object):
         endtime = time.time()
 
         if verbose:
-            progress_bar = print_to_terminal(stage='s1', step='end', \
-                                             length=np.size(momzero), var=cc, \
+            progress_bar = print_to_terminal(stage='s1', step='end',
+                                             length=np.size(momzero), var=cc,
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s1')
@@ -418,12 +417,13 @@ class scouse(object):
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i],\
-                              njobs=njobs, spatial=spatial, verbose=verbose)
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i] njobs=njobs,
+                              spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
-            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], \
-                                       spatial=spatial, verbose=verbose)
+            _key_set = compile_spectra(self, saa_dict, indiv_dict,
+                                       self.rsaa[i], spatial=spatial,
+                                       verbose=verbose)
             # Clean things up a bit
             if clear_cache:
                 clean_SAAs(self, saa_dict)
@@ -433,14 +433,14 @@ class scouse(object):
         # compile into one.
         compile_key_sets(self, key_set)
         # merge multiple rsaa solutions into a single dictionary
-        merge_dictionaries(self, indiv_dictionaries, \
+        merge_dictionaries(self, indiv_dictionaries,
                            spatial=spatial, verbose=verbose)
         # remove any duplicate entries
         remove_duplicates(self, verbose=verbose)
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s3', step='end', \
+            progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
@@ -496,7 +496,7 @@ class scouse(object):
     def load_stage_4(self, fn):
         return self.load_indiv_dicts(fn, stage='s4')
 
-    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
+    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False,
                 verbose=False, autosave=True, blockrange=None, repeat=False,
                 newfile=None):
         """
@@ -621,7 +621,7 @@ class scouse(object):
             key = self.check_spec_indices[i]
             if plot_neighbours:
                 # Find the neighbours
-                indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
+                indices_adjacent = neighbours(np.shape(self.cube)[1:3],
                                               int(key), radius_pix)
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)
@@ -634,7 +634,7 @@ class scouse(object):
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s6', step='end', \
+            progress_bar = print_to_terminal(stage='s6', step='end',
                                              t1=starttime, t2=endtime)
 
         if autosave:
