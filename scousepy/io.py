@@ -33,6 +33,7 @@ def mkdir_s1(outputdir, s1dir):
     """
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
+    if not os.path.exists(s1dir):
         os.mkdir(s1dir)
 
 def mkdir_s2(outputdir, s2dir):
