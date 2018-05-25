@@ -15,7 +15,7 @@ from .base_spectrum import BaseSpectrum
 class spectrum(BaseSpectrum):
     
     def __init__(self, *args, **kwargs):
-        super(self, BaseSpectrum).__init__(*args, **kwargs)
+        super(BaseSpectrum, self).__init__(*args, **kwargs)
 
         self._decision = 'original'
 
