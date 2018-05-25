@@ -12,8 +12,9 @@ import numpy as np
 from astropy.stats import median_absolute_deviation
 
 from .stage_1 import calc_rms
+from .base_spectrum import BaseSpectrum
 
-class saa(object):
+class saa(BaseSpectrum):
 
     def __init__(self, coords, flux, idx=None, scouse=None, sample=False):
         """
