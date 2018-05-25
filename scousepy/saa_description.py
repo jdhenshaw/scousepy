@@ -12,7 +12,7 @@ import numpy as np
 from astropy.stats import median_absolute_deviation
 
 from .stage_1 import calc_rms
-from .base_spectrum import BaseSpectrum
+from .base_spectrum import BaseSpectrum, get_rms
 
 class saa(BaseSpectrum):
 
@@ -73,17 +73,6 @@ class saa(BaseSpectrum):
         """
         return "< SAA {0} >".format(self.index, self.coordinates)
 
-def get_rms(self, scouse, flux):
-    """
-    Calculates rms value
-    """
-    spectrum = flux
-    if not np.isnan(spectrum).any() and not (spectrum > 0).all():
-        rms = calc_rms(spectrum)
-    else:
-        rms = scouse.rms_approx
-
-    return rms
 
 def trim_spectrum(self, scouse, flux):
     """

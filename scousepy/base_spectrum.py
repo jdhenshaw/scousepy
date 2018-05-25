@@ -9,7 +9,6 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
-from .saa_description import get_rms
 
 class BaseSpectrum(object):
     def __init__(self, coords, flux, idx=None, scouse=None):
@@ -94,3 +93,15 @@ class BaseSpectrum(object):
         Return a nice printable format for the object.
         """
         return "<< scousepy individual spectrum; index={0} >>".format(self.index)
+
+def get_rms(self, scouse, flux):
+    """
+    Calculates rms value
+    """
+    spectrum = flux
+    if not np.isnan(spectrum).any() and not (spectrum > 0).all():
+        rms = calc_rms(spectrum)
+    else:
+        rms = scouse.rms_approx
+
+    return rms
