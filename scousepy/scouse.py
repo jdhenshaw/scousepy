@@ -407,7 +407,7 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s3', step='start')
 
-        # Begin by preparing the spectra and adding them to the relavent SAA
+        # Begin by preparing the spectra and adding them to the relevant SAA
         initialise_indiv_spectra(self, verbose=verbose, njobs=njobs)
 
         key_set = []
@@ -419,6 +419,8 @@ class scouse(object):
             # Fit the spectra
             fit_indiv_spectra(self, saa_dict, self.rsaa[i], njobs=njobs,
                               spatial=spatial, verbose=verbose)
+
+
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
             _key_set = compile_spectra(self, saa_dict, indiv_dict,
@@ -428,6 +430,7 @@ class scouse(object):
             if clear_cache:
                 clean_SAAs(self, saa_dict)
             key_set.append(_key_set)
+
 
         # At this stage there are multiple key sets: 1 for each rsaa value
         # compile into one.
