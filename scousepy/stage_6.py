@@ -60,14 +60,14 @@ def get_block_indices(scouseobject, blocknum):
 
     keep = (blockarr == blocknum)
     speckeys = spec_mask[keep]
-    speckeys = [key for key in speckeys if np.isfinite(key)]
+    speckeys = [int(key) for key in speckeys if np.isfinite(key)]
     block_indices = np.array(speckeys)
     sortidx = argsort(block_indices)
     block_indices = block_indices[sortidx]
     block_indices = list(block_indices)
 
     return block_indices
-    
+
 def get_offsets(radius_pix):
     """
     Returns offsets of adjacent pixels

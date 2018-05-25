@@ -608,9 +608,32 @@ class scouse(object):
             models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
 
+        # block fitting
+        blockdict={}
+        spec = np.zeros(np.shape(self.cube)[0])
         for blocknum in self.check_block_indices:
             block_indices = get_block_indices(self, blocknum)
-            print(block_indices)
+            coords=[]
+            for idx in block_indices:
+                _coords = np.unravel_index(idx, \
+                                          (np.shape(self.cube)[2], np.shape(self.cube)[1]) )
+                coords.append(np.asarray(_coords))
+            coords = np.asarray(coords)
+
+            # Create spatially averaged spectrum
+            for i in range(len(coords[:,0])):
+                indivspec = self.cube[:,coords[i,1], coords[i,0]].value
+                spec[:]+= indivspec
+            spec = spec/len(coords[:,0])
+            # Create a pseudo-SAA
+            SAA = saa([blocknum,blocknum], spec,
+                      idx=blocknum, sample=True, scouse=self)
+            blockdict[blocknum] = SAA
+            add_ids(SAA, list(np.flip(coords,1)))
+            add_flat_ids(SAA, scouse=self)
+
+
+
             sys.exit()
 
         if write_ascii:
