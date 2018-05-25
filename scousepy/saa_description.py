@@ -15,12 +15,12 @@ from .stage_1 import calc_rms
 
 class saa(object):
 
-    def __init__(self, scouse, flux, sample=False, **kwargs):
-        super(self, BaseSpectrum).__init__(scouse, flux, **kwargs)
+    def __init__(self, coords, flux, idx=None, scouse=None, sample=False):
         """
         Stores all the information regarding individual spectral averaging areas
-
         """
+
+        super(self, BaseSpectrum).__init__(scouse, flux, idx=idx, scouse=scouse)
         self._ytrim = trim_spectrum(self, scouse, flux)
         self._indices = None
         self._indices_flat = None
