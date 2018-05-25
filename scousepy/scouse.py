@@ -417,7 +417,7 @@ class scouse(object):
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i] njobs=njobs,
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i], njobs=njobs,
                               spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
