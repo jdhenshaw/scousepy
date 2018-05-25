@@ -56,10 +56,11 @@ except NameError:
 
 class scouse(object):
 
-    def __init__(self):
+    def __init__(self, filename=None, outputdir=None):
 
-        self.outputdirectory = None
-        self.filename = None
+        self.filename = filename
+        if outputdir is not None:
+            self.outputdirectory = os.path.join(outputdir, filename)
         self.stagedirs = []
         self.cube = None
         self.rsaa = None
@@ -83,6 +84,35 @@ class scouse(object):
         self.blockcount = 0.0
         self.check_spec_indices = []
         self.completed_stages = []
+
+    def load_cube(self, fitsfile=None, cube=None):
+        """
+        Load in a cube
+        """
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+
+
+            # Read in the datacube
+            if cube is None:
+                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                                           velocity_convention='radio')
+            else:
+                self.cube = cube
+
+            if self.cube.spectral_axis.diff()[0] < 0:
+                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
+                    raise ImportError("Update to a more recent version of spectral-cube "
+                                      " or reverse the axes manually.")
+                self.cube = self.cube[::-1]
+
+            # Generate the x axis common to the fitting process
+            self.x, self.xtrim, self.trimids = get_x_axis(self)
+            # Compute typical noise within the spectra
+            self.rms_approx = compute_noise(self)
 
     @staticmethod
     def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
@@ -136,24 +166,8 @@ class scouse(object):
             old_log = log.level
             log.setLevel('ERROR')
 
+            self.load_cube()
 
-            # Read in the datacube
-            if cube is None:
-                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
-                                                                           velocity_convention='radio')
-            else:
-                self.cube = cube
-
-            if self.cube.spectral_axis.diff()[0] < 0:
-                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
-                    raise ImportError("Update to a more recent version of spectral-cube "
-                                      " or reverse the axes manually.")
-                self.cube = self.cube[::-1]
-
-            # Generate the x axis common to the fitting process
-            self.x, self.xtrim, self.trimids = get_x_axis(self)
-            # Compute typical noise within the spectra
-            self.rms_approx = compute_noise(self)
 
             # Generate moment maps
             momzero, momone, momtwo, momnine = get_moments(self, write_moments,\
@@ -241,12 +255,18 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
+                pickle.dump((self.saa_dict, self.rsaa, self.ppv_vol), fh)
 
         input("Press enter to continue.")
         plt.close(1)
 
         return self
+
+    def load_stage_1(self, fn):
+        with open(fn, 'rb') as fh:
+            self.saa_dict,self.rsaa, self.ppv_vol = pickle.load(fh)
+        self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
                 staged=False, nspec=None):
