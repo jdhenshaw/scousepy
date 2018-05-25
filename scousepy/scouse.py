@@ -163,7 +163,7 @@ class scouse(object):
             old_log = log.level
             log.setLevel('ERROR')
 
-            self.load_cube()
+            self.load_cube(fitsfile=fitsfile)
 
 
             # Generate moment maps
@@ -448,13 +448,13 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dictionaries, fh)
+                pickle.dump(self.indiv_dict, fh)
 
         return self
 
     def load_indiv_dicts(self, fn, stage):
         with open(fn, 'rb') as fh:
-            self.indiv_dictionaries = pickle.load(fh)
+            self.indiv_dict = pickle.load(fh)
         self.completed_stages.append(stage)
 
     def load_stage_3(self, fn):
@@ -489,7 +489,7 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dictionaries, fh)
+                pickle.dump(self.indiv_dict, fh)
 
         return self
 
@@ -639,7 +639,7 @@ class scouse(object):
 
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dictionaries, fh)
+                pickle.dump(self.indiv_dict, fh)
 
         self.completed_stages.append('s6')
 
