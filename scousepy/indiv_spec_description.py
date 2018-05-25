@@ -32,15 +32,6 @@ class spectrum(BaseSpectrum):
         """
         return "<< scousepy individual spectrum; index={0} >>".format(self.index)
 
-def trim_spectrum(self, scouse=None):
-    """
-    Trims a spectrum according to the user inputs
-    """
-    keep = ((self.x>scouse.ppv_vol[0])&(self.x<scouse.ppv_vol[1]))
-    xtrim = self.x[keep]
-    ytrim = self.y[keep]
-    return xtrim, ytrim
-
 def add_model_parent(self, model):
     """
     Adds best-fitting model information to the spectrum - note this only adds
