@@ -56,9 +56,11 @@ except NameError:
 
 class scouse(object):
 
-    def __init__(self, filename=None, outputdir=None, fittype=None):
+    def __init__(self, filename=None, outputdir=None, fittype=None,
+                 datadirectory=None):
 
         self.filename = filename
+        self.datadirectory = datadirectory
         if outputdir is not None:
             self.outputdirectory = os.path.join(outputdir, filename)
         self.stagedirs = []
@@ -128,8 +130,7 @@ class scouse(object):
 
         if outputdir is None:
             outputdir=datadirectory
-        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir)
-        self.datadirectory = datadirectory
+        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir, datadirectory=datadirectory)
         self.rsaa = rsaa
         self.ppv_vol = ppv_vol
         self.nrefine = nrefine
@@ -370,13 +371,19 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
+                pickle.dump(self.saa_dict, fh)
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
         plt.close('all')
 
         return self
+
+    def load_stage_2(self, fn):
+        with open(fn, 'rb') as fh:
+            self.saa_dict = pickle.load(fh)
+        self.completed_stages.append('s2')
 
     def stage_3(self, tol, njobs=1, verbose=False, \
                 spatial=False, clear_cache=True, autosave=True):
