@@ -468,6 +468,7 @@ class scouse(object):
         In this stage the user is required to check the best-fitting solutions
         """
         self.check_block_indices=[]
+        self.blocksize=blocksize
 
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
         self.stagedirs.append(s5dir)
@@ -477,7 +478,7 @@ class scouse(object):
         interactive_state = plt.matplotlib.rcParams['interactive']
         plt.ion()
 
-        dd = DiagnosticImageFigure(self, blocksize=blocksize,savedir=s5dir)
+        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir)
 
         dd.show_first()
 
@@ -582,6 +583,10 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='start')
 
+        # Firstly check the check_spec_indices against the blocks and remove any
+        # duplicates
+        self.check_spec_indices, self.check_block_indices = check_blocks(self, self.check_spec_indices, self.check_block_indices)
+
         # For staged refitting
         if specrange is None:
             specrange=np.arange(0,int(np.size(self.check_spec_indices)))
@@ -635,7 +640,7 @@ class scouse(object):
         Return a nice printable format for the object.
         """
 
-        return "<< scousepy object; stages_completed={} >>".format(self.completed_stages)
+        return "< scousepy object; stages_completed={} >".format(self.completed_stages)
 
 #==============================================================================#
 # io

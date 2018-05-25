@@ -22,6 +22,34 @@ from .interactiveplot import showplot
 from .solution_description import fit, print_fit_information
 from .indiv_spec_description import *
 
+def check_blocks(scouseobject, _check_spec_indices, _check_block_indices):
+    """
+    Checks the current check_spec_indices against those in check_block_indices
+    and gets rid of any duplicates
+    """
+    _check_spec_indices=list(_check_spec_indices)
+    _check_block_indices=list(_check_block_indices)
+    _block_indices = []
+    # Firstly get the indices associated with the blocks
+    nxblocks, nyblocks, blockarr = get_blocks(scouseobject, scouseobject.blocksize)
+    spec_mask = pad_spec(scouseobject, scouseobject.blocksize, nxblocks, nyblocks)
+    # cycle through the blocks and check the indices against _check_spec_indices
+    for blocknum in _check_block_indices:
+        keep = (blockarr == blocknum)
+        speckeys = spec_mask[keep]
+        speckeys = [key for key in speckeys if np.isfinite(key)]
+        block_indices = np.array(speckeys)
+        sortidx = argsort(block_indices)
+        block_indices = block_indices[sortidx]
+        block_indices = list(block_indices)
+        _block_indices+=block_indices
+
+    # remove any keys from _check_spec_indices that are in _block_indices as they
+    # will be fit anyway
+    _check_spec_indices = [key for key in _check_spec_indices if not key in _block_indices]
+
+    return _check_spec_indices, _check_block_indices
+
 def get_offsets(radius_pix):
     """
     Returns offsets of adjacent pixels
