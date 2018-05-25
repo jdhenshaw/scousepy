@@ -9,6 +9,7 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
+from .stage_1 import calc_rms
 
 class BaseSpectrum(object):
     def __init__(self, coords, flux, idx=None, scouse=None):
