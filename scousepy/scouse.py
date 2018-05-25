@@ -385,8 +385,8 @@ class scouse(object):
             self.saa_dict = pickle.load(fh)
         self.completed_stages.append('s2')
 
-    def stage_3(self, tol, njobs=1, verbose=False, \
-                spatial=False, clear_cache=True, autosave=True):
+    def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
+                clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data
         """
@@ -447,9 +447,18 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_3/s3.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dictionaries, fh)
 
         return self
+
+    def load_indiv_dicts(self, fn, stage):
+        with open(fn, 'rb') as fh:
+            self.indiv_dictionaries = pickle.load(fh)
+        self.completed_stages.append(stage)
+
+    def load_stage_3(self, fn):
+        return self.load_indiv_dicts(fn, stage='s3')
 
     def stage_4(self, verbose=False, autosave=True):
         """
@@ -472,16 +481,20 @@ class scouse(object):
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s4', step='end', \
+            progress_bar = print_to_terminal(stage='s4', step='end',
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s4')
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_4/s4.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dictionaries, fh)
 
         return self
+
+    def load_stage_4(self, fn):
+        return self.load_indiv_dicts(fn, stage='s4')
 
     def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
                 verbose=False, autosave=True, blockrange=None, repeat=False,
@@ -556,17 +569,15 @@ class scouse(object):
         # Save the scouse object automatically - create a backup if the user
         # wishes to iterate over s5 + s6
         if autosave:
-            if repeat:
-                if newfile is not None:
-                    self.save_to(self.datadirectory+self.filename+newfile)
-                else:
-                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
-                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
-                    self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
-            else:
-                self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                pickle.dump(self.check_spec_indices, fh)
 
         return self
+
+    def load_stage_5(self, fn):
+        with open(fn, 'rb') as fh:
+            self.check_spec_indices = pickle.load(fh)
+        self.completed_stages.append('s5')
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
                 plot_residuals=False, verbose=False, autosave=True, \
@@ -625,18 +636,10 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='end', \
                                              t1=starttime, t2=endtime)
-        # Save the scouse object automatically - create a backup if the user
-        # wishes to iterate over s5 + s6
+
         if autosave:
-            if repeat:
-                if newfile is not None:
-                    self.save_to(self.datadirectory+self.filename+newfile)
-                else:
-                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
-                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
-                    self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
-            else:
-                self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dictionaries, fh)
 
         self.completed_stages.append('s6')
 
@@ -644,6 +647,9 @@ class scouse(object):
         plt.matplotlib.rcParams['interactive'] = interactive_state
 
         return self
+
+    def load_stage_6(self, fn):
+        return self.load_indiv_dicts(fn, stage='s6')
 
     def __repr__(self):
         """
