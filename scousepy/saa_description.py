@@ -11,7 +11,6 @@ CONTACT: henshaw@mpia.de
 import numpy as np
 from astropy.stats import median_absolute_deviation
 
-from .stage_1 import calc_rms
 from .base_spectrum import BaseSpectrum, get_rms
 
 class saa(BaseSpectrum):
