@@ -597,8 +597,14 @@ class scouse(object):
             else:
                 specrange=np.arange(int(np.min(specrange)),int(np.max(specrange)))
 
+        # Here we will fit the individual spectra that have been selected for
+        # refitting
         for i in specrange:
             key = self.check_spec_indices[i]
+
+            # This first of all plots the neighbouring pixels - this can be
+            # useful if you forget why you selected that spectrum in the first
+            # place - it helps to provide a bit of context
             if plot_neighbours:
                 # Find the neighbours
                 indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
@@ -606,98 +612,37 @@ class scouse(object):
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)
 
+            # This will plot the current model solution as well as all possible
+            # alternatives. The user should either select one of these or
+            # press enter to enter the manual fitting mode
             models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
 
-        # block fitting
+        # Stage 5 gives the user the option to select all pixels within a block
+        # for refitting - this first of all generates a pseudo-SAA from the
+        # block, we then manually fit. This solution is then applied to all
+        # spectra contained within the block.
         block_dict={}
+        # create an empty spectrum
         spec = np.zeros(np.shape(self.cube)[0])
+        # cycle through all the blocks
         for blocknum in self.check_block_indices:
+            # get all of the individual pixel indices contained within that
+            # block
             block_indices = get_block_indices(self, blocknum)
-            coords=[]
-            for idx in block_indices:
-                _coords = np.unravel_index(idx, \
-                                          (np.shape(self.cube)[2], np.shape(self.cube)[1]) )
-                coords.append(np.asarray(_coords))
-            coords = np.asarray(coords)
+            # turn the flattened indices into 2D indices such that we can find
+            # the spectra in the cube
+            coords = gen_2d_coords(self,block_indices)
+            # create an SAA
+            SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
+            # prepare the spectra for fitting
+            initialise_indiv_spectra_s6(self, SAA, njobs)
+        # Manual fitting of the blocks
+        manually_fit_blocks(self, block_dict, blocknum)
+        # automated fitting of block spectra
+        auto_fit_blocks(self, block_dict, njobs)
 
-            # Create spatially averaged spectrum
-            for i in range(len(coords[:,0])):
-                indivspec = self.cube[:,coords[i,1], coords[i,0]].value
-                spec[:]+= indivspec
-            spec = spec/len(coords[:,0])
-            # Create a pseudo-SAA
-            SAA = saa([blocknum,blocknum], spec,
-                      idx=blocknum, sample=True, scouse=self)
-            block_dict[blocknum] = SAA
-            add_ids(SAA, list(np.flip(coords,1)))
-            add_flat_ids(SAA, scouse=self)
-
-            indiv_spectra = {}
-            # Parallel
-            if njobs > 1:
-                args = [self, SAA]
-                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                # Send to parallel_map
-                indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
-                merged_spec = [spec for spec in indiv_spec if spec is not None]
-                merged_spec = np.asarray(merged_spec)
-                for k in range(len(SAA.indices_flat)):
-                    # Add the spectra to the dict
-                    key = SAA.indices_flat[k]
-                    indiv_spectra[key] = merged_spec[k]
-            else:
-                for k in range(len(SAA.indices_flat)):
-                    key = SAA.indices_flat[k]
-                    args = [self, SAA]
-                    inputs = [[k] + args]
-                    inputs = inputs[0]
-                    indiv_spec = get_indiv_spec(inputs)
-                    indiv_spectra[key] = indiv_spec
-            add_indiv_spectra(SAA, indiv_spectra)
-
-
-        # determine how many fits we will actually be performing
-        n_to_fit = sum([block_dict[blocknum].to_be_fit
-                        for blocknum in self.check_block_indices])
-
-        # Loop through the SAAs
-        for i_,i in enumerate(self.check_block_indices):
-            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
-            SAA = block_dict[self.check_block_indices[i_]]
-
-            with warnings.catch_warnings():
-                # This is to catch an annoying matplotlib deprecation warning:
-                # "Using default event loop until function specific to this GUI is implemented"
-                warnings.simplefilter('ignore', category=DeprecationWarning)
-
-                bf = fitting(self, SAA, block_dict, self.check_block_indices[i_],
-                             training_set=self.training_set,
-                             init_guess=True)
-
-        indiv_dictionary = {}
-        # Fit the spectra
-        fit_indiv_spectra(self, block_dict, 0,\
-                          njobs=njobs, spatial=False, verbose=False)
-
-        for i_,i in enumerate(self.check_block_indices):
-            SAA = block_dict[self.check_block_indices[i_]]
-            for key in SAA.indices_flat:
-                spectrum = self.indiv_dict[key]
-                bfmodel = spectrum.model
-                alternatives = spectrum.models
-                models = []
-                models.append([bfmodel])
-                models.append(alternatives)
-
-                # Flatten
-                models = [mod for mods in models for mod in mods]
-
-                # Now add this as the best-fitting model and add the others to models
-                add_bf_model(spectrum, SAA.indiv_spectra[key].model_parent)
-                update_model_list(spectrum, models)
-                decision = 'refit'
-                add_decision(spectrum, decision)
+        
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

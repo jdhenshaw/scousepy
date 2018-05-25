@@ -435,7 +435,7 @@ class DiagnosticImageFigure(object):
                 self.check_spec_indices+=check_spec_indices
                 self.check_block_indices+=check_block_indices
 
-                self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], self.done_block_mask.shape[1]]] = 1
+                self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], :self.done_block_mask.shape[1]]] = 1
 
                 if self.done_con is not None:
                     for coll in self.ax.collections:

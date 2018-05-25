@@ -15,9 +15,14 @@ import sys
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
-from .stage_3 import get_flux
+from .stage_2 import *
+from .stage_3 import get_flux, get_indiv_spec, fit_indiv_spectra
 from .stage_5 import *
 
+Fitter = Stage2Fitter()
+fitting = Fitter.fitting
+
+from .saa_description import *
 from .interactiveplot import showplot
 from .solution_description import fit, print_fit_information
 from .indiv_spec_description import *
@@ -67,6 +72,114 @@ def get_block_indices(scouseobject, blocknum):
     block_indices = list(block_indices)
 
     return block_indices
+
+def gen_2d_coords(scouseobject,block_indices):
+    """
+    Takes flattened indices and returns an array of the 2D indices
+    """
+    coords=[]
+    for idx in block_indices:
+        _coords = np.unravel_index(idx, \
+                                  (np.shape(scouseobject.cube)[2], np.shape(scouseobject.cube)[1]) )
+        coords.append(np.asarray(_coords))
+    coords = np.asarray(coords)
+    return coords
+
+def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
+    """
+    Creates an SAA from a list of individual spectra
+    """
+
+    # Create spatially averaged spectrum
+    for i in range(len(coords[:,0])):
+        indivspec = scouseobject.cube[:,coords[i,1], coords[i,0]].value
+        spec[:]+= indivspec
+    spec = spec/len(coords[:,0])
+    # Create a pseudo-SAA
+    SAA = saa([blocknum,blocknum], spec,\
+               idx=blocknum, sample=True, scouse=scouseobject)
+    block_dict[blocknum] = SAA
+    add_ids(SAA, list(np.flip(coords,1)))
+    add_flat_ids(SAA, scouse=scouseobject)
+
+    return SAA
+
+def initialise_indiv_spectra_s6(scouseobject, SAA, njobs):
+    """
+    Initialise the spectra for fitting
+    """
+    indiv_spectra = {}
+    # Parallel
+    if njobs > 1:
+        args = [scouseobject, SAA]
+        inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+        # Send to parallel_map
+        indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+        merged_spec = [spec for spec in indiv_spec if spec is not None]
+        merged_spec = np.asarray(merged_spec)
+        for k in range(len(SAA.indices_flat)):
+            # Add the spectra to the dict
+            key = SAA.indices_flat[k]
+            indiv_spectra[key] = merged_spec[k]
+    else:
+        for k in range(len(SAA.indices_flat)):
+            key = SAA.indices_flat[k]
+            args = [scouseobject, SAA]
+            inputs = [[k] + args]
+            inputs = inputs[0]
+            indiv_spec = get_indiv_spec(inputs)
+            indiv_spectra[key] = indiv_spec
+    add_indiv_spectra(SAA, indiv_spectra)
+
+def manually_fit_blocks(scouseobject, block_dict, blocknum):
+    """
+    Manual fitting of the individual blocks
+    """
+    # determine how many fits we will actually be performing
+    n_to_fit = sum([block_dict[blocknum].to_be_fit
+                    for blocknum in scouseobject.check_block_indices])
+
+    # Loop through the SAAs
+    for i_,i in enumerate(scouseobject.check_block_indices):
+        print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
+        SAA = block_dict[scouseobject.check_block_indices[i_]]
+
+        with warnings.catch_warnings():
+            # This is to catch an annoying matplotlib deprecation warning:
+            # "Using default event loop until function specific to this GUI is implemented"
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+
+            bf = fitting(scouseobject, SAA, block_dict, scouseobject.check_block_indices[i_],
+                         training_set=False,
+                         init_guess=True)
+
+def auto_fit_blocks(scouseobject, block_dict, njobs):
+    """
+    automated fitting of the blocks
+    """
+    indiv_dictionary = {}
+    # Fit the spectra
+    fit_indiv_spectra(scouseobject, block_dict, 0,\
+                      njobs=njobs, spatial=False, verbose=False)
+
+    for i_,i in enumerate(scouseobject.check_block_indices):
+        SAA = block_dict[scouseobject.check_block_indices[i_]]
+        for key in SAA.indices_flat:
+            spectrum = scouseobject.indiv_dict[key]
+            bfmodel = spectrum.model
+            alternatives = spectrum.models
+            models = []
+            models.append([bfmodel])
+            models.append(alternatives)
+
+            # Flatten
+            models = [mod for mods in models for mod in mods]
+
+            # Now add this as the best-fitting model and add the others to models
+            add_bf_model(spectrum, SAA.indiv_spectra[key].model_parent)
+            update_model_list(spectrum, models)
+            decision = 'refit'
+            add_decision(spectrum, decision)
 
 def get_offsets(radius_pix):
     """
