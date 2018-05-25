@@ -22,13 +22,13 @@ from .interactiveplot import showplot
 from .solution_description import fit, print_fit_information
 from .indiv_spec_description import *
 
-def check_blocks(scouseobject, _check_spec_indices, _check_block_indices):
+def check_blocks(scouseobject):
     """
     Checks the current check_spec_indices against those in check_block_indices
     and gets rid of any duplicates
     """
-    _check_spec_indices=list(_check_spec_indices)
-    _check_block_indices=list(_check_block_indices)
+    _check_spec_indices=list(scouseobject.check_spec_indices)
+    _check_block_indices=list(scouseobject.check_block_indices)
     _block_indices = []
     # Firstly get the indices associated with the blocks
     nxblocks, nyblocks, blockarr = get_blocks(scouseobject, scouseobject.blocksize)
@@ -48,8 +48,26 @@ def check_blocks(scouseobject, _check_spec_indices, _check_block_indices):
     # will be fit anyway
     _check_spec_indices = [key for key in _check_spec_indices if not key in _block_indices]
 
-    return _check_spec_indices, _check_block_indices
+    return _check_spec_indices
 
+def get_block_indices(scouseobject, blocknum):
+    """
+    Returns a list of indices for the spectra contained within the blocks
+    """
+
+    nxblocks, nyblocks, blockarr = get_blocks(scouseobject, scouseobject.blocksize)
+    spec_mask = pad_spec(scouseobject, scouseobject.blocksize, nxblocks, nyblocks)
+
+    keep = (blockarr == blocknum)
+    speckeys = spec_mask[keep]
+    speckeys = [key for key in speckeys if np.isfinite(key)]
+    block_indices = np.array(speckeys)
+    sortidx = argsort(block_indices)
+    block_indices = block_indices[sortidx]
+    block_indices = list(block_indices)
+
+    return block_indices
+    
 def get_offsets(radius_pix):
     """
     Returns offsets of adjacent pixels

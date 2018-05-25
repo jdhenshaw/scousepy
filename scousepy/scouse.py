@@ -585,7 +585,7 @@ class scouse(object):
 
         # Firstly check the check_spec_indices against the blocks and remove any
         # duplicates
-        self.check_spec_indices, self.check_block_indices = check_blocks(self, self.check_spec_indices, self.check_block_indices)
+        self.check_spec_indices = check_blocks(self)
 
         # For staged refitting
         if specrange is None:
@@ -607,6 +607,11 @@ class scouse(object):
 
             models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
+
+        for blocknum in self.check_block_indices:
+            block_indices = get_block_indices(self, blocknum)
+            print(block_indices)
+            sys.exit()
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)
