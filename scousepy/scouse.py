@@ -451,7 +451,7 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dict, fh)
+                pickle.dump((self.indiv_dict, self.tolerances), fh)
 
         return self
 
@@ -461,7 +461,9 @@ class scouse(object):
         self.completed_stages.append(stage)
 
     def load_stage_3(self, fn):
-        return self.load_indiv_dicts(fn, stage='s3')
+        with open(fn, 'rb') as fh:
+            self.indiv_dict, self.tolerances = pickle.load(fh)
+        self.completed_stages.append('s3')
 
     def stage_4(self, verbose=False, autosave=True):
         """
