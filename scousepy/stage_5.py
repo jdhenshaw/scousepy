@@ -134,7 +134,7 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
     axes_flat = [a for axis in axes[::-1] for a in axis]
 
     for ax in axes_flat:
-        [xx.set_visible(False) for xx in ax.get_yticklabels()]#
+        [xx.set_visible(False) for xx in ax.get_yticklabels()]
         [xx.set_visible(False) for xx in ax.get_xticklabels()]
 
     plt.subplots_adjust(hspace=0.02, wspace=0.02)

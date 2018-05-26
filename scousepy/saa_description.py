@@ -57,7 +57,7 @@ class saa(BaseSpectrum):
         Returns the flattened individual indices contained within the spectral
         averaging area.
         """
-        return np.ravel_multi_index(self.indices, self._cube_shape[1:])
+        return np.ravel_multi_index(self.indices.T, self._cube_shape[1:])
 
     @property
     def to_be_fit(self):

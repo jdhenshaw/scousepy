@@ -286,13 +286,13 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[0] - r, \
-                             dict[i][j].coordinates[1] - r),\
+                            (dict[i][j].coordinates[1] - r, \
+                             dict[i][j].coordinates[0] - r),\
                              r * 2., r * 2., facecolor=cols[i],
                              edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[0] - r, \
-                             dict[i][j].coordinates[1] - r),\
+                            (dict[i][j].coordinates[1] - r, \
+                             dict[i][j].coordinates[0] - r),\
                              r * 2., r * 2., facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
 
