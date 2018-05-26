@@ -103,7 +103,7 @@ class saa(object):
         """
         Return a nice printable format for the object.
         """
-        return "<< scousepy SAA; index={0} >>".format(self.index)
+        return "< SAA {0} >".format(self.index, self.coordinates)
 
 def get_rms(self, scouse, flux):
     """

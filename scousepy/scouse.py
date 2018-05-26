@@ -56,10 +56,13 @@ except NameError:
 
 class scouse(object):
 
-    def __init__(self):
+    def __init__(self, filename=None, outputdir=None, fittype=None,
+                 datadirectory=None):
 
-        self.outputdirectory = None
-        self.filename = None
+        self.filename = filename
+        self.datadirectory = datadirectory
+        if outputdir is not None:
+            self.outputdirectory = os.path.join(outputdir, filename)
         self.stagedirs = []
         self.cube = None
         self.rsaa = None
@@ -71,7 +74,7 @@ class scouse(object):
         self.tolerances = None
         self.specres = None
         self.nrefine = None
-        self.fittype = None
+        self.fittype = fittype
         self.sample = None
         self.x = None
         self.xtrim = None
@@ -85,53 +88,11 @@ class scouse(object):
         self.check_block_indices = []
         self.completed_stages = []
 
-    @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0, \
-                cube=None,
-                verbose = False, outputdir=None, write_moments=False, \
-                save_fig=True, training_set=False, samplesize=10, \
-                refine_grid=False, nrefine=3.0, autosave=True, \
-                fittype='gaussian'):
+    def load_cube(self, fitsfile=None, cube=None):
         """
-        Initial steps - here scousepy identifies the spatial area over which the
-        fitting will be implemented.
+        Load in a cube
         """
 
-        self = scouse()
-        self.filename = filename
-        self.datadirectory = datadirectory
-        self.rsaa = rsaa
-        self.ppv_vol = ppv_vol
-        self.nrefine = nrefine
-        self.fittype=fittype
-        self.mask_below=mask_below
-
-        if training_set:
-            self.training_set = True
-            self.samplesize = samplesize
-        else:
-            self.training_set = False
-            self.samplesize = 0
-
-        # Main routine
-        starttime = time.time()
-        # Generate file structure
-        if outputdir is None:
-            outputdir=datadirectory
-
-        # directory structure
-        fitsfile = os.path.join(datadirectory, self.filename+'.fits')
-        self.outputdirectory = os.path.join(outputdir, filename)
-        s1dir = os.path.join(outputdir, self.filename, 'stage_1')
-        self.stagedirs.append(s1dir)
-
-        # create the stage_1 directory
-        mkdir_s1(self.outputdirectory, s1dir)
-
-        if verbose:
-            progress_bar = print_to_terminal(stage='s1', step='start')
-
-        # Stop spectral cube from being noisy
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             old_log = log.level
@@ -156,9 +117,57 @@ class scouse(object):
             # Compute typical noise within the spectra
             self.rms_approx = compute_noise(self)
 
+    @staticmethod
+    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0,
+                cube=None, verbose = False, outputdir=None,
+                write_moments=False, save_fig=True, training_set=False,
+                samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
+                fittype='gaussian'):
+        """
+        Initial steps - here scousepy identifies the spatial area over which the
+        fitting will be implemented.
+        """
+
+        if outputdir is None:
+            outputdir=datadirectory
+        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir, datadirectory=datadirectory)
+        self.rsaa = rsaa
+        self.ppv_vol = ppv_vol
+        self.nrefine = nrefine
+        self.mask_below=mask_below
+
+        if training_set:
+            self.training_set = True
+            self.samplesize = samplesize
+        else:
+            self.training_set = False
+            self.samplesize = 0
+
+        # Main routine
+        starttime = time.time()
+
+        # directory structure
+        fitsfile = os.path.join(datadirectory, self.filename+'.fits')
+        s1dir = os.path.join(outputdir, self.filename, 'stage_1')
+        self.stagedirs.append(s1dir)
+
+        # create the stage_1 directory
+        mkdir_s1(self.outputdirectory, s1dir)
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='s1', step='start')
+
+        # Stop spectral cube from being noisy
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+
+            self.load_cube(fitsfile=fitsfile)
+
             # Generate moment maps
-            momzero, momone, momtwo, momnine = get_moments(self, write_moments,\
-                                                           s1dir, filename,\
+            momzero, momone, momtwo, momnine = get_moments(self, write_moments,
+                                                           s1dir, filename,
                                                            verbose)
 
             # get the coverage / average the subcube spectra
@@ -183,16 +192,16 @@ class scouse(object):
 
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
-                cc, ss, ids, frac = define_coverage(self.cube, momzero.value, \
-                                                    momzero.value, r, 1.0, \
+                cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
+                                                    momzero.value, r, 1.0,
                                                     verbose)
                 if refine_grid:
-                    mom_zero = refine_momzero(self, momzero.value, delta_v, \
+                    mom_zero = refine_momzero(self, momzero.value, delta_v,
                                               step_values[i], step_values[i+1])
-                    _cc, _ss, _ids, _frac = define_coverage(self.cube, \
-                                                            momzero.value, \
-                                                            mom_zero, r, nref, \
-                                                            verbose, \
+                    _cc, _ss, _ids, _frac = define_coverage(self.cube,
+                                                            momzero.value,
+                                                            mom_zero, r, nref,
+                                                            verbose,
                                                             redefine=True)
                 else:
                     _cc, _ss, _ids, _frac = cc, ss, ids, frac
@@ -200,7 +209,7 @@ class scouse(object):
 
                 if self.training_set:
                     # Randomly select saas to be fit
-                    self.sample = get_random_saa(cc, samplesize, r, \
+                    self.sample = get_random_saa(cc, samplesize, r,
                                                  verbose=verbose)
                     totfit = len(self.sample)
                 else:
@@ -212,8 +221,9 @@ class scouse(object):
                         totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
-                    progress_bar = print_to_terminal(stage='s1', \
-                                                     step='coverage',var=totfit)
+                    progress_bar = print_to_terminal(stage='s1',
+                                                     step='coverage',
+                                                     var=totfit)
                 speccount=0
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
@@ -234,20 +244,26 @@ class scouse(object):
         endtime = time.time()
 
         if verbose:
-            progress_bar = print_to_terminal(stage='s1', step='end', \
-                                             length=np.size(momzero), var=cc, \
+            progress_bar = print_to_terminal(stage='s1', step='end',
+                                             length=np.size(momzero), var=cc,
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s1')
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_1/s1.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
+                pickle.dump((self.saa_dict, self.rsaa, self.ppv_vol), fh)
 
         input("Press enter to continue.")
         plt.close(1)
 
         return self
+
+    def load_stage_1(self, fn):
+        with open(fn, 'rb') as fh:
+            self.saa_dict,self.rsaa, self.ppv_vol = pickle.load(fh)
+        self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
                 staged=False, nspec=None):
@@ -355,7 +371,8 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_2/s2.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
+                pickle.dump(self.saa_dict, fh)
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
@@ -363,8 +380,13 @@ class scouse(object):
 
         return self
 
-    def stage_3(self, tol, njobs=1, verbose=False, \
-                spatial=False, clear_cache=True, autosave=True):
+    def load_stage_2(self, fn):
+        with open(fn, 'rb') as fh:
+            self.saa_dict = pickle.load(fh)
+        self.completed_stages.append('s2')
+
+    def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
+                clear_cache=True, autosave=True):
         """
         This stage governs the automated fitting of the data
         """
@@ -396,12 +418,13 @@ class scouse(object):
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i],\
-                              njobs=njobs, spatial=spatial, verbose=verbose)
+            fit_indiv_spectra(self, saa_dict, self.rsaa[i], njobs=njobs,
+                              spatial=spatial, verbose=verbose)
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
-            _key_set = compile_spectra(self, saa_dict, indiv_dict, self.rsaa[i], \
-                                       spatial=spatial, verbose=verbose)
+            _key_set = compile_spectra(self, saa_dict, indiv_dict,
+                                       self.rsaa[i], spatial=spatial,
+                                       verbose=verbose)
             # Clean things up a bit
             if clear_cache:
                 clean_SAAs(self, saa_dict)
@@ -411,23 +434,32 @@ class scouse(object):
         # compile into one.
         compile_key_sets(self, key_set)
         # merge multiple rsaa solutions into a single dictionary
-        merge_dictionaries(self, indiv_dictionaries, \
+        merge_dictionaries(self, indiv_dictionaries,
                            spatial=spatial, verbose=verbose)
         # remove any duplicate entries
         remove_duplicates(self, verbose=verbose)
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s3', step='end', \
+            progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s3')
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_3/s3.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dict, fh)
 
         return self
+
+    def load_indiv_dicts(self, fn, stage):
+        with open(fn, 'rb') as fh:
+            self.indiv_dict = pickle.load(fh)
+        self.completed_stages.append(stage)
+
+    def load_stage_3(self, fn):
+        return self.load_indiv_dicts(fn, stage='s3')
 
     def stage_4(self, verbose=False, autosave=True):
         """
@@ -450,18 +482,22 @@ class scouse(object):
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s4', step='end', \
+            progress_bar = print_to_terminal(stage='s4', step='end',
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s4')
 
         # Save the scouse object automatically
         if autosave:
-            self.save_to(self.datadirectory+self.filename+'/stage_4/s4.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dict, fh)
 
         return self
 
-    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False, \
+    def load_stage_4(self, fn):
+        return self.load_indiv_dicts(fn, stage='s4')
+
+    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False,
                 verbose=False, autosave=True, blockrange=None, repeat=False,
                 newfile=None):
         """
@@ -537,17 +573,15 @@ class scouse(object):
         # Save the scouse object automatically - create a backup if the user
         # wishes to iterate over s5 + s6
         if autosave:
-            if repeat:
-                if newfile is not None:
-                    self.save_to(self.datadirectory+self.filename+newfile)
-                else:
-                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
-                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
-                    self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
-            else:
-                self.save_to(self.datadirectory+self.filename+'/stage_5/s5.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                pickle.dump(self.check_spec_indices, fh)
 
         return self
+
+    def load_stage_5(self, fn):
+        with open(fn, 'rb') as fh:
+            self.check_spec_indices = pickle.load(fh)
+        self.completed_stages.append('s5')
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
                 plot_residuals=False, verbose=False, autosave=True,
@@ -602,7 +636,7 @@ class scouse(object):
             # place - it helps to provide a bit of context
             if plot_neighbours:
                 # Find the neighbours
-                indices_adjacent = neighbours(np.shape(self.cube)[1:3], \
+                indices_adjacent = neighbours(np.shape(self.cube)[1:3],
                                               int(key), radius_pix)
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)
@@ -642,20 +676,12 @@ class scouse(object):
 
         endtime = time.time()
         if verbose:
-            progress_bar = print_to_terminal(stage='s6', step='end', \
+            progress_bar = print_to_terminal(stage='s6', step='end',
                                              t1=starttime, t2=endtime)
-        # Save the scouse object automatically - create a backup if the user
-        # wishes to iterate over s5 + s6
+
         if autosave:
-            if repeat:
-                if newfile is not None:
-                    self.save_to(self.datadirectory+self.filename+newfile)
-                else:
-                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
-                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
-                    self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
-            else:
-                self.save_to(self.datadirectory+self.filename+'/stage_6/s6.scousepy')
+            with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                pickle.dump(self.indiv_dict, fh)
 
         self.completed_stages.append('s6')
 
@@ -663,6 +689,9 @@ class scouse(object):
         plt.matplotlib.rcParams['interactive'] = interactive_state
 
         return self
+
+    def load_stage_6(self, fn):
+        return self.load_indiv_dicts(fn, stage='s6')
 
     def __repr__(self):
         """
