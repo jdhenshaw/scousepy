@@ -23,9 +23,9 @@ class saa(BaseSpectrum):
         super(saa, self).__init__(coords, flux, idx=idx, scouse=scouse)
         self._ytrim = trim_spectrum(self, scouse, flux)
         self._indices = None
-        self._indices_flat = None
         self._indiv_spectra = None
         self._sample = sample
+        self._cube_shape = scouse.cube.shape
 
     @classmethod
     def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):
@@ -57,7 +57,7 @@ class saa(BaseSpectrum):
         Returns the flattened individual indices contained within the spectral
         averaging area.
         """
-        return self._indices_flat
+        return np.ravel_multi_index(self.indices.T, self._cube_shape[1:])
 
     @property
     def to_be_fit(self):
@@ -99,19 +99,6 @@ def add_ids(self, ids):
     Adds indices contained within the SAA
     """
     self._indices = np.array(ids, dtype='int')
-
-def add_flat_ids(self, scouse=None):
-    """
-    Flattens indices
-    """
-    indices_flat = []
-    for k in range(len(self.indices[:,0])):
-        idx_y, idx_x = int(self.indices[k,0]),int(self.indices[k,1])
-        idx_flat = int(idx_x*scouse.cube.shape[1]+idx_y)
-        indices_flat.append(idx_flat)
-
-    self._indices_flat = np.asarray(indices_flat)
-    self._indices = None
 
 def add_indiv_spectra(self, dict):
     """

@@ -74,12 +74,8 @@ def get_block_indices(scouseobject, blocknum):
     spec_mask = pad_spec(scouseobject, scouseobject.blocksize, nxblocks, nyblocks)
 
     keep = (blockarr == blocknum)
-    speckeys = spec_mask[keep]
-    speckeys = [int(key) for key in speckeys if np.isfinite(key)]
-    block_indices = np.array(speckeys)
-    sortidx = argsort(block_indices)
-    block_indices = block_indices[sortidx]
-    block_indices = list(block_indices)
+    speckeys = [int(key) for key in spec_mask[keep] if np.isfinite(key)]
+    block_indices = np.sort(speckeys)
 
     return block_indices
 
@@ -89,7 +85,7 @@ def gen_2d_coords(scouseobject,block_indices):
     """
     coords=[]
     for idx in block_indices:
-        _coords = np.unravel_index(idx, scouseobject.cube.shape[1:][::-1])
+        _coords = np.unravel_index(idx, scouseobject.cube.shape[1:])
         coords.append(np.asarray(_coords))
     coords = np.asarray(coords)
     return coords
@@ -105,11 +101,10 @@ def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
         spec[:] += indivspec
     spec = spec/len(coords[:,0])
     # Create a pseudo-SAA
-    SAA = saa([blocknum,blocknum], spec,\
+    SAA = saa([blocknum,blocknum], spec,
                idx=blocknum, sample=True, scouse=scouseobject)
     block_dict[blocknum] = SAA
     add_ids(SAA, list(coords))
-    add_flat_ids(SAA, scouse=scouseobject)
 
     return SAA
 
@@ -145,22 +140,22 @@ def manually_fit_blocks(scouseobject, block_dict, blocknum):
     Manual fitting of the individual blocks
     """
     # determine how many fits we will actually be performing
-    n_to_fit = sum([block_dict[blocknum].to_be_fit
-                    for blocknum in scouseobject.check_block_indices])
+    #n_to_fit = sum([block_dict[blocknum].to_be_fit
+    #                for blocknum in scouseobject.check_block_indices])
 
     # Loop through the SAAs
-    for ind, block_ind in enumerate(scouseobject.check_block_indices):
-        print("Fitting {0} out of {1}".format(ind+1, n_to_fit))
-        SAA = block_dict[scouseobject.check_block_indices[ind]]
+    #for ind, block_ind in enumerate(scouseobject.check_block_indices):
+    #    print("Fitting {0} out of {1}".format(ind+1, n_to_fit))
+    SAA = block_dict[blocknum]
 
-        with warnings.catch_warnings():
-            # This is to catch an annoying matplotlib deprecation warning:
-            # "Using default event loop until function specific to this GUI is implemented"
-            warnings.simplefilter('ignore', category=DeprecationWarning)
+    with warnings.catch_warnings():
+        # This is to catch an annoying matplotlib deprecation warning:
+        # "Using default event loop until function specific to this GUI is implemented"
+        warnings.simplefilter('ignore', category=DeprecationWarning)
 
-            bf = fitting(scouseobject, SAA, block_dict, scouseobject.check_block_indices[ind],
-                         training_set=False,
-                         init_guess=True)
+        bf = fitting(scouseobject, SAA, block_dict, blocknum,
+                     training_set=False,
+                     init_guess=True)
 
 def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize):
     """
@@ -171,8 +166,8 @@ def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize):
     fit_indiv_spectra(scouseobject, block_dict, blocksize/2, \
                       njobs=njobs, spatial=False, verbose=False, stage=3)
 
-    for i_,i in enumerate(scouseobject.check_block_indices):
-        SAA = block_dict[scouseobject.check_block_indices[i_]]
+    for block_ind in scouseobject.check_block_indices:
+        SAA = block_dict[block_ind]
         for key in SAA.indices_flat:
             spectrum = scouseobject.indiv_dict[key]
             bfmodel = spectrum.model

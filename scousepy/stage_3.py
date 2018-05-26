@@ -88,12 +88,11 @@ def get_indiv_spec(inputs):
     """
 
     idx, scouseobject, SAA = inputs
-    _coords = np.unravel_index(SAA.indices_flat[idx], \
-                              (np.shape(scouseobject.cube)[2], np.shape(scouseobject.cube)[1]) )
+    _coords = np.unravel_index(SAA.indices_flat[idx], scouseobject.cube.shape[1:])
 
 
-    indiv_spec = spectrum(np.array([_coords[1], _coords[0]]), \
-                          scouseobject.cube[:,_coords[1], _coords[0]].value, \
+    indiv_spec = spectrum(_coords, \
+                          scouseobject.cube[:,_coords[0], _coords[1]].value, \
                           idx=SAA.indices_flat[idx], \
                           scouse=scouseobject)
 

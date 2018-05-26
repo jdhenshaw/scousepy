@@ -33,7 +33,7 @@ from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
-from .saa_description import saa, add_ids, add_flat_ids
+from .saa_description import saa, add_ids
 from .solution_description import fit
 
 import matplotlib as mpl
@@ -234,7 +234,6 @@ class scouse(object):
                         speccount+=1
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
-                        add_flat_ids(SAA, scouse=self)
             log.setLevel(old_log)
 
         if save_fig:
@@ -452,7 +451,7 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dict, fh)
+                pickle.dump((self.indiv_dict, self.tolerances), fh)
 
         return self
 
@@ -462,7 +461,9 @@ class scouse(object):
         self.completed_stages.append(stage)
 
     def load_stage_3(self, fn):
-        return self.load_indiv_dicts(fn, stage='s3')
+        with open(fn, 'rb') as fh:
+            self.indiv_dict, self.tolerances = pickle.load(fh)
+        self.completed_stages.append('s3')
 
     def stage_4(self, verbose=False, autosave=True):
         """
@@ -655,10 +656,10 @@ class scouse(object):
         # block, we then manually fit. This solution is then applied to all
         # spectra contained within the block.
         block_dict={}
-        # create an empty spectrum
-        spec = np.zeros(self.cube.shape[0])
         # cycle through all the blocks
         for blocknum in self.check_block_indices:
+            # create an empty spectrum
+            spec = np.zeros(self.cube.shape[0])
             # get all of the individual pixel indices contained within that
             # block
             block_indices = get_block_indices(self, blocknum)
@@ -671,8 +672,8 @@ class scouse(object):
             initialise_indiv_spectra_s6(self, SAA, njobs)
             # Manual fitting of the blocks
             manually_fit_blocks(self, block_dict, blocknum)
-            # automated fitting of block spectra
-            auto_fit_blocks(self, block_dict, njobs, self.blocksize)
+        # automated fitting of block spectra
+        auto_fit_blocks(self, block_dict, njobs, self.blocksize)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

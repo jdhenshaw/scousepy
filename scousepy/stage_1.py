@@ -165,7 +165,7 @@ def get_coverage(momzero, spacing):
     cov_x = np.max(rangex)-(spacing*2.)*np.arange(nposx)
     cov_y = np.min(rangey)+(spacing*2.)*np.arange(nposy)
 
-    return cov_x, cov_y
+    return cov_y, cov_x
 
 def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine=False):
     """
@@ -174,7 +174,7 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
     """
 
     spacing = rsaa/2.
-    cov_x, cov_y = get_coverage(momzero, spacing)
+    cov_y, cov_x = get_coverage(momzero, spacing)
 
     maxspecinsaa = int((rsaa*3)**2)
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
@@ -222,7 +222,7 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
                 lim = 0.5
             if fraction >= lim:
                 frac[idy+(idx*len(cov_y))] = fraction
-                coverage[idy+(idx*len(cov_y)),:] = cx,cy
+                coverage[idy+(idx*len(cov_y)),:] = cy,cx
                 if not redefine:
                     spec[:, idy, idx] = cube_cutout.mean(axis=(1,2))
                 count=0
@@ -286,13 +286,13 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[0] - r, \
-                             dict[i][j].coordinates[1] - r),\
+                            (dict[i][j].coordinates[1] - r, \
+                             dict[i][j].coordinates[0] - r),\
                              r * 2., r * 2., facecolor=cols[i],
                              edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[0] - r, \
-                             dict[i][j].coordinates[1] - r),\
+                            (dict[i][j].coordinates[1] - r, \
+                             dict[i][j].coordinates[0] - r),\
                              r * 2., r * 2., facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
 
