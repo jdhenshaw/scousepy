@@ -74,12 +74,8 @@ def get_block_indices(scouseobject, blocknum):
     spec_mask = pad_spec(scouseobject, scouseobject.blocksize, nxblocks, nyblocks)
 
     keep = (blockarr == blocknum)
-    speckeys = spec_mask[keep]
-    speckeys = [int(key) for key in speckeys if np.isfinite(key)]
-    block_indices = np.array(speckeys)
-    sortidx = argsort(block_indices)
-    block_indices = block_indices[sortidx]
-    block_indices = list(block_indices)
+    speckeys = [int(key) for key in spec_mask[keep] if np.isfinite(key)]
+    block_indices = np.sort(speckeys)
 
     return block_indices
 
