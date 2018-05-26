@@ -144,16 +144,16 @@ def manually_fit_blocks(scouseobject, block_dict, blocknum):
                     for blocknum in scouseobject.check_block_indices])
 
     # Loop through the SAAs
-    for ind, block_ind in enumerate(scouseobject.check_block_indices):
+    for block_ind in scouseobject.check_block_indices:
         print("Fitting {0} out of {1}".format(ind+1, n_to_fit))
-        SAA = block_dict[scouseobject.check_block_indices[ind]]
+        SAA = block_dict[block_ind]
 
         with warnings.catch_warnings():
             # This is to catch an annoying matplotlib deprecation warning:
             # "Using default event loop until function specific to this GUI is implemented"
             warnings.simplefilter('ignore', category=DeprecationWarning)
 
-            bf = fitting(scouseobject, SAA, block_dict, scouseobject.check_block_indices[ind],
+            bf = fitting(scouseobject, SAA, block_dict, block_ind,
                          training_set=False,
                          init_guess=True)
 
