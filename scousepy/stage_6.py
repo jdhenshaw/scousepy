@@ -92,6 +92,7 @@ def gen_2d_coords(scouseobject,block_indices):
         _coords = np.unravel_index(idx, scouseobject.cube.shape[1:][::-1])
         coords.append(np.asarray(_coords))
     coords = np.asarray(coords)
+    print(coords)
     return coords
 
 def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
@@ -100,7 +101,7 @@ def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
     """
 
     # Create spatially averaged spectrum
-    for ycrd, xcrd in coords:
+    for xcrd, ycrd in coords:
         indivspec = scouseobject.cube[:, ycrd, xcrd].value
         spec[:] += indivspec
     spec = spec/len(coords[:,0])
@@ -108,7 +109,7 @@ def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
     SAA = saa([blocknum,blocknum], spec,\
                idx=blocknum, sample=True, scouse=scouseobject)
     block_dict[blocknum] = SAA
-    add_ids(SAA, list(coords))
+    add_ids(SAA, list(np.flip(coords,1)))
     add_flat_ids(SAA, scouse=scouseobject)
 
     return SAA
