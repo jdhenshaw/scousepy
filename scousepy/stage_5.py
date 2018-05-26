@@ -33,6 +33,7 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
     """
 
     check_spec_indices = []
+    check_block_indices = []
 
     # Generate blocks and masks
     nxblocks, nyblocks, blockarr = get_blocks(scouseobject, blocksize)
@@ -59,8 +60,12 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 
         # Get the indices of the spectra we want to take another look at
         check_spec = get_indices(intplot, speckeys)
+
         # append
-        check_spec_indices.append(check_spec)
+        if np.size(check_spec) == blocksize**2:
+            check_block_indices.append(blocknum)
+        else:
+            check_spec_indices.append(check_spec)
 
         for ax in axes_flat:
             ax.cla()
@@ -76,8 +81,7 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         # We are only interested in blocks where there is at least 1 model
         # solution - don't bother with the others
         if np.any(np.isfinite(fitkeys)):
-            print("Checking block {0} of {1}".format(blocknum, len(blockrange)))
-
+            print("Checking block {0}".format(blocknum))
 
             # Cycle through the spectra contained within the block
             for j in range(np.size(speckeys)):
@@ -148,12 +152,10 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
             time.sleep(0.1)
         except KeyboardInterrupt:
             break
-    print("Re-check spectra selection completed")
     print("")
 
     plt.close(intplot.fig.number)
     plt.close(fig.number)
-
 
     # Now flatten
     check_spec_indices = [idx for indices in check_spec_indices for idx in indices]
@@ -161,10 +163,19 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         check_spec_indices = np.array(check_spec_indices)
         sortidx = argsort(check_spec_indices)
         check_spec_indices = check_spec_indices[sortidx]
+        check_spec_indices = list(check_spec_indices)
     else:
-        check_spec_indices = np.array([])
+        #check_spec_indices = np.array([])
+        check_spec_indices = []
 
-    return check_spec_indices
+    if np.size(check_block_indices) > 0.0:
+        #check_block_indices = np.array(check_block_indices)
+        check_block_indices = list(check_block_indices)
+    else:
+        #check_block_indices = np.array([])
+        check_block_indices = []
+
+    return check_spec_indices, check_block_indices
 
 def get_indices(plot, speckeys):
     """
@@ -292,16 +303,15 @@ def get_spec(scouseobject, indiv_spec):
 
     return spec
 
-def check_and_flatten(scouseobject, check_spec_indices):
+def check_and_flatten(scouseobject, check_spec_indices, check_block_indices):
     """
     Checks to see if staged_fitting has been initiated. If so it appends
     current list to the existing one.
     """
 
     _check_spec_indices=None
+    _check_block_indices=None
 
-    print("Checking spec indices")
-    print("there are {0} spec indices".format(len(check_spec_indices)))
     if np.size(scouseobject.check_spec_indices)!=0:
         _check_spec_indices = [list(scouseobject.check_spec_indices) + list(check_spec_indices)]
         _check_spec_indices = np.asarray(_check_spec_indices)
@@ -309,7 +319,14 @@ def check_and_flatten(scouseobject, check_spec_indices):
     else:
         _check_spec_indices = check_spec_indices
 
-    return _check_spec_indices
+    if np.size(scouseobject.check_block_indices)!=0:
+        _check_block_indices = [list(scouseobject.check_block_indices) + list(check_block_indices)]
+        _check_block_indices = np.asarray(_check_block_indices)
+        _check_block_indices = np.unique(_check_block_indices) # Just in case
+    else:
+        _check_block_indices = check_block_indices
+
+    return _check_spec_indices, _check_block_indices
 
 def generate_2d_parametermap(scouseobject, spectrum_parameter):
     """
@@ -331,7 +348,7 @@ def generate_diagnostic_maps(scouseobject, maps=['rms', 'residstd', 'redchi2', '
 
 class DiagnosticImageFigure(object):
     def __init__(self, scouseobject, fig=None, ax=None, keep=False,
-                 blocksize=7, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
+                 blocksize=6, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
                  plotkwargs=dict(interpolation='none', origin='lower'),
                  savedir=None,
                 ):
@@ -371,11 +388,12 @@ class DiagnosticImageFigure(object):
         self.done_con = None
 
         self.check_spec_indices = []
+        self.check_block_indices = []
 
     def load_maps(self, savedir):
         loaded = []
         for mapname in self.mapnames:
-            fn = os.path.join(savedir, "stage5_"+mapname+".fits")
+            fn = os.path.join(savedir, "stage_5_"+mapname+".fits")
             if os.path.exists(fn):
                 data = fits.getdata(fn)
                 self.maps[mapname] = data
@@ -386,7 +404,7 @@ class DiagnosticImageFigure(object):
 
         for mapname in self.mapnames:
             fh = fits.PrimaryHDU(data=self.maps[mapname], header=self.scouseobject.cube[0,:,:].header)
-            fh.writeto(os.path.join(savedir, "stage5_"+mapname+".fits"), overwrite=overwrite)
+            fh.writeto(os.path.join(savedir, "stage_5_"+mapname+".fits"), overwrite=overwrite)
 
     def disconnect(self):
         self.fig.canvas.mpl_disconnect(self.click)
@@ -394,7 +412,7 @@ class DiagnosticImageFigure(object):
 
     def show_first(self):
         self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
-        self.ax.set_title(self.mapnames[0])
+        self.ax.set_title('Diagnostic Plot: '+self.mapnames[0]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
 
     def show(self):
         self.fig.canvas.draw()
@@ -413,21 +431,23 @@ class DiagnosticImageFigure(object):
                 nxblocks, nyblocks, blockarr = get_blocks(self.scouseobject, self.blocksize)
                 blockid = blockarr[np.int(cy),np.int(cx)]
 
-                self.check_spec_indices.append(interactive_plot(self.scouseobject, blockrange=[blockid,blockid+1]))
+                check_spec_indices, check_block_indices=interactive_plot(self.scouseobject, blockrange=[blockid,blockid+1], blocksize=self.blocksize)
+                self.check_spec_indices+=check_spec_indices
+                self.check_block_indices+=check_block_indices
 
-                self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], self.done_block_mask.shape[1]]] = 1
+                self.done_block_mask[(blockarr==blockid)[:self.done_block_mask.shape[0], :self.done_block_mask.shape[1]]] = 1
 
                 if self.done_con is not None:
                     for coll in self.ax.collections:
                         coll.remove()
                 self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
-                                                 levels=[0.5, 1.5], alpha=0.2)
+                                                 levels=[0.5, 1.5], alpha=0.8)
                 print("Number of pixels examined interactively is now {0}".format(self.done_block_mask.sum()))
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
             print("Showing map number {0}: {1}".format(event.key, self.mapnames[int(event.key)]))
-            self.ax.set_title(self.mapnames[int(event.key)])
+            self.ax.set_title('Diagnostic Plot: '+self.mapnames[int(event.key)]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
             for im in self.ax.images:
                 im.remove()
             self.ax.imshow(self.maps[self.mapnames[int(event.key)]],
