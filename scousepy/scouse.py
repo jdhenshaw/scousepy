@@ -525,11 +525,6 @@ class scouse(object):
         self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
         self.check_spec_indices = np.asarray(self.check_spec_indices)
         self.check_block_indices = np.asarray(self.check_block_indices)
-        print("")
-        print(self.check_spec_indices)
-        print("")
-        print(self.check_block_indices)
-        print("")
 
         #endtime = time.time()
         #if verbose:
@@ -554,9 +549,9 @@ class scouse(object):
 
         return self
 
-    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
-                plot_residuals=False, verbose=False, autosave=True, \
-                write_ascii=False, specrange=None, repeat=None, newfile=None,\
+    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
+                plot_residuals=False, verbose=False, autosave=True,
+                write_ascii=False, specrange=None, repeat=None, newfile=None,
                 njobs=1 ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
@@ -624,7 +619,7 @@ class scouse(object):
         # spectra contained within the block.
         block_dict={}
         # create an empty spectrum
-        spec = np.zeros(np.shape(self.cube)[0])
+        spec = np.zeros(self.cube.shape[0])
         # cycle through all the blocks
         for blocknum in self.check_block_indices:
             # get all of the individual pixel indices contained within that
@@ -637,10 +632,10 @@ class scouse(object):
             SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
             # prepare the spectra for fitting
             initialise_indiv_spectra_s6(self, SAA, njobs)
-        # Manual fitting of the blocks
-        manually_fit_blocks(self, block_dict, blocknum)
-        # automated fitting of block spectra
-        auto_fit_blocks(self, block_dict, njobs, self.blocksize)
+            # Manual fitting of the blocks
+            manually_fit_blocks(self, block_dict, blocknum)
+            # automated fitting of block spectra
+            auto_fit_blocks(self, block_dict, njobs, self.blocksize)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

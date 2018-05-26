@@ -60,7 +60,7 @@ class InteractivePlot:
         Generates the plot
         """
         if self.keep:
-            pyplot.suptitle("Click: select spectrum; 'a': select all spectra; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit"
+            pyplot.suptitle("Click: select spectrum; 'r' or 'd': Deselect spectrum; Enter: Continue or manual refit"
                             "\nThese are the alternative solutions.  If none is selected, manual refit."
                            )
         else:
@@ -184,8 +184,6 @@ class InteractivePlot:
                 self.fig.canvas.draw()
                 self.subplots = self.sps
                 axisNr+=1
-
-            return
 
         if event.key in ('enter','q'):
             if self.blockrange is not None and self.blocknum_ind >= len(self.blockrange):
