@@ -33,7 +33,7 @@ from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
 from .progressbar import AnimatedProgressBar
-from .saa_description import saa, add_ids, add_flat_ids
+from .saa_description import saa, add_ids
 from .solution_description import fit
 
 import matplotlib as mpl
@@ -234,7 +234,6 @@ class scouse(object):
                         speccount+=1
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
-                        add_flat_ids(SAA, scouse=self)
             log.setLevel(old_log)
 
         if save_fig:

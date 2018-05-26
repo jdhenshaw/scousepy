@@ -109,7 +109,6 @@ def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
                idx=blocknum, sample=True, scouse=scouseobject)
     block_dict[blocknum] = SAA
     add_ids(SAA, list(coords))
-    add_flat_ids(SAA, scouse=scouseobject)
 
     return SAA
 
