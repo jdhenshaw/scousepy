@@ -166,8 +166,8 @@ def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize):
     fit_indiv_spectra(scouseobject, block_dict, blocksize/2, \
                       njobs=njobs, spatial=False, verbose=False, stage=3)
 
-    for i_,i in enumerate(scouseobject.check_block_indices):
-        SAA = block_dict[scouseobject.check_block_indices[i_]]
+    for block_ind in scouseobject.check_block_indices:
+        SAA = block_dict[block_ind]
         for key in SAA.indices_flat:
             spectrum = scouseobject.indiv_dict[key]
             bfmodel = spectrum.model
