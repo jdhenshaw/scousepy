@@ -305,10 +305,13 @@ def check_and_flatten(scouseobject, check_spec_indices):
     print("there are {0} spec indices".format(len(check_spec_indices)))
     if np.size(scouseobject.check_spec_indices)!=0:
         _check_spec_indices = [list(scouseobject.check_spec_indices) + list(check_spec_indices)]
-        _check_spec_indices = np.asarray(_check_spec_indices)
         _check_spec_indices = np.unique(_check_spec_indices) # Just in case
     else:
         _check_spec_indices = check_spec_indices
+
+    # MAKE IT GO FLAT
+    if len(_check_spec_indices) > 0 and not np.isscalar(_check_spec_indices[0]):
+        _check_spec_indices = np.array([x for y in _check_spec_indices for x in y])
 
     return _check_spec_indices
 
