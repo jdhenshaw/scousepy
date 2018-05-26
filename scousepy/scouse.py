@@ -85,6 +85,7 @@ class scouse(object):
         self.fitcount = 0
         self.blockcount = 0.0
         self.check_spec_indices = []
+        self.check_block_indices = []
         self.completed_stages = []
 
     def load_cube(self, fitsfile=None, cube=None):
@@ -505,6 +506,8 @@ class scouse(object):
         """
         In this stage the user is required to check the best-fitting solutions
         """
+        self.check_block_indices=[]
+        self.blocksize=blocksize
 
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
         self.stagedirs.append(s5dir)
@@ -514,8 +517,7 @@ class scouse(object):
         interactive_state = plt.matplotlib.rcParams['interactive']
         plt.ion()
 
-        dd = DiagnosticImageFigure(self, savedir=s5dir)
-
+        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir)
 
         dd.show_first()
 
@@ -529,10 +531,11 @@ class scouse(object):
                     time.sleep(0.1)
                 except KeyboardInterrupt:
                     break
-        
-        plt.matplotlib.rcParams['interactive'] = interactive_state 
+
+        plt.matplotlib.rcParams['interactive'] = interactive_state
 
         check_spec_indices = dd.check_spec_indices
+        check_block_indices = dd.check_block_indices
 
         #if blockrange is not None:
         #    if repeat and (np.min(blockrange)==0.0):
@@ -547,7 +550,7 @@ class scouse(object):
 
         #if verbose:
         #    progress_bar = print_to_terminal(stage='s5', step='start')
-    
+
 
         ## interactive must be forced to 'false' for this section to work
         #interactive_state = plt.matplotlib.rcParams['interactive']
@@ -555,11 +558,12 @@ class scouse(object):
         #check_spec_indices = interactive_plot(self, blocksize, figsize,\
         #                                      plot_residuals=plot_residuals,\
         #                                      blockrange=blockrange)
-        #plt.matplotlib.rcParams['interactive'] = interactive_state 
+        #plt.matplotlib.rcParams['interactive'] = interactive_state
 
         # For staged_checking - check and flatten
-        self.check_spec_indices = check_and_flatten(self, check_spec_indices)
-        print("post check_spec_indices check_and_flatten")
+        self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
+        self.check_spec_indices = np.asarray(self.check_spec_indices)
+        self.check_block_indices = np.asarray(self.check_block_indices)
 
         #endtime = time.time()
         #if verbose:
@@ -582,9 +586,10 @@ class scouse(object):
             self.check_spec_indices = pickle.load(fh)
         self.completed_stages.append('s5')
 
-    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10], \
-                plot_residuals=False, verbose=False, autosave=True, \
-                write_ascii=False, specrange=None, repeat=None, newfile=None ):
+    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
+                plot_residuals=False, verbose=False, autosave=True,
+                write_ascii=False, specrange=None, repeat=None, newfile=None,
+                njobs=1 ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
         """
@@ -611,6 +616,10 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s6', step='start')
 
+        # Firstly check the check_spec_indices against the blocks and remove any
+        # duplicates
+        self.check_spec_indices = check_blocks(self)
+
         # For staged refitting
         if specrange is None:
             specrange=np.arange(0,int(np.size(self.check_spec_indices)))
@@ -620,8 +629,14 @@ class scouse(object):
             else:
                 specrange=np.arange(int(np.min(specrange)),int(np.max(specrange)))
 
+        # Here we will fit the individual spectra that have been selected for
+        # refitting
         for i in specrange:
             key = self.check_spec_indices[i]
+
+            # This first of all plots the neighbouring pixels - this can be
+            # useful if you forget why you selected that spectrum in the first
+            # place - it helps to provide a bit of context
             if plot_neighbours:
                 # Find the neighbours
                 indices_adjacent = neighbours(np.shape(self.cube)[1:3],
@@ -629,8 +644,35 @@ class scouse(object):
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)
 
+            # This will plot the current model solution as well as all possible
+            # alternatives. The user should either select one of these or
+            # press enter to enter the manual fitting mode
             models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
             update_models(self, key, models, selection)
+
+        # Stage 5 gives the user the option to select all pixels within a block
+        # for refitting - this first of all generates a pseudo-SAA from the
+        # block, we then manually fit. This solution is then applied to all
+        # spectra contained within the block.
+        block_dict={}
+        # create an empty spectrum
+        spec = np.zeros(self.cube.shape[0])
+        # cycle through all the blocks
+        for blocknum in self.check_block_indices:
+            # get all of the individual pixel indices contained within that
+            # block
+            block_indices = get_block_indices(self, blocknum)
+            # turn the flattened indices into 2D indices such that we can find
+            # the spectra in the cube
+            coords = gen_2d_coords(self,block_indices)
+            # create an SAA
+            SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
+            # prepare the spectra for fitting
+            initialise_indiv_spectra_s6(self, SAA, njobs)
+            # Manual fitting of the blocks
+            manually_fit_blocks(self, block_dict, blocknum)
+            # automated fitting of block spectra
+            auto_fit_blocks(self, block_dict, njobs, self.blocksize)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)
@@ -659,7 +701,7 @@ class scouse(object):
         Return a nice printable format for the object.
         """
 
-        return "<< scousepy object; stages_completed={} >>".format(self.completed_stages)
+        return "< scousepy object; stages_completed={} >".format(self.completed_stages)
 
 #==============================================================================#
 # io
