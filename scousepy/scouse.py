@@ -656,10 +656,10 @@ class scouse(object):
         # block, we then manually fit. This solution is then applied to all
         # spectra contained within the block.
         block_dict={}
-        # create an empty spectrum
-        spec = np.zeros(self.cube.shape[0])
         # cycle through all the blocks
         for blocknum in self.check_block_indices:
+            # create an empty spectrum
+            spec = np.zeros(self.cube.shape[0])
             # get all of the individual pixel indices contained within that
             # block
             block_indices = get_block_indices(self, blocknum)
