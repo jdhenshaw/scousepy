@@ -89,7 +89,7 @@ def gen_2d_coords(scouseobject,block_indices):
     """
     coords=[]
     for idx in block_indices:
-        _coords = np.unravel_index(idx, scouseobject.cube.shape[1:][::-1])
+        _coords = np.unravel_index(idx, scouseobject.cube.shape[1:])
         coords.append(np.asarray(_coords))
     coords = np.asarray(coords)
     return coords
@@ -105,7 +105,7 @@ def gen_pseudo_SAA(scouseobject, coords, block_dict, blocknum, spec):
         spec[:] += indivspec
     spec = spec/len(coords[:,0])
     # Create a pseudo-SAA
-    SAA = saa([blocknum,blocknum], spec,\
+    SAA = saa([blocknum,blocknum], spec,
                idx=blocknum, sample=True, scouse=scouseobject)
     block_dict[blocknum] = SAA
     add_ids(SAA, list(coords))
