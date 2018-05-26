@@ -25,7 +25,7 @@ class saa(BaseSpectrum):
         self._indices = None
         self._indiv_spectra = None
         self._sample = sample
-        self._scouse = scouse
+        self._cube_shape = scouse.cube.shape
 
     @classmethod
     def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):
@@ -57,7 +57,7 @@ class saa(BaseSpectrum):
         Returns the flattened individual indices contained within the spectral
         averaging area.
         """
-        return np.ravel_multi_index(self.indices, self.scouse.cube.shape[1:])
+        return np.ravel_multi_index(self.indices, self._cube_shape[1:])
 
     @property
     def to_be_fit(self):
