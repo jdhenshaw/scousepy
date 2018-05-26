@@ -654,10 +654,10 @@ class scouse(object):
         # block, we then manually fit. This solution is then applied to all
         # spectra contained within the block.
         block_dict={}
-        # create an empty spectrum
-        spec = np.zeros(self.cube.shape[0])
         # cycle through all the blocks
         for blocknum in self.check_block_indices:
+            # create an empty spectrum
+            spec = np.zeros(self.cube.shape[0])
             # get all of the individual pixel indices contained within that
             # block
             block_indices = get_block_indices(self, blocknum)
@@ -670,8 +670,8 @@ class scouse(object):
             initialise_indiv_spectra_s6(self, SAA, njobs)
             # Manual fitting of the blocks
             manually_fit_blocks(self, block_dict, blocknum)
-            # automated fitting of block spectra
-            auto_fit_blocks(self, block_dict, njobs, self.blocksize)
+        # automated fitting of block spectra
+        auto_fit_blocks(self, block_dict, njobs, self.blocksize)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

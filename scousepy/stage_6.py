@@ -144,22 +144,22 @@ def manually_fit_blocks(scouseobject, block_dict, blocknum):
     Manual fitting of the individual blocks
     """
     # determine how many fits we will actually be performing
-    n_to_fit = sum([block_dict[blocknum].to_be_fit
-                    for blocknum in scouseobject.check_block_indices])
+    #n_to_fit = sum([block_dict[blocknum].to_be_fit
+    #                for blocknum in scouseobject.check_block_indices])
 
     # Loop through the SAAs
-    for ind, block_ind in enumerate(scouseobject.check_block_indices):
-        print("Fitting {0} out of {1}".format(ind+1, n_to_fit))
-        SAA = block_dict[scouseobject.check_block_indices[ind]]
+    #for ind, block_ind in enumerate(scouseobject.check_block_indices):
+    #    print("Fitting {0} out of {1}".format(ind+1, n_to_fit))
+    SAA = block_dict[blocknum]
 
-        with warnings.catch_warnings():
-            # This is to catch an annoying matplotlib deprecation warning:
-            # "Using default event loop until function specific to this GUI is implemented"
-            warnings.simplefilter('ignore', category=DeprecationWarning)
+    with warnings.catch_warnings():
+        # This is to catch an annoying matplotlib deprecation warning:
+        # "Using default event loop until function specific to this GUI is implemented"
+        warnings.simplefilter('ignore', category=DeprecationWarning)
 
-            bf = fitting(scouseobject, SAA, block_dict, scouseobject.check_block_indices[ind],
-                         training_set=False,
-                         init_guess=True)
+        bf = fitting(scouseobject, SAA, block_dict, blocknum,
+                     training_set=False,
+                     init_guess=True)
 
 def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize):
     """
