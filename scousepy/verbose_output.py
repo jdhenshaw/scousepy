@@ -146,6 +146,14 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("")
             progress_bar=[]
 
+        if step=='fitting':
+            if length != None:
+                print("")
+                print('Automated fitting: Rsaa = {0}'.format(var))
+                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
+                                                   fill='=', blank='.')
+                print('')
+                
         if step=='end':
             print("")
             print('scousepy stage 6 completed in: {0} minutes'.format((t2-t1)/60.))

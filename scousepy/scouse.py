@@ -640,9 +640,7 @@ class scouse(object):
         # Manual fitting of the blocks
         manually_fit_blocks(self, block_dict, blocknum)
         # automated fitting of block spectra
-        auto_fit_blocks(self, block_dict, njobs)
-
-        
+        auto_fit_blocks(self, block_dict, njobs, self.blocksize)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

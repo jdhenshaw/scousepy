@@ -412,7 +412,7 @@ class DiagnosticImageFigure(object):
 
     def show_first(self):
         self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
-        self.ax.set_title('Diagnostic Plot: '+self.mapnames[0])
+        self.ax.set_title('Diagnostic Plot: '+self.mapnames[0]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
 
     def show(self):
         self.fig.canvas.draw()
@@ -441,13 +441,13 @@ class DiagnosticImageFigure(object):
                     for coll in self.ax.collections:
                         coll.remove()
                 self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
-                                                 levels=[0.5, 1.5], alpha=1.0)
+                                                 levels=[0.5, 1.5], alpha=0.8)
                 print("Number of pixels examined interactively is now {0}".format(self.done_block_mask.sum()))
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
             print("Showing map number {0}: {1}".format(event.key, self.mapnames[int(event.key)]))
-            self.ax.set_title('Diagnostic Plot: '+self.mapnames[int(event.key)])
+            self.ax.set_title('Diagnostic Plot: '+self.mapnames[int(event.key)]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
             for im in self.ax.images:
                 im.remove()
             self.ax.imshow(self.maps[self.mapnames[int(event.key)]],

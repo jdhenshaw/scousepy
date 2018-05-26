@@ -99,14 +99,17 @@ def get_indiv_spec(inputs):
     return indiv_spec
 
 def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
-                      spatial=False, verbose=False):
+                      spatial=False, verbose=False, stage=3):
     """
     Automated fitting procedure for individual spectra
     """
 
     if verbose:
         count=0
-        progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+        if stage == 3:
+            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+        else:
+            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=rsaa)
 
     for _key in saa_dict.keys():
         if verbose:
