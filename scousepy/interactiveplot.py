@@ -174,23 +174,29 @@ class InteractivePlot:
 
             if pyplot.matplotlib.rcParams['interactive']:
 
-                self.callback_check_spec(self.blockrange[self.blocknum_ind],
-                                         self)
+                if self.blockrange is not None:
+                    self.callback_check_spec(self.blockrange[self.blocknum_ind],
+                                             self)
 
-                self.sps = []
-                self.subplots = []
+                    self.sps = []
+                    self.subplots = []
 
-                success = False
-                while not success:
-                    self.blocknum_ind += 1
-                    if self.blocknum_ind < len(self.blockrange):
-                        blocknum = self.blockrange[self.blocknum_ind]
+                    success = False
+                    while not success:
+                        self.blocknum_ind += 1
+                        if self.blocknum_ind < len(self.blockrange):
+                            blocknum = self.blockrange[self.blocknum_ind]
 
-                        success = self.callback(blocknum, self)
-                    else:
-                        success = True
-                        self.done = True
-                        self.disconnect()
+                            success = self.callback(blocknum, self)
+                        else:
+                            success = True
+                            self.done = True
+                            self.disconnect()
+
+                else:
+                    success = True
+                    self.done = True
+                    self.disconnect()
             else:
                 #raise ValueError("Please use interactive mode")
                 pyplot.close(self.fig.number)

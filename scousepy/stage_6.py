@@ -15,12 +15,24 @@ import sys
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
+from .stage_2 import Stage2Fitter
 from .stage_3 import get_flux
 from .stage_5 import *
 
 from .interactiveplot import showplot
 from .solution_description import fit, print_fit_information
 from .indiv_spec_description import *
+
+def event_loop():
+    fig = plt.gcf()
+    while plt.fignum_exists(fig.number):
+        try:
+            # using just a few little bits of plt.pause below
+            plt.gcf().canvas.draw()
+            plt.gcf().canvas.start_event_loop(0.1)
+            time.sleep(0.1)
+        except KeyboardInterrupt:
+            break
 
 def get_offsets(radius_pix):
     """
@@ -115,6 +127,7 @@ def plot_neighbour_pixels(scouseobject, indices_adjacent, figsize):
 
     pyplot.tight_layout(rect=[0, 0.03, 1, 0.95])
     pyplot.show()
+    event_loop()
 
 def keyentry(event):
     """
@@ -171,6 +184,8 @@ def plot_alternatives(scouseobject, key, figsize, plot_residuals=False):
 
     # Create the interactive plot
     intplot = showplot(fig, ax, keep=True)
+    fig.canvas.mpl_connect('key_press_event', keyentry)
+    event_loop()
 
     return allmodels, intplot.subplots
 
@@ -191,7 +206,8 @@ def update_models(scouseobject, key, models, selection):
             spec = get_spec(scouseobject, spectrum)
 
         log.setLevel(old_log)
-        bf = interactive_fitting(scouseobject, spectrum, spec)
+        #bf = interactive_fitting(scouseobject, spectrum, spec)
+        bf = Stage6Fitter()(scouseobject, spectrum, spec)
 
         # Now add this as the best-fitting model and add the others to models
         add_bf_model(spectrum, bf)
@@ -217,32 +233,120 @@ def update_models(scouseobject, key, models, selection):
         # the current best-fitting solution - so do nothing.
         pass
 
-def interactive_fitting(scouseobject, spectrum, spec):
-    """
-    Interactive fitter for stage 6
-    """
-    happy=False
-    while not happy:
-        bf=None
+class Stage6Fitter(object):
+    def __call__(self, *args):
+        return self.interactive_fitting(*args)
 
-        # Interactive fitting with pyspeckit
-        spec.plotter(xmin=scouseobject.ppv_vol[0], \
-                     xmax=scouseobject.ppv_vol[1])
-        spec.specfit(interactive=True,
-                     print_message=False,
-                     xmin=scouseobject.ppv_vol[0],
-                     xmax=scouseobject.ppv_vol[1])
-        plt.show()
+    def interactive_fitting(self, scouseobject, spectrum, spec):
+        """
+        Interactive fitter for stage 6
+        """
+        print("Beginning interactive fit of spectrum {0}".format(spectrum))
+        self.spec = spec
+        self.spectrum = spectrum
+        self.scouseobject = scouseobject
 
-        # Best-fitting model solution
-        bf = fit(spec, idx=spectrum.index, scouse=scouseobject)
+        self.happy=False
+        while not self.happy:
+            # Interactive fitting with pyspeckit
+            spec.plotter(xmin=self.scouseobject.ppv_vol[0],
+                         xmax=self.scouseobject.ppv_vol[1])
+            spec.plotter.figure.canvas.callbacks.disconnect(3)
+            spec.specfit.clear_all_connections()
+            spec.specfit(interactive=True,
+                         print_message=False,
+                         xmin=self.scouseobject.ppv_vol[0],
+                         xmax=self.scouseobject.ppv_vol[1])
 
-        print("")
-        print_fit_information(bf, init_guess=False)
-        print("")
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=DeprecationWarning)
 
-        h = input("Are you happy with the fit? (y/n): ")
-        happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
-        print("")
+                if plt.matplotlib.rcParams['interactive']:
+                    spec.plotter.axis.figure.canvas.mpl_connect('key_press_event',
+                                                                self.interactive_callback)
+                    print("If you are happy with this fit, press Enter.  Otherwise, "
+                          "use the 'f' key to re-enter the interactive fitter.")
+                    event_loop()
+                else:
+                    plt.show()
+                    self.happy = self.interactive_callback('noninteractive')
 
-    return bf
+                if not hasattr(spec.specfit, 'fitter'):
+                    raise ValueError("No fitter available for the spectrum."
+                                     "  This can occur if you have plt.ion() set"
+                                     " or if you did not fit the spectrum."
+                                    )
+
+            print("")
+            print_fit_information(self.bf, init_guess=False)
+            print("")
+
+        return self.bf
+
+    def interactive_callback(self, event):
+        """
+        A 'callback function' to be triggered when the user selects a fit.
+        """
+
+        if plt.matplotlib.rcParams['interactive']:
+            if hasattr(event, 'key'):
+                if event.key in ('enter'):
+                    self.guesses = self.spec.specfit.parinfo.values
+                    self.happy = True
+                    plt.close(self.spec.plotter.figure.number)
+                    return True
+                elif event.key == 'esc':
+                    self.happy = False
+                    self.spec.specfit.clear_all_connections()
+                    assert self.spec.plotter._active_gui is None
+                elif event.key in ('f', 'F'):
+                    # this just goes to pyspeckit
+                    pass
+                elif event.key in ('d','D','3',3):
+                    # The fit has been performed interactively, but we also
+                    # want to print out the nicely-formatted additional
+                    # information
+                    self.spec.specfit.button3action(event)
+                    self.bf = fit(self.spec, idx=self.spectrum.index,
+                                  scouse=self.scouseobject)
+                    print_fit_information(self.bf, init_guess=True)
+                    print("If you are happy with this fit, press Enter.  Otherwise, "
+                          "use the 'f' key to re-enter the interactive fitter.")
+                    self.happy = None
+                else:
+                    self.happy = None
+            elif hasattr(event, 'button') and event.button in ('d','D','3',3):
+                # The fit has been performed interactively, but we also
+                # want to print out the nicely-formatted additional
+                # information
+                self.bf = fit(self.spec, idx=self.spectrum.index,
+                              scouse=self.scouseobject)
+                print_fit_information(self.bf, init_guess=True)
+                print("If you are happy with this fit, press Enter.  Otherwise, "
+                      "use the 'f' key to re-enter the interactive fitter.")
+                self.happy = None
+            else:
+                self.happy = None
+        else:
+            # this should only happen if not triggered by a callback
+            assert event == 'noninteractive'
+
+            # Best-fitting model solution
+            self.bf = fit(self.spec, idx=self.spectrum.index,
+                          scouse=self.scouseobject)
+
+            if self.firstgo == 0:
+                print("")
+                print_fit_information(self.bf, init_guess=True)
+                print("")
+            else:
+                print("")
+                print_fit_information(self.bf, init_guess=False)
+                print("")
+
+            h = input("Are you happy with the fit? (y/n): ")
+            self.happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
+            print("")
+            self.firstgo+=1
+
+            return self.happy

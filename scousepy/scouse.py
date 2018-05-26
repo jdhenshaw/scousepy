@@ -592,7 +592,7 @@ class scouse(object):
         # temporary fix: eventually, this should look like stage 2, with
         # interactive figures
         interactive_state = plt.matplotlib.rcParams['interactive']
-        plt.ioff()
+        plt.ion()
 
         s6dir = os.path.join(self.outputdirectory, 'stage_6')
         self.stagedirs.append(s6dir)
