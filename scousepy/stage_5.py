@@ -232,14 +232,15 @@ def pad_spec(scouseobject, blocksize, nxblocks, nyblocks):
 
     """
     spec_mask = np.full([nyblocks*blocksize,nxblocks*blocksize], np.nan)
-    for i in range(np.shape(scouseobject.cube)[2]):
-        for j in range(np.shape(scouseobject.cube)[1]):
-            key = j+i*(np.shape(scouseobject.cube)[1])
-            if key in scouseobject.indiv_dict:
-                if scouseobject.indiv_dict[key].model.ncomps > 0.0:
-                    spec_mask[j,i]=key
-                else:
-                    spec_mask[j,i]=key
+
+    shape = scouseobject.cube.shape[1:]
+
+    yinds, xinds = np.indices(shape)
+    yinds_f, xinds_f = yinds.ravel(), xinds.ravel()
+    flat_inds = np.ravel_multi_index(np.array([yinds_f, xinds_f]), shape)
+    ok_inds = np.array([key in scouseobject.indiv_dict for key in flat_inds], dtype='bool').reshape(shape)
+    spec_mask[:shape[0], :shape[1]][ok_inds] = flat_inds.reshape(shape)[ok_inds]
+
     return spec_mask
 
 def pad_fits(scouseobject, blocksize, nxblocks, nyblocks):
@@ -253,14 +254,17 @@ def pad_fits(scouseobject, blocksize, nxblocks, nyblocks):
     job
 
     """
-
     fit_mask = np.full([nyblocks*blocksize,nxblocks*blocksize], np.nan)
-    for i in range(np.shape(scouseobject.cube)[2]):
-        for j in range(np.shape(scouseobject.cube)[1]):
-            key = j+i*(np.shape(scouseobject.cube)[1])
-            if key in scouseobject.indiv_dict:
-                if scouseobject.indiv_dict[key].model.ncomps > 0.0:
-                    fit_mask[j,i]=key
+
+    shape = scouseobject.cube.shape[1:]
+
+    yinds, xinds = np.indices(shape)
+    yinds_f, xinds_f = yinds.ravel(), xinds.ravel()
+    flat_inds = np.ravel_multi_index(np.array([yinds_f, xinds_f]), shape)
+    ok_inds = np.array([(key in scouseobject.indiv_dict) and (scouseobject.indiv_dict[key].model.ncomps > 0)
+                        for key in flat_inds], dtype='bool').reshape(shape)
+    fit_mask[:shape[0], :shape[1]][ok_inds] = flat_inds.reshape(shape)[ok_inds]
+
     return fit_mask
 
 def recreate_model(scouseobject, spectrum, bf, alternative=False):
