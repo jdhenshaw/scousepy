@@ -11,39 +11,30 @@ CONTACT: henshaw@mpia.de
 import numpy as np
 from astropy.stats import median_absolute_deviation
 
-from .stage_1 import calc_rms
+from .base_spectrum import BaseSpectrum, get_rms
 
-class saa(object):
-    def __init__(self, coords, flux, \
-                 idx=None, scouse=None, sample = False):
+class saa(BaseSpectrum):
+
+    def __init__(self, coords, flux, idx=None, scouse=None, sample=False):
         """
         Stores all the information regarding individual spectral averaging areas
-
         """
 
-        self._index = idx
-        self._coordinates = np.array(coords)
+        super(saa, self).__init__(coords, flux, idx=idx, scouse=scouse)
         self._ytrim = trim_spectrum(self, scouse, flux)
-        self._rms = get_rms(self, scouse, flux)
         self._indices = None
         self._indices_flat = None
-        self._model = None
         self._indiv_spectra = None
         self._sample = sample
 
-    @property
-    def index(self):
-        """
-        Returns the index of the spectral averaging area.
-        """
-        return self._index
-
-    @property
-    def coordinates(self):
-        """
-        Returns the coordinates of the spectral averaging area.
-        """
-        return self._coordinates
+    @classmethod
+    def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):
+        return cls(coords=indiv_spectrum.coordinates,
+                   flux=indiv_spectrum.flux,
+                   scouse=scouse,
+                   idx=indiv_spectrum.index,
+                   sample=sample
+                  )
 
     @property
     def ytrim(self):
@@ -51,14 +42,6 @@ class saa(object):
         Returns the spectrum of the spectral averaging area.
         """
         return self._ytrim
-
-    @property
-    def rms(self):
-        """
-        Returns the spectral rms.
-        """
-
-        return self._rms
 
     @property
     def indices(self):
@@ -75,13 +58,6 @@ class saa(object):
         averaging area.
         """
         return self._indices_flat
-
-    @property
-    def model(self):
-        """
-        Returns the best-fitting model to the spectral averaging area.
-        """
-        return self._model
 
     @property
     def to_be_fit(self):
@@ -105,17 +81,6 @@ class saa(object):
         """
         return "< SAA {0} >".format(self.index, self.coordinates)
 
-def get_rms(self, scouse, flux):
-    """
-    Calculates rms value
-    """
-    spectrum = flux
-    if not np.isnan(spectrum).any() and not (spectrum > 0).all():
-        rms = calc_rms(spectrum)
-    else:
-        rms = scouse.rms_approx
-
-    return rms
 
 def trim_spectrum(self, scouse, flux):
     """

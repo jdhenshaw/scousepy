@@ -48,8 +48,9 @@ def get_spec(scouseobject, y, rms):
 
 
 class Stage2Fitter(object):
-    def __init__(self):
+    def __init__(self, scouseobject=None):
         self.residuals_shown = False
+        self.scouseobject = scouseobject
 
     def interactive_callback(self, event):
         """
@@ -140,6 +141,7 @@ class Stage2Fitter(object):
     def trainingset_fit(self, spec, init_guess=False, guesses=None):
         self.guesses = guesses
         scouseobject = self.scouseobject
+        self.spec = spec
 
         old_log = log.level
         log.setLevel('ERROR')

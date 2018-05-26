@@ -123,7 +123,8 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 
             return True
         else:
-            return False
+            print("Nothing to plot for this block; no fits available.")
+            return True
 
     # set up the plot window *once*
     if figsize is None:
@@ -314,7 +315,6 @@ def check_and_flatten(scouseobject, check_spec_indices, check_block_indices):
 
     if np.size(scouseobject.check_spec_indices)!=0:
         _check_spec_indices = [list(scouseobject.check_spec_indices) + list(check_spec_indices)]
-        _check_spec_indices = np.asarray(_check_spec_indices)
         _check_spec_indices = np.unique(_check_spec_indices) # Just in case
     else:
         _check_spec_indices = check_spec_indices
