@@ -277,7 +277,7 @@ class scouse(object):
             with open(self.datadirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
                 pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
 
-        input("Press enter to continue.")
+        input("Press enter to continue...")
         plt.close(1)
 
         return self
