@@ -92,13 +92,21 @@ class scouse(object):
     def load_cube(self, fitsfile=None, cube=None):
         """
         Load in a cube
+
+        Parameters
+        ----------
+        fitsfile : fits
+            File in fits format to be read in
+        cube : spectral cube
+            If fits file is not supplied - provide a spectral cube object
+            instead
+
         """
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-
 
             # Read in the datacube
             if cube is None:
@@ -127,6 +135,55 @@ class scouse(object):
         """
         Initial steps - here scousepy identifies the spatial area over which the
         fitting will be implemented.
+
+        Parameters
+        ----------
+        filename : string
+            Name of the file to be loaded
+        datadirectory : string
+            Directory containing the datacube
+        ppv_vol : list
+            A list containing boundaries for fitting. You can use this to
+            selectively fit part of a datacube. Should be in the format
+            ppv_vol = [vmin, vmax, ymin, ymax, xmin, xmax] with the velocities
+            in absolute units and the x, y values in pixels. If all are set to
+            zero scouse will ignore this and just fit the whole cube.
+        wsaa : list
+            The width of a spectral averaging area in pixels. Note this has
+            been updated from the IDL implementation where it previously used a
+            half-width (denoted rsaa). Can provide multiple values in a list
+            as an alternative to the refine_grid option (see below).
+        mask_below : float, optional
+            Used for moment computation - mask all data below this absolute
+            value.
+        cube : spectral cube object, optional
+            Load in a spectral cube rather than a fits file.
+        verbose : bool, optional
+            Verbose output to terminal
+        outputdir : string, optional
+            Alternate output directory. Deflault is datadirectory
+        write_moments : bool, optional
+            If true, scouse will write fits files of the moment 0, 1, and 2 as
+            well as the moment 9 (casa notation - velocity channel of peak
+            emission).
+        save_fig : bool, optional
+            If true, scouse will output a figure of the coverage
+        training_set : bool, optional
+            Can be used in combination with samplesize (see below). If true,
+            scouse will select SAAs at random for use as a training set. These
+            can be fit as normal and the solutions supplied to machine learning
+            algorithms for the fitting of very large data cubes.
+        sample_size : float, optional
+            The number of SAAs that will make up your training set.
+        refine_grid : bool, optional
+            If true, scouse will refine the SAA size.
+        nrefine : float, optional
+            The number of refinements of the SAA size.
+        autosave : bool, optional
+            Save the output at each stage of the process.
+        fittype : string
+            Compatible with pyspeckit's models for fitting different types of
+            models. Defualt is Gaussian fitting.
         """
 
         if outputdir is None:
