@@ -86,6 +86,7 @@ class scouse(object):
         self.blockcount = 0.0
         self.check_spec_indices = []
         self.check_block_indices = []
+        self.blocksize = None
         self.completed_stages = []
 
     def load_cube(self, fitsfile=None, cube=None):
@@ -530,8 +531,7 @@ class scouse(object):
         """
         In this stage the user is required to check the best-fitting solutions
         """
-        self.check_block_indices=[]
-        self.blocksize=blocksize
+        self.blocksize = blocksize
 
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
         self.stagedirs.append(s5dir)
@@ -601,13 +601,15 @@ class scouse(object):
         # wishes to iterate over s5 + s6
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
-                pickle.dump(self.check_spec_indices, fh)
+                pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
 
         return self
 
     def load_stage_5(self, fn):
+        with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'rb') as fh:
+            val, self.tolerances = pickle.load(fh)
         with open(fn, 'rb') as fh:
-            self.check_spec_indices = pickle.load(fh)
+            self.check_spec_indices, self.check_block_indices, self.blocksize = pickle.load(fh)
         self.completed_stages.append('s5')
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
@@ -696,7 +698,7 @@ class scouse(object):
             # Manual fitting of the blocks
             manually_fit_blocks(self, block_dict, blocknum)
         # automated fitting of block spectra
-        auto_fit_blocks(self, block_dict, njobs, self.blocksize)
+        auto_fit_blocks(self, block_dict, njobs, self.blocksize, verbose=verbose)
 
         if write_ascii:
             output_ascii_indiv(self, s6dir)

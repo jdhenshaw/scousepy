@@ -426,7 +426,7 @@ def check_dispersion(scouseobject, inputs, parent_model, guesses, condition_pass
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (params[int((i*nparams)+idx)]*fwhmconv < scouseobject.specres*scouseobject.tolerances[1]) or \
+        if (params[int((i*nparams)+idx)]*fwhmconv < scouseobject.cube.header['CDELT3']*scouseobject.tolerances[1]) or \
            (relchange > scouseobject.tolerances[2]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0

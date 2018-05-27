@@ -157,14 +157,14 @@ def manually_fit_blocks(scouseobject, block_dict, blocknum):
                      training_set=False,
                      init_guess=True)
 
-def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize):
+def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize, verbose=False):
     """
     automated fitting of the blocks
     """
     indiv_dictionary = {}
     # Fit the spectra
-    fit_indiv_spectra(scouseobject, block_dict, blocksize/2, \
-                      njobs=njobs, spatial=False, verbose=False, stage=3)
+    fit_indiv_spectra(scouseobject, block_dict, blocksize/3, \
+                      njobs=njobs, spatial=False, verbose=verbose, stage=6)
 
     for block_ind in scouseobject.check_block_indices:
         SAA = block_dict[block_ind]
