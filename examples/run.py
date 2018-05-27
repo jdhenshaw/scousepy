@@ -59,6 +59,8 @@ def run_scousepy():
     else:
         s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb)
 
+    #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, bitesize=True)
+
     if os.path.exists(datadirectory+filename+'/stage_6/s6.scousepy'):
         s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
     else:

@@ -635,7 +635,7 @@ class scouse(object):
         return self.load_indiv_dicts(fn, stage='s4')
 
     def stage_5(self, blocksize = 6, plot_residuals=False, figsize=[10,10],
-                verbose=False, autosave=True, repeat=False,
+                verbose=False, autosave=True, bitesize=False, repeat=False,
                 newfile=None):
         """
         In this stage the user is required to check the best-fitting solutions
@@ -654,6 +654,9 @@ class scouse(object):
             Verbose output.
         autosave : bool, optional
             Autoaves the scouse output.
+        bitesize : bool, optional
+            Optional bitesize checking. This allows the user to pick up where
+            they left off and continue to check spectra.
         repeat : bool, optional
             Sometimes you may want to run stage 5 multiple times. Combined with
             newfile, this allows you to. If you are repeating the process, set
@@ -663,8 +666,9 @@ class scouse(object):
             overwriting the previous one.
 
         """
-        self.check_spec_indices = []
-        self.check_block_indices = []
+        if not bitesize:
+            self.check_spec_indices = []
+            self.check_block_indices = []
 
         self.blocksize = blocksize
 
