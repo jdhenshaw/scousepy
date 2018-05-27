@@ -528,10 +528,8 @@ class scouse(object):
             Gets rid of the dead weight. Scouse generates *big* output filesself.
         autosave : bool, optional
             Autosaves the scouse file.
-            
-        """
 
-        # TODO: Add spatial fitting methodolgy
+        """
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)
@@ -609,6 +607,14 @@ class scouse(object):
     def stage_4(self, verbose=False, autosave=True):
         """
         In this stage we select the best fits out of those performed in stage 3.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Verbose output.
+        autosave : bool, optional
+            Autosaves the scouse file.
+
         """
 
         s4dir = os.path.join(self.outputdirectory, 'stage_4')
@@ -642,11 +648,32 @@ class scouse(object):
     def load_stage_4(self, fn):
         return self.load_indiv_dicts(fn, stage='s4')
 
-    def stage_5(self, blocksize = 6, figsize = None, plot_residuals=False,
-                verbose=False, autosave=True, blockrange=None, repeat=False,
+    def stage_5(self, blocksize = 6, plot_residuals=False,
+                verbose=False, autosave=True, repeat=False,
                 newfile=None):
         """
         In this stage the user is required to check the best-fitting solutions
+
+        Parameters
+        ----------
+        blocksize : int, optional
+            Defines the number of spectra that will be checked at any one time.
+            Scouse will display blocksize x blocksize spectra.
+        plot_residuals : bool, optional
+            If true, scouse will display the residuals as well as the best
+            fitting solution.
+        verbose : bool, optional
+            Verbose output.
+        autoave : bool, optional
+            Autoaves the scouse output.
+        repeat : bool, optional
+            Sometimes you may want to run stage 5 multiple times. Combined with
+            newfile, this allows you to. If you are repeating the process, set
+            to true.
+        newfile : bool, optional
+            If true, scouse will write the output to a new file rather than
+            overwriting the previous one.
+
         """
         self.blocksize = blocksize
 
@@ -655,11 +682,13 @@ class scouse(object):
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
 
+        # Begin interactive plotting
         interactive_state = plt.matplotlib.rcParams['interactive']
         plt.ion()
-
+        # First create an interactive plot displaying the main diagnostics of
+        # 'goodness of fit'. The user can use this to select regions which look
+        # bad and from there, select spectra to refit. s
         dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir)
-
         dd.show_first()
 
         with warnings.catch_warnings():
@@ -675,42 +704,14 @@ class scouse(object):
 
         plt.matplotlib.rcParams['interactive'] = interactive_state
 
+        # These are provided by the user during the interactive selection stage
         check_spec_indices = dd.check_spec_indices
         check_block_indices = dd.check_block_indices
-
-        #if blockrange is not None:
-        #    if repeat and (np.min(blockrange)==0.0):
-        #        self.check_spec_indices=[]
-        #    # Fail safe in case people try to re-run s1 midway through fitting
-        #    # Without this - it would lose all previously fitted spectra.
-        #    if np.min(blockrange) != 0.0:
-        #        if np.size(self.check_spec_indices) == 0.0:
-        #            raise ValueError('Load from autosaved S5 to avoid losing your work!')
-
-        #starttime = time.time()
-
-        #if verbose:
-        #    progress_bar = print_to_terminal(stage='s5', step='start')
-
-
-        ## interactive must be forced to 'false' for this section to work
-        #interactive_state = plt.matplotlib.rcParams['interactive']
-        ##plt.ioff()
-        #check_spec_indices = interactive_plot(self, blocksize, figsize,\
-        #                                      plot_residuals=plot_residuals,\
-        #                                      blockrange=blockrange)
-        #plt.matplotlib.rcParams['interactive'] = interactive_state
-
+s
         # For staged_checking - check and flatten
         self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
         self.check_spec_indices = np.asarray(self.check_spec_indices)
         self.check_block_indices = np.asarray(self.check_block_indices)
-
-        #endtime = time.time()
-        #if verbose:
-        #    progress_bar = print_to_terminal(stage='s5', step='end', \
-        #                                     t1=starttime, t2=endtime, \
-        #                                     var=np.size(self.check_spec_indices))
 
         self.completed_stages.append('s5')
 
