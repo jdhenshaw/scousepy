@@ -664,7 +664,7 @@ class scouse(object):
             fitting solution.
         verbose : bool, optional
             Verbose output.
-        autoave : bool, optional
+        autosave : bool, optional
             Autoaves the scouse output.
         repeat : bool, optional
             Sometimes you may want to run stage 5 multiple times. Combined with
@@ -707,7 +707,7 @@ class scouse(object):
         # These are provided by the user during the interactive selection stage
         check_spec_indices = dd.check_spec_indices
         check_block_indices = dd.check_block_indices
-s
+
         # For staged_checking - check and flatten
         self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
         self.check_spec_indices = np.asarray(self.check_spec_indices)
@@ -736,6 +736,40 @@ s
                 njobs=1 ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
+
+        Parameters
+        ----------
+        plot_neighbours : bool, optional
+            Plots the neighbouring pixels before refitting, for context/a
+            reminder as to why it was selected in the first place.
+        radius_pix : int, optional
+            Combined with plot_neighbours - select how many neighbours you want
+            to plot.
+        figsize : list
+            Figure plot size.
+        plot_residuals : bool, optional
+            If true, scouse will display the residuals as well as the best
+            fitting solution.
+        verbose : bool, optional
+            Verbose output.
+        autosave : bool, optional
+            Autoaves the scouse output.
+        write_ascii : bool, optional
+            Outputs an ascii table containing the best fitting solutions to the
+            individual spectra.
+        specrange : int
+            Staged refitting of the stage 6.
+        repeat : bool, optional
+            Sometimes you may want to run stage 6 multiple times. Combined with
+            newfile, this allows you to. If you are repeating the process, set
+            to true.
+        newfile : bool, optional
+            If true, scouse will write the output to a new file rather than
+            overwriting the previous one.
+        njobs : int, optional
+            Used for parallelised fitting. The parallelisation is a bit crummy
+            at the minute - I need to work on this.
+
         """
 
         # temporary fix: eventually, this should look like stage 2, with
