@@ -349,7 +349,7 @@ class scouse(object):
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                staged=False, nspec=None):
+                bitesize=False, nspec=None):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -363,10 +363,13 @@ class scouse(object):
             spectral averaging areas.
         autosave : bool, optional
             Autosaves the scouse file.
-        staged : bool, optional
-            Staged fitting. Allows a user to break the fitting process down into
+        bitesize : bool, optional
+            Bitesized fitting. Allows a user to break the fitting process down into
             multiple stages. Combined with nspec a user can fit 'nspec' spectra
-            at a time.
+            at a time. For large data cubes fitting everything in one go can be
+            a bit much...
+        nspec : int, optional
+            Fit this many spectra at a time.
 
         """
 
@@ -379,8 +382,8 @@ class scouse(object):
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
-        # Staged fitting preparation
-        if staged:
+        # bitesize fitting preparation
+        if bitesize:
             if self.fitcount != 0.0:
                 lower = int(self.fitcount)
                 upper = int(lower+nspec)
@@ -388,31 +391,13 @@ class scouse(object):
                 lower = 0
                 upper = int(lower+nspec)
 
-            # Fail safe in case people try to re-run s1 midway through fitting
-            # Without this - it would lose all previously fitted spectra.
-            if lower != 0:
-                saa_dict=self.saa_dict[0]
-                keys=list(saa_dict.keys())
-                cont=True
-                counter=0
-                while cont:
-                    key = keys[counter]
-                    SAA=saa_dict[key]
-                    if SAA.to_be_fit:
-                        if SAA.model is None:
-                            raise ValueError('DO NOT RE-RUN S1 - Load from autosaved S2 to avoid losing your work!')
-                        else:
-                            cont=False
-                    else:
-                        counter+=1
-
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
 
-        # Set ranges for staged fitting
-        if not staged:
+        # Set ranges for bitesize fitting
+        if not bitesize:
             fitrange=np.arange(0,int(np.size(saa_list[:,0])))
         else:
             if upper>=np.size(saa_list[:,0]):
@@ -428,7 +413,7 @@ class scouse(object):
                         for ii in fitrange])
 
         if n_to_fit <= 0:
-            raise ValueError("No spectra are selected to be fit.")
+            raise ValueError("No spectra are selected to be fit. Fitting has completed.")
 
         # Loop through the SAAs
         for i_,i in enumerate(fitrange):
@@ -479,7 +464,7 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
-                pickle.dump(self.saa_dict, fh)
+                pickle.dump((self.saa_dict, self.fitcount), fh)
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
@@ -489,7 +474,7 @@ class scouse(object):
 
     def load_stage_2(self, fn):
         with open(fn, 'rb') as fh:
-            self.saa_dict = pickle.load(fh)
+            self.saa_dict, self.fitcount = pickle.load(fh)
         self.completed_stages.append('s2')
 
     def stage_3(self, tol, njobs=1, verbose=False, spatial=False,

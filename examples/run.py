@@ -40,7 +40,9 @@ def run_scousepy():
     if os.path.exists(datadirectory+filename+'/stage_2/s2.scousepy'):
         s.load_stage_2(datadirectory+filename+'/stage_2/s2.scousepy')
     else:
-        s = scouse.stage_2(s, verbose=verb, write_ascii=True)
+        s = scouse.stage_2(s, verbose=verb, write_ascii=True, bitesize=True, nspec=5)
+
+    #s = scouse.stage_2(s, verbose=verb, write_ascii=True, bitesize=True, nspec=5)
 
     if os.path.exists(datadirectory+filename+'/stage_3/s3.scousepy'):
         s.load_stage_3(datadirectory+filename+'/stage_3/s3.scousepy')
@@ -63,13 +65,13 @@ def run_scousepy():
         s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb)
 
     # now iterate
-    s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
-    s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, repeat=True)
-    s.load_stage_5(datadirectory+filename+'/stage_5/s5.scousepy')
-    s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb, repeat=True)
+    #s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
+    #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, repeat=True)
+    #s.load_stage_5(datadirectory+filename+'/stage_5/s5.scousepy')
+    #s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb, repeat=True)
 
-    s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
-    s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, repeat=True)
+    #s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
+    #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, repeat=True)
 
     return s
 
