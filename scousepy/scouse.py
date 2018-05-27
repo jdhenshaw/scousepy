@@ -84,9 +84,9 @@ class scouse(object):
         self.key_set = None
         self.fitcount = 0
         self.blockcount = 0.0
-        self.check_spec_indices = []
-        self.check_block_indices = []
         self.blocksize = None
+        self.check_spec_indices = None
+        self.check_block_indices = None
         self.completed_stages = []
 
     def load_cube(self, fitsfile=None, cube=None):
@@ -648,7 +648,7 @@ class scouse(object):
     def load_stage_4(self, fn):
         return self.load_indiv_dicts(fn, stage='s4')
 
-    def stage_5(self, blocksize = 6, plot_residuals=False,
+    def stage_5(self, blocksize = 6, plot_residuals=False, figsize=[10,10],
                 verbose=False, autosave=True, repeat=False,
                 newfile=None):
         """
@@ -662,6 +662,8 @@ class scouse(object):
         plot_residuals : bool, optional
             If true, scouse will display the residuals as well as the best
             fitting solution.
+        figsize : list
+            Sets the figure size
         verbose : bool, optional
             Verbose output.
         autosave : bool, optional
@@ -675,6 +677,9 @@ class scouse(object):
             overwriting the previous one.
 
         """
+        self.check_spec_indices = []
+        self.check_block_indices = []
+
         self.blocksize = blocksize
 
         s5dir = os.path.join(self.outputdirectory, 'stage_5')
@@ -721,11 +726,13 @@ class scouse(object):
             with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
                 pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
 
+        # close all figures before moving on
+        # (only needed for plt.ion() case)
+        plt.close('all')
+
         return self
 
     def load_stage_5(self, fn):
-        with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'rb') as fh:
-            val, self.tolerances = pickle.load(fh)
         with open(fn, 'rb') as fh:
             self.check_spec_indices, self.check_block_indices, self.blocksize = pickle.load(fh)
         self.completed_stages.append('s5')
@@ -771,7 +778,6 @@ class scouse(object):
             at the minute - I need to work on this.
 
         """
-
         # temporary fix: eventually, this should look like stage 2, with
         # interactive figures
         interactive_state = plt.matplotlib.rcParams['interactive']
@@ -868,6 +874,10 @@ class scouse(object):
 
         # reset the interactive state to whatever it was before
         plt.matplotlib.rcParams['interactive'] = interactive_state
+        
+        # close all figures before moving on
+        # (only needed for plt.ion() case)
+        plt.close('all')
 
         return self
 
