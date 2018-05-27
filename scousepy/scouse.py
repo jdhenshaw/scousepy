@@ -494,7 +494,41 @@ class scouse(object):
     def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
                 clear_cache=True, autosave=True):
         """
-        This stage governs the automated fitting of the data
+        This stage governs the automated fitting of the data.
+
+        Parameters
+        ----------
+        tol : list
+            Tolerance values for the fitting. Should be in the form
+            tol = [T1, T2, T3, T4, T4]. See Henshaw et al. 2016a for full
+            explanation but in short:
+            T1 = multiple of the rms noise value (all components below this
+                 value are rejected).
+            T2 = minimum width of a component (in channels)
+            T3 = Governs how much the velocity of a given component can differ
+                 from the closest matching component in the SAA fit. It is
+                 given as a multiple of the velocity dispersion of the closest
+                 matching component.
+            T4 = Similar to T3. Governs how much the velocity dispersion of a
+                 given component can differ from the velocity dispersion of the
+                 closest matching component in the parent SAA.
+            T5 = Dictates how close two components have to be before they are
+                 considered indistinguishable. Given as a multiple of the
+                 velocity dispersion of the narrowest neighbouring component.
+        njobs : int, optional
+            Used for parallelised fitting. The parallelisation is a bit crummy
+            at the minute - I need to work on this.
+        verbose : bool, optional
+            Verbose output of the fitting process.
+        spatial : bool, optional
+            An extra layer of spatial fitting - this isn't implemented yet. Its
+            largely covered by the SAA fits but it might be worthwhile
+            implementing in the future.
+        clear_cache : bool, optional
+            Gets rid of the dead weight. Scouse generates *big* output filesself.
+        autosave : bool, optional
+            Autosaves the scouse file.
+            
         """
 
         # TODO: Add spatial fitting methodolgy
