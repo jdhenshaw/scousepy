@@ -336,7 +336,9 @@ class scouse(object):
                 pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
 
         input("Press enter to continue...")
-        plt.close(1)
+        # close all figures before moving on
+        # (only needed for plt.ion() case)
+        plt.close('all')
 
         return self
 
@@ -350,6 +352,21 @@ class scouse(object):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Verbose output of fitting process.
+        write_ascii : bool, optional
+            Outputs an ascii table containing the best fitting solutions to the
+            spectral averaging areas.
+        autosave : bool, optional
+            Autosaves the scouse file.
+        staged : bool, optional
+            Staged fitting. Allows a user to break the fitting process down into
+            multiple stages. Combined with nspec a user can fit 'nspec' spectra
+            at a time.
+
         """
 
         s2dir = os.path.join(self.outputdirectory, 'stage_2')
@@ -416,9 +433,16 @@ class scouse(object):
         for i_,i in enumerate(fitrange):
             print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
 
+            # Get the relevant SAA dictionary (if multiple wsaa values are
+            # supplied)
             saa_dict = self.saa_dict[saa_list[i,1]]
+            # Get the first SAA to fit
             SAA = saa_dict[saa_list[i,0]]
 
+            # Fitting process is different for the first SAA in a wsaa loop.
+            # For all subsequent SAAs scouse will try and apply the previous
+            # solution to the spectrum in an attempt to speed things up and
+            # reduce the interactivity
             if SAA.index == 0.0:
                 SAAid=0
                 firstfit=True
@@ -432,6 +456,7 @@ class scouse(object):
                     # "Using default event loop until function specific to this GUI is implemented"
                     warnings.simplefilter('ignore', category=DeprecationWarning)
 
+                    # enter the fitting process
                     bf = fitting(self, SAA, saa_dict, SAAid,
                                  training_set=self.training_set,
                                  init_guess=firstfit)
@@ -440,6 +465,7 @@ class scouse(object):
 
             self.fitcount+=1
 
+        # Output at the end of SAA fitting
         if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
             output_ascii_saa(self, s2dir)
             self.completed_stages.append('s2')
