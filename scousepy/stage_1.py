@@ -159,24 +159,32 @@ def get_coverage(momzero, spacing):
     rangey = [np.min(cols), np.max(cols)]
     sizey = np.abs(np.min(cols)-np.max(cols))
 
-    nposx = int((sizex/(spacing*2.))+1.0)
-    nposy = int((sizey/(spacing*2.))+1.0)
+    nposx = int((sizex/(spacing))+1.0)
+    nposy = int((sizey/(spacing))+1.0)
 
-    cov_x = np.max(rangex)-(spacing*2.)*np.arange(nposx)
-    cov_y = np.min(rangey)+(spacing*2.)*np.arange(nposy)
+    print(sizex)
+    print(sizey)
+
+    cov_x = np.max(rangex)-(spacing)*np.arange(nposx)
+    cov_y = np.min(rangey)+(spacing)*np.arange(nposy)
 
     return cov_y, cov_x
 
-def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine=False):
+def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, redefine=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
     """
 
-    spacing = rsaa/2.
+    # Coverage boxes are spaced by a half-width
+    spacing = wsaa/2.
+    # Get the coverage coordinates
     cov_y, cov_x = get_coverage(momzero, spacing)
 
-    maxspecinsaa = int((rsaa*3)**2)
+    print(cov_x)
+    print(cov_y)
+
+    maxspecinsaa = int((wsaa*1.5)**2)
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
     ids = np.full([len(cov_y)*len(cov_x), maxspecinsaa, 2], np.nan)
@@ -193,11 +201,8 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
                 progress_bar + 1
                 progress_bar.show_progress()
 
-        idx = int((cov_x[0]-cx)/rsaa)
-        idy = int((cy-cov_y[0])/rsaa)
-
-        limx = [int(cx-spacing*2.), int(cx+spacing*2.)]
-        limy = [int(cy-spacing*2.), int(cy+spacing*2.)]
+        limx = [int(cx-spacing), int(cx+spacing)]
+        limy = [int(cy-spacing), int(cy+spacing)]
         limx = [lim if (lim > 0) else 0 for lim in limx ]
         limx = [lim if (lim < np.shape(momzero)[1]-1) else np.shape(momzero)[1]-1 for lim in limx ]
         limy = [lim if (lim > 0) else 0 for lim in limy ]
@@ -206,6 +211,12 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
         rangex = range(min(limx), max(limx)+1)
         rangey = range(min(limy), max(limy)+1)
 
+        print("")
+        print(cx, cy)
+
+        print(min(limx), max(limx))
+        print(min(limy), max(limy))
+
         momzero_cutout = momzero_mod[min(limy):max(limy),
                                      min(limx):max(limx)]
 
@@ -213,6 +224,15 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
 
         finite = np.isfinite(momzero_cutout)
         nmask = np.count_nonzero(finite)
+
+        idx = int((cov_x[0]-cx)/(spacing))
+        idy = int((cy-cov_y[0])/(spacing))
+
+        print(idx)
+        print(idy)
+        print(idy+(idx*len(cov_y)))
+        #sys.exit()
+
         if nmask > 0:
             tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
             fraction = tot_non_zero / nmask
@@ -237,13 +257,13 @@ def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine
 
     return coverage, spec, ids, frac
 
-def get_rsaa(scouseobject):
-    rsaa = []
+def get_wsaa(scouseobject):
+    wsaa = []
     for i in range(1, int(scouseobject.nrefine)+1):
-        newrsaa = scouseobject.rsaa[0]/i
-        if newrsaa > 0.5:
-            rsaa.append(newrsaa)
-    return rsaa
+        newwsaa = scouseobject.wsaa[0]/i
+        if newwsaa > 0.5:
+            wsaa.append(newwsaa)
+    return wsaa
 
 def get_random_saa(cc, samplesize, r, verbose=False):
     """
@@ -254,20 +274,20 @@ def get_random_saa(cc, samplesize, r, verbose=False):
         print('')
         print("Extracting randomly sampled SAAs for training set...")
 
-    npixpersaa = (r*2.0)**2.0
-    training_set_size = npixpersaa*samplesize
+    npixpewsaa = (r)**2.0
+    training_set_size = npixpewsaa*samplesize
 
     sample = np.sort(random.sample(range(0,len(cc[:,0])), samplesize))
 
     if verbose:
         print('Training set size = {}'.format(int(training_set_size)))
         if training_set_size < 1000.0:
-            print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent RSAA)'.format(int(training_set_size)))
+            print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent wsaa)'.format(int(training_set_size)))
         print('')
 
     return sample
 
-def plot_rsaa(dict, momzero, rsaa, dir, filename):
+def plot_wsaa(dict, momzero, wsaa, dir, filename):
     """
     Plot the SAA boxes
     """
@@ -281,19 +301,19 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
                interpolation='nearest')
     cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
-    for i, r in enumerate(rsaa, start=0):
+    for i, w in enumerate(wsaa, start=0):
         alpha = 0.1+(0.05*int(i))
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[1] - r, \
-                             dict[i][j].coordinates[0] - r),\
-                             r * 2., r * 2., facecolor=cols[i],
+                            (dict[i][j].coordinates[1] - w, \
+                             dict[i][j].coordinates[0] - w),\
+                             w , w , facecolor=cols[i],
                              edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[1] - r, \
-                             dict[i][j].coordinates[0] - r),\
-                             r * 2., r * 2., facecolor='None',
+                            (dict[i][j].coordinates[1] - w, \
+                             dict[i][j].coordinates[0] - w),\
+                             w , w , facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
 
     plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')

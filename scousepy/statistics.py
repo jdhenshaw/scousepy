@@ -310,26 +310,26 @@ def get_nspecsaa(self, scouse):
     Number of spectra contained within spectral averaging areas
     """
     indices = []
-    indices_indiv_rsaa = []
+    indices_indiv_wsaa = []
     nspecsaa_indiv = []
 
-    for i, r in enumerate(scouse.rsaa, start=0):
+    for i, r in enumerate(scouse.wsaa, start=0):
         saa_dict = scouse.saa_dict[i]
         for key in saa_dict.keys():
             SAA = saa_dict[key]
             if SAA.to_be_fit:
                 indices+=list(SAA.indices_flat)
-                indices_indiv_rsaa+=list(SAA.indices_flat)
+                indices_indiv_wsaa+=list(SAA.indices_flat)
         indices = np.asarray(indices)
         indices = np.unique(indices)
         indices = list(indices)
 
-        indices_indiv_rsaa = np.asarray(indices_indiv_rsaa)
-        indices_indiv_rsaa = np.unique(indices_indiv_rsaa)
-        indices_indiv_rsaa = list(indices_indiv_rsaa)
+        indices_indiv_wsaa = np.asarray(indices_indiv_wsaa)
+        indices_indiv_wsaa = np.unique(indices_indiv_wsaa)
+        indices_indiv_wsaa = list(indices_indiv_wsaa)
 
-        nspecsaa_indiv.append(np.size(indices_indiv_rsaa))
-        indices_indiv_rsaa = []
+        nspecsaa_indiv.append(np.size(indices_indiv_wsaa))
+        indices_indiv_wsaa = []
 
     # Total number of spectra contained within the spectral averaging areas
     nspecsaa = np.size(indices)
@@ -342,7 +342,7 @@ def get_nsaa(self, scouse):
     """
     nsaa = 0.0
     nsaa_indiv = []
-    for i, r in enumerate(scouse.rsaa, start=0):
+    for i, r in enumerate(scouse.wsaa, start=0):
         saa_dict = scouse.saa_dict[i]
         for key in saa_dict.keys():
             SAA = saa_dict[key]

@@ -33,15 +33,15 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
     can be located within the relavent SAA.
     """
 
-    # Cycle through potentially multiple Rsaa values
-    for i in range(len(scouseobject.rsaa)):
+    # Cycle through potentially multiple wsaa values
+    for i in range(len(scouseobject.wsaa)):
 
         # Get the relavent SAA dictionary
         saa_dict = scouseobject.saa_dict[i]
 
         if verbose:
             count=0
-            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.rsaa[i])
+            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
 
         for j in range(len(saa_dict.keys())):
 
@@ -98,7 +98,7 @@ def get_indiv_spec(inputs):
 
     return indiv_spec
 
-def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
+def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1, \
                       spatial=False, verbose=False, stage=3):
     """
     Automated fitting procedure for individual spectra
@@ -107,9 +107,9 @@ def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
     if verbose:
         count=0
         if stage == 3:
-            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
         else:
-            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
 
     for _key in saa_dict.keys():
         if verbose:
@@ -567,13 +567,13 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
 
     return diff
 
-def compile_spectra(scouseobject, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):
+def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa, spatial=False, verbose=False):
     """
     Here we compile all best-fitting models into a single dictionary.
     """
 
     if verbose:
-        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=rsaa)
+        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=wsaa)
 
     key_list = []
     model_list = []
@@ -641,7 +641,7 @@ def compile_key_sets(scouseobject, key_set):
     """
     Returns unqiue keys
     """
-    if len(scouseobject.rsaa) == 1:
+    if len(scouseobject.wsaa) == 1:
         key_set=key_set[0]
         scouseobject.key_set = key_set
     else:
@@ -651,17 +651,17 @@ def compile_key_sets(scouseobject, key_set):
 
 def merge_dictionaries(scouseobject, indiv_dictionaries, spatial=False, verbose=False):
     """
-    There is now a dictionary for each Rsaa - merge these into a single one
+    There is now a dictionary for each wsaa - merge these into a single one
     """
 
     if verbose:
         progress_bar = print_to_terminal(stage='s3', step='merge', length=0)
 
     main_dict={}
-    if len(scouseobject.rsaa)>1:
+    if len(scouseobject.wsaa)>1:
         for key in scouseobject.key_set:
             # Search dictionaries for found keys
-            keyfound = np.zeros(len(scouseobject.rsaa), dtype='bool')
+            keyfound = np.zeros(len(scouseobject.wsaa), dtype='bool')
             for i in range(len(indiv_dictionaries.keys())):
                 if key in indiv_dictionaries[i]:
                     keyfound[i] = True

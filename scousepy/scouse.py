@@ -65,7 +65,7 @@ class scouse(object):
             self.outputdirectory = os.path.join(outputdir, filename)
         self.stagedirs = []
         self.cube = None
-        self.rsaa = None
+        self.wsaa = None
         self.ppv_vol = None
         self.rms_approx = None
         self.mask_below = 0.0
@@ -118,7 +118,7 @@ class scouse(object):
             self.rms_approx = compute_noise(self)
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.0,
+    def stage_1(filename, datadirectory, ppv_vol, wsaa, mask_below=0.0,
                 cube=None, verbose = False, outputdir=None,
                 write_moments=False, save_fig=True, training_set=False,
                 samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
@@ -131,7 +131,7 @@ class scouse(object):
         if outputdir is None:
             outputdir=datadirectory
         self = scouse(fittype=fittype, filename=filename, outputdir=outputdir, datadirectory=datadirectory)
-        self.rsaa = rsaa
+        self.wsaa = wsaa
         self.ppv_vol = ppv_vol
         self.nrefine = nrefine
         self.mask_below=mask_below
@@ -175,10 +175,10 @@ class scouse(object):
 
             # If the user has chosen to refine the grid
             if refine_grid:
-                self.rsaa = get_rsaa(self)
+                self.wsaa = get_wsaa(self)
                 if verbose:
-                    if np.size(self.rsaa) != self.nrefine:
-                        raise ValueError('Rsaa < 1 pixel. Either increase Rsaa or decrease nrefine.')
+                    if np.size(self.wsaa) != self.nrefine:
+                        raise ValueError('wsaa < 1 pixel. Either increase wsaa or decrease nrefine.')
 
                 delta_v = calculate_delta_v(self, momone, momnine)
                 # generate logarithmically spaced refinement steps
@@ -188,19 +188,20 @@ class scouse(object):
                 mom_zero = momzero.value
 
             nref = self.nrefine
-            for i, r in enumerate(self.rsaa, start=0):
-
+            for i, w in enumerate(self.wsaa, start=0):
+                print('')
+                print(w)
                 # Refine the mom zero grid if necessary
                 self.saa_dict[i] = {}
                 cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
-                                                    momzero.value, r, 1.0,
+                                                    momzero.value, w, 1.0,
                                                     verbose)
                 if refine_grid:
                     mom_zero = refine_momzero(self, momzero.value, delta_v,
                                               step_values[i], step_values[i+1])
                     _cc, _ss, _ids, _frac = define_coverage(self.cube,
                                                             momzero.value,
-                                                            mom_zero, r, nref,
+                                                            mom_zero, w, nref,
                                                             verbose,
                                                             redefine=True)
                 else:
@@ -238,7 +239,7 @@ class scouse(object):
 
         if save_fig:
             # plot multiple coverage areas
-            plot_rsaa(self.saa_dict, momzero.value, self.rsaa, s1dir, filename)
+            plot_wsaa(self.saa_dict, momzero.value, self.wsaa, s1dir, filename)
 
         endtime = time.time()
 
@@ -252,7 +253,7 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.datadirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.rsaa, self.ppv_vol), fh)
+                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
 
         input("Press enter to continue.")
         plt.close(1)
@@ -261,7 +262,7 @@ class scouse(object):
 
     def load_stage_1(self, fn):
         with open(fn, 'rb') as fh:
-            self.saa_dict,self.rsaa, self.ppv_vol = pickle.load(fh)
+            self.saa_dict,self.wsaa, self.ppv_vol = pickle.load(fh)
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
@@ -276,7 +277,7 @@ class scouse(object):
         # create the stage_2 directory
         mkdir_s2(self.outputdirectory, s2dir)
 
-        # generate a list of all SAA's (inc. all Rsaas)
+        # generate a list of all SAA's (inc. all wsaas)
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
@@ -411,20 +412,20 @@ class scouse(object):
         initialise_indiv_spectra(self, verbose=verbose, njobs=njobs)
 
         key_set = []
-        # Cycle through potentially multiple Rsaa values
-        for i in range(len(self.rsaa)):
+        # Cycle through potentially multiple wsaa values
+        for i in range(len(self.wsaa)):
             # Get the relavent SAA dictionary
             saa_dict = self.saa_dict[i]
             indiv_dictionaries[i] = {}
             # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.rsaa[i], njobs=njobs,
+            fit_indiv_spectra(self, saa_dict, self.wsaa[i], njobs=njobs,
                               spatial=spatial, verbose=verbose)
 
 
             # Compile the spectra
             indiv_dict = indiv_dictionaries[i]
             _key_set = compile_spectra(self, saa_dict, indiv_dict,
-                                       self.rsaa[i], spatial=spatial,
+                                       self.wsaa[i], spatial=spatial,
                                        verbose=verbose)
             # Clean things up a bit
             if clear_cache:
@@ -432,10 +433,10 @@ class scouse(object):
             key_set.append(_key_set)
 
 
-        # At this stage there are multiple key sets: 1 for each rsaa value
+        # At this stage there are multiple key sets: 1 for each wsaa value
         # compile into one.
         compile_key_sets(self, key_set)
-        # merge multiple rsaa solutions into a single dictionary
+        # merge multiple wsaa solutions into a single dictionary
         merge_dictionaries(self, indiv_dictionaries,
                            spatial=spatial, verbose=verbose)
         # remove any duplicate entries

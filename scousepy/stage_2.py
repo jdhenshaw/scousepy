@@ -281,7 +281,7 @@ def generate_saa_list(scouseobject):
     Returns a list constaining all spectral averaging areas.
     """
     saa_list=[]
-    for i in range(len(scouseobject.rsaa)):
+    for i in range(len(scouseobject.wsaa)):
         saa_dict = scouseobject.saa_dict[i]
         for j in range(len(saa_dict.keys())):
             # get the relavent SAA
