@@ -38,6 +38,7 @@ from .solution_description import fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+plt.ion()
 
 Fitter = Stage2Fitter()
 fitting = Fitter.fitting
@@ -687,9 +688,11 @@ class scouse(object):
         # create the stage_5 directory
         mkdir_s5(self.outputdirectory, s5dir)
 
+        starttime = time.time()
+
         # Begin interactive plotting
         interactive_state = plt.matplotlib.rcParams['interactive']
-        plt.ion()
+
         # First create an interactive plot displaying the main diagnostics of
         # 'goodness of fit'. The user can use this to select regions which look
         # bad and from there, select spectra to refit. s
@@ -718,13 +721,29 @@ class scouse(object):
         self.check_spec_indices = np.asarray(self.check_spec_indices)
         self.check_block_indices = np.asarray(self.check_block_indices)
 
+        endtime = time.time()
+        if verbose:
+            progress_bar = print_to_terminal(stage='s5', step='end', \
+                                             t1=starttime, t2=endtime, \
+                                             var=np.size(self.check_spec_indices)+(np.size(self.check_block_indices)*(self.blocksize**2)))
+
         self.completed_stages.append('s5')
 
         # Save the scouse object automatically - create a backup if the user
         # wishes to iterate over s5 + s6
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
-                pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+            if repeat:
+                if newfile is not None:
+                    with open(self.datadirectory+self.filename+newfile, 'wb') as fh:
+                        pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+                else:
+                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
+                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
+                    with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                        pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+            else:
+                with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                    pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
@@ -866,15 +885,27 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s6', step='end',
                                              t1=starttime, t2=endtime)
 
+        # Save the scouse object automatically - create a backup if the user
+        # wishes to iterate over s5 + s6
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dict, fh)
+            if repeat:
+                if newfile is not None:
+                    with open(self.datadirectory+self.filename+newfile, 'wb') as fh:
+                        pickle.dump(self.indiv_dict, fh)
+                else:
+                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
+                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
+                    with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                        pickle.dump(self.indiv_dict, fh)
+            else:
+                with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                    pickle.dump(self.indiv_dict, fh)
 
         self.completed_stages.append('s6')
 
         # reset the interactive state to whatever it was before
         plt.matplotlib.rcParams['interactive'] = interactive_state
-        
+
         # close all figures before moving on
         # (only needed for plt.ion() case)
         plt.close('all')

@@ -447,6 +447,7 @@ class DiagnosticImageFigure(object):
                 self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
                                                  levels=[0.5, 1.5], alpha=0.8)
                 print("Number of pixels examined interactively is now {0}".format(self.done_block_mask.sum()))
+                print("")
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
