@@ -189,14 +189,22 @@ class scouse(object):
 
             nref = self.nrefine
             for i, w in enumerate(self.wsaa, start=0):
-                print('')
-                print(w)
-                # Refine the mom zero grid if necessary
+                # Create a dictionary to house the SAAs
                 self.saa_dict[i] = {}
+
+                # Make a first pass at defining the coverage.
                 cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
                                                     momzero.value, w, 1.0,
                                                     verbose)
+
                 if refine_grid:
+                    # When refining the coverage - we have to recompute the
+                    # momzero map according to which regions have more complex
+                    # line profiles. As such we need to recompute _cc, _ids, and
+                    # _frac. _ss will be the same (the spectra don't change)
+                    # and so these are not recomputed (see line 264 in stage_1).
+                    # However, we do want to know which coverage boxes to retain
+
                     mom_zero = refine_momzero(self, momzero.value, delta_v,
                                               step_values[i], step_values[i+1])
                     _cc, _ss, _ids, _frac = define_coverage(self.cube,
@@ -215,9 +223,13 @@ class scouse(object):
                     totfit = len(self.sample)
                 else:
                     if not refine_grid:
+                        # Define the sample of spectra to fit - i.e. where cc
+                        # is finite
                         self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
                         totfit = len(cc[(np.isfinite(cc[:,0])),0])
                     else:
+                        # If refining the grid use _cc as well - i.e. the
+                        # recomputed positions based on the refined momzero map
                         self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
                         totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
@@ -225,16 +237,26 @@ class scouse(object):
                     progress_bar = print_to_terminal(stage='s1',
                                                      step='coverage',
                                                      var=totfit)
+
                 speccount=0
+                # Now cycle through the spatially-averaged spectra
                 for xind in range(np.shape(ss)[2]):
                     for yind in range(np.shape(ss)[1]):
+                        # Every SAA gets a spectrum even if it is not to be
+                        # fitted - this is probably a bit wasteful. If the
+                        # spectrum is contained within the sample (see above)
+                        # it will be fitted during stage 2.
                         sample = speccount in self.sample
+                        # generate the SAA
                         SAA = saa(cc[speccount,:], ss[:, yind, xind],
                                   idx=speccount, sample=sample, scouse=self)
+                        # Add the SAA to the dictionary
                         self.saa_dict[i][speccount] = SAA
-                        speccount+=1
+                        # Add the indices of the individual spectra contained
+                        # within the SAA box to the SAA.
                         indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
+                        speccount+=1
             log.setLevel(old_log)
 
         if save_fig:

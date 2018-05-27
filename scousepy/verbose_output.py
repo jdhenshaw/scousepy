@@ -34,8 +34,13 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='coverage':
             if length != None:
                 print('Establishing coverage...')
-                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
-                                                   fill='=', blank='.')
+                #progress_bar = AnimatedProgressBar(end=length-1, width=50, \
+                #                                   fill='=', blank='.')
+                #print(progress_bar)
+                #print("")
+                #import sys
+                #sys.exit()
+                progress_bar=0
                 print('')
             else:
                 print('Number of spectra to fit manually: {}'.format(var))
