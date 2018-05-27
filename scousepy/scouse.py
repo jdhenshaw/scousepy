@@ -714,7 +714,8 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='end', \
                                              t1=starttime, t2=endtime, \
-                                             var=np.size(self.check_spec_indices)+(np.size(self.check_block_indices)*(self.blocksize**2)))
+                                             var=[np.size(self.check_spec_indices)+(np.size(self.check_block_indices)*(self.blocksize**2)),
+                                                  np.size(self.check_block_indices), np.size(self.check_spec_indices)])
 
         self.completed_stages.append('s5')
 
