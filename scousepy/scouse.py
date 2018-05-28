@@ -832,7 +832,7 @@ class scouse(object):
             # place - it helps to provide a bit of context
             if plot_neighbours:
                 # Find the neighbours
-                indices_adjacent = neighbours(np.shape(self.cube)[1:3],
+                indices_adjacent = neighbours(self.cube.shape[1:],
                                               int(key), radius_pix)
                 # plot the neighbours
                 plot_neighbour_pixels(self, indices_adjacent, figsize)

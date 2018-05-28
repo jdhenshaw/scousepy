@@ -25,14 +25,16 @@ from .io import *
 def compute_noise(scouseobject):
     """
     Estimate the typical rms noise across the map
+
+    Credit: Manuel Reiner
     """
 
     keep = scouseobject.cube.mask.include().any(axis=0)
 
     finiteidxs = np.array(np.where(keep))
-    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(scouseobject.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
+    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], scouseobject.cube.shape[1:]) for i in range(len(finiteidxs[0,:]))]
     random_indices = random.sample(list(flatidxs), k=len(flatidxs))
-    locations = np.array(np.unravel_index(random_indices, np.shape(scouseobject.cube)[1:3]))
+    locations = np.array(np.unravel_index(random_indices, scouseobject.cube.shape[1:]))
 
     if len(locations[0,:]) > 500.0:
         stop = 500.0

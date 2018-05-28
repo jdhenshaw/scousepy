@@ -26,7 +26,7 @@ def run_scousepy():
     TS = False
     verb = True
     fittype = 'gaussian'
-    njobs = 1
+    njobs = 4
 
     #s = scouse.stage_1(filename, datadirectory, ppv_vol, rsaa, mask_below=0.3, verbose = verb, training_set=TS, samplesize=1, write_moments=True, save_fig=True)
     if os.path.exists(datadirectory+filename+'/stage_1/s1.scousepy'):
@@ -40,7 +40,7 @@ def run_scousepy():
     if os.path.exists(datadirectory+filename+'/stage_2/s2.scousepy'):
         s.load_stage_2(datadirectory+filename+'/stage_2/s2.scousepy')
     else:
-        s = scouse.stage_2(s, verbose=verb, write_ascii=True, bitesize=True, nspec=5)
+        s = scouse.stage_2(s, verbose=verb, write_ascii=True)
 
     #s = scouse.stage_2(s, verbose=verb, write_ascii=True, bitesize=True, nspec=5)
 

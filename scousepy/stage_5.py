@@ -338,10 +338,10 @@ def generate_2d_parametermap(scouseobject, spectrum_parameter):
     """
     blankmap = np.zeros(scouseobject.cube.shape[1:])
     blankmap[:] = np.nan
-
     for ind,spec in ProgressBar(scouseobject.indiv_dict.items()):
         cy,cx = spec.coordinates
-        blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
+        if getattr(spec.model, 'ncomps') != 0:
+            blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
 
     return blankmap
 

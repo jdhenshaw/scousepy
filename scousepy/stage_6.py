@@ -200,9 +200,8 @@ def get_offsets(radius_pix):
 
     """
     arr = np.arange(radius_pix+1)
-    sym = np.concatenate((arr,arr * -1)).astype(np.int)
+    sym = np.concatenate((arr*-1,arr )).astype(np.int)
     sym = np.unique(sym)
-
     _offsets = [pair for pair in itertools.product(sym,sym)]
 
     return _offsets
@@ -213,7 +212,7 @@ def neighbours(n_dim, idx, radius_pix):
     """
 
     # Unravel the index of the selected spectrum
-    unrav_idx = np.unravel_index(idx, n_dim[::-1])
+    unrav_idx = np.unravel_index(idx, n_dim)
 
     # Get all the adjacent neighbours
     idxs = [tuple(c) for c in np.add(get_offsets(radius_pix), unrav_idx)]
@@ -222,11 +221,10 @@ def neighbours(n_dim, idx, radius_pix):
     # Find out which of those neighbours are valid according to the shape of the
     # data cube
     validids = np.full(np.shape(idxs), np.nan)
-    valid = (idxs[:,0] >= 0) & (idxs[:,0] < n_dim[1]) & (idxs[:,1] >= 0) & (idxs[:,1] < n_dim[0])
+    valid = (idxs[:,0] >= 0) & (idxs[:,0] < n_dim[0]) & (idxs[:,1] >= 0) & (idxs[:,1] < n_dim[1])
     validids[valid] = idxs[valid,:]
-
     # Package the valid neighburs up and send them back!
-    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim[::-1]) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
+    indices_adjacent = [np.ravel_multi_index(np.array([int(validids[i,0]), int(validids[i,1])]), n_dim) if np.isfinite(validids[i,0]) else np.nan for i in range(len(validids[:,0]))]
 
     return indices_adjacent
 
@@ -237,15 +235,12 @@ def plot_neighbour_pixels(scouseobject, indices_adjacent, figsize):
     npix = np.size(indices_adjacent)
 
     # Set up figure page
-    fig, ax = pyplot.subplots(int(np.sqrt(npix)), int(np.sqrt(npix)), figsize=figsize)
+    fig, axes = pyplot.subplots(int(np.sqrt(npix)), int(np.sqrt(npix)), figsize=figsize)
     fig.canvas.mpl_connect('key_press_event', keyentry)
     fig.patch.set_facecolor('black')
     fig.patch.set_alpha(0.05)
     plt.suptitle("Checking spectrum and its neighbours. Press 'enter' to continue.")
-    ax = np.asarray(ax)
-    ax = ax.T
-    ax = ax[:,::-1]
-    ax = [a for axis in ax for a in axis]
+    ax = [a for axis in axes[::-1] for a in axis]
 
     for i, key in enumerate(indices_adjacent, start=0):
 
