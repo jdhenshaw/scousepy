@@ -342,7 +342,8 @@ def generate_2d_parametermap(scouseobject, spectrum_parameter):
         cy,cx = spec.coordinates
         if getattr(spec.model, 'ncomps') != 0:
             blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
-
+        else:
+            blankmap[cy, cx] = np.nan
     return blankmap
 
 def generate_diagnostic_maps(scouseobject, maps=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2']):
@@ -354,7 +355,7 @@ class DiagnosticImageFigure(object):
     def __init__(self, scouseobject, fig=None, ax=None, keep=False,
                  blocksize=6, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
                  plotkwargs=dict(interpolation='none', origin='lower'),
-                 savedir=None,
+                 savedir=None, repeat=False,
                 ):
         """
         """
@@ -374,7 +375,7 @@ class DiagnosticImageFigure(object):
         self.mapnames = mapnames
         self.maps = {}
 
-        if savedir is not None:
+        if savedir is not None and not repeat:
             loaded = self.load_maps(savedir)
             not_loaded = [x for x in self.mapnames if x not in loaded]
         else:

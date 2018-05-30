@@ -66,8 +66,9 @@ def run_scousepy():
     else:
         s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb)
 
+    #s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, blocks_only=True, write_ascii=True, verbose=verb)
+
     # now iterate
-    #s.load_stage_6(datadirectory+filename+'/stage_6/s6.scousepy')
     #s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=verb, repeat=True)
     #s.load_stage_5(datadirectory+filename+'/stage_5/s5.scousepy')
     #s = scouse.stage_6(s, plot_neighbours=True, radius_pix = 2, figsize = [18,10], plot_residuals=True, write_ascii=True, verbose=verb, repeat=True)

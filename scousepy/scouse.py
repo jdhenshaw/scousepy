@@ -84,7 +84,8 @@ class scouse(object):
         self.indiv_dict = None
         self.key_set = None
         self.fitcount = 0
-        self.blockcount = 0.0
+        self.fitcounts6 = 0
+        self.blockcount = 0
         self.blocksize = None
         self.check_spec_indices = None
         self.check_block_indices = None
@@ -581,8 +582,12 @@ class scouse(object):
         return self
 
     def load_indiv_dicts(self, fn, stage):
-        with open(fn, 'rb') as fh:
-            self.indiv_dict = pickle.load(fh)
+        if stage=='s6':
+            with open(fn, 'rb') as fh:
+                self.indiv_dict, self.fitcounts6 = pickle.load(fh)
+        else:
+            with open(fn, 'rb') as fh:
+                self.indiv_dict = pickle.load(fh)
         self.completed_stages.append(stage)
 
     def load_stage_3(self, fn):
@@ -684,8 +689,8 @@ class scouse(object):
 
         # First create an interactive plot displaying the main diagnostics of
         # 'goodness of fit'. The user can use this to select regions which look
-        # bad and from there, select spectra to refit. s
-        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir)
+        # bad and from there, select spectra to refit.
+        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir, repeat=repeat)
         dd.show_first()
 
         with warnings.catch_warnings():
@@ -748,7 +753,8 @@ class scouse(object):
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
                 plot_residuals=False, verbose=False, autosave=True,
-                write_ascii=False, specrange=None, repeat=None, newfile=None,
+                blocks_only=False, indiv_only=False, bitesize=False, nspec=None,
+                write_ascii=False, repeat=None, newfile=None,
                 njobs=1 ):
         """
         In this stage the user takes a closer look at the spectra selected in s5
@@ -770,11 +776,17 @@ class scouse(object):
             Verbose output.
         autosave : bool, optional
             Autoaves the scouse output.
+        blocks_only : bool, optional
+            Allows the user to fit only the blocks.
+        indiv_only : bool, optional
+            Allows the user to fit only the individual spectra.
+        bitesize : bool, optional
+            Allows the user to fit the individual spectra in chunks.
+        npec : int, optional
+            The number of spectra to be fit during bitesize fitting.
         write_ascii : bool, optional
             Outputs an ascii table containing the best fitting solutions to the
             individual spectra.
-        specrange : int
-            Staged refitting of the stage 6.
         repeat : bool, optional
             Sometimes you may want to run stage 6 multiple times. Combined with
             newfile, this allows you to. If you are repeating the process, set
@@ -797,12 +809,12 @@ class scouse(object):
         # create the stage_6 directory
         mkdir_s6(self.outputdirectory, s6dir)
 
-        if specrange is not None:
+        #if specrange is not None:
             # Fail safe in case people try to re-run s1 midway through fitting
             # Without this - it would lose all previously fitted spectra.
-            if np.min(specrange) != 0.0:
-                if not 's6' in self.completed_stages:
-                    raise ValueError('Load from autosaved S6 to avoid losing your work!')
+        #    if np.min(specrange) != 0.0:
+        #        if not 's6' in self.completed_stages:
+        #            raise ValueError('Load from autosaved S6 to avoid losing your work!')
 
         starttime = time.time()
 
@@ -813,61 +825,96 @@ class scouse(object):
         # duplicates
         self.check_spec_indices = check_blocks(self)
 
-        # For staged refitting
-        if specrange is None:
-            specrange=np.arange(0,int(np.size(self.check_spec_indices)))
-        else:
-            if np.max(specrange)>int(np.size(self.check_spec_indices)):
-                specrange=np.arange(int(np.min(specrange)),int(np.size(self.check_spec_indices)))
+        # Give the user the option of fitting only blocks or individal spectra
+        fit_blocks=True; fit_indiv=True
+        if blocks_only:
+            fit_blocks=True; fit_indiv=False
+        elif indiv_only:
+            fit_blocks=False
+
+        # bitesize fitting preparation
+        if bitesize:
+            if self.fitcounts6 != 0.0:
+                lower = int(self.fitcounts6)
+                upper = int(lower+nspec)
             else:
-                specrange=np.arange(int(np.min(specrange)),int(np.max(specrange)))
+                lower = 0
+                upper = int(lower+nspec)
 
-        # Here we will fit the individual spectra that have been selected for
-        # refitting
-        for i in specrange:
-            key = self.check_spec_indices[i]
+        # Set ranges for bitesize fitting
+        if not bitesize:
+            fitrange=np.arange(0,int(np.size(self.check_spec_indices)))
+        else:
+            if upper>=np.size(self.check_spec_indices):
+                if lower >= np.size(self.check_spec_indices):
+                    fitrange=[]
+                else:
+                    fitrange=np.arange(int(lower),int(np.size(self.check_spec_indices)))
+            else:
+                fitrange=np.arange(int(lower),int(upper))
 
-            # This first of all plots the neighbouring pixels - this can be
-            # useful if you forget why you selected that spectrum in the first
-            # place - it helps to provide a bit of context
-            if plot_neighbours:
-                # Find the neighbours
-                indices_adjacent = neighbours(self.cube.shape[1:],
-                                              int(key), radius_pix)
-                # plot the neighbours
-                plot_neighbour_pixels(self, indices_adjacent, figsize)
+        if fit_indiv:
+            # determine how many fits we will actually be performing
+            n_to_fit = np.size(fitrange)
 
-            # This will plot the current model solution as well as all possible
-            # alternatives. The user should either select one of these or
-            # press enter to enter the manual fitting mode
-            models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
-            update_models(self, key, models, selection)
+            if n_to_fit <= 0:
+                raise ValueError("No spectra are selected to be fit. Re-fitting individual spectra has completed.")
 
-        # Stage 5 gives the user the option to select all pixels within a block
-        # for refitting - this first of all generates a pseudo-SAA from the
-        # block, we then manually fit. This solution is then applied to all
-        # spectra contained within the block.
-        block_dict={}
-        # cycle through all the blocks
-        for blocknum in self.check_block_indices:
-            # create an empty spectrum
-            spec = np.zeros(self.cube.shape[0])
-            # get all of the individual pixel indices contained within that
-            # block
-            block_indices = get_block_indices(self, blocknum)
-            # turn the flattened indices into 2D indices such that we can find
-            # the spectra in the cube
-            coords = gen_2d_coords(self,block_indices)
-            # create an SAA
-            SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
-            # prepare the spectra for fitting
-            initialise_indiv_spectra_s6(self, SAA, njobs)
-            # Manual fitting of the blocks
-            manually_fit_blocks(self, block_dict, blocknum)
-        # automated fitting of block spectra
-        auto_fit_blocks(self, block_dict, njobs, self.blocksize, verbose=verbose)
+            # Loop through the spectra that are to be fit
+            for i_,i in enumerate(fitrange):
+                print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
 
-        if write_ascii:
+                # Here we will fit the individual spectra that have been
+                # selected for refitting
+
+                key = self.check_spec_indices[i]
+
+                # This first of all plots the neighbouring pixels - this can be
+                # useful if you forget why you selected that spectrum in the first
+                # place - it helps to provide a bit of context
+                if plot_neighbours:
+                    # Find the neighbours
+                    indices_adjacent = neighbours(self.cube.shape[1:],
+                                                  int(key), radius_pix)
+                    # plot the neighbours
+                    plot_neighbour_pixels(self, indices_adjacent, figsize)
+
+                # This will plot the current model solution as well as all
+                # possible alternatives. The user should either select one of
+                # these or press enter to enter the manual fitting mode
+                models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
+                update_models(self, key, models, selection)
+
+                self.fitcounts6+=1
+
+        if fit_blocks:
+            # Stage 5 gives the user the option to select all pixels within a block
+            # for refitting - this first of all generates a pseudo-SAA from the
+            # block, we then manually fit. This solution is then applied to all
+            # spectra contained within the block.
+            block_dict={}
+            # cycle through all the blocks
+            for blocknum in self.check_block_indices:
+                # create an empty spectrum
+                spec = np.zeros(self.cube.shape[0])
+                # get all of the individual pixel indices contained within that
+                # block
+                block_indices = get_block_indices(self, blocknum)
+                # turn the flattened indices into 2D indices such that we can find
+                # the spectra in the cube
+                coords = gen_2d_coords(self,block_indices)
+                # create an SAA
+                SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
+                # prepare the spectra for fitting
+                initialise_indiv_spectra_s6(self, SAA, njobs)
+                # Manual fitting of the blocks
+                manually_fit_blocks(self, block_dict, blocknum)
+            # automated fitting of block spectra
+            auto_fit_blocks(self, block_dict, njobs, self.blocksize, verbose=verbose)
+            self.blockcount+=1
+
+        if write_ascii and (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
+           and (self.blockcount == int(np.size(self.check_block_indices))):
             output_ascii_indiv(self, s6dir)
 
         endtime = time.time()
@@ -881,15 +928,15 @@ class scouse(object):
             if repeat:
                 if newfile is not None:
                     with open(self.datadirectory+self.filename+newfile, 'wb') as fh:
-                        pickle.dump(self.indiv_dict, fh)
+                        pickle.dump((self.indiv_dict, self.fitcounts6), fh)
                 else:
                     os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
                               self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
                     with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
-                        pickle.dump(self.indiv_dict, fh)
+                        pickle.dump((self.indiv_dict, self.fitcounts6), fh)
             else:
                 with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
-                    pickle.dump(self.indiv_dict, fh)
+                    pickle.dump((self.indiv_dict, self.fitcounts6), fh)
 
         self.completed_stages.append('s6')
 
