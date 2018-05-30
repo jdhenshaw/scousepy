@@ -115,9 +115,13 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         slab = scouseobject.cube.spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
         maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
+
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
+        slabarr = np.copy(slab.unmasked_data[:].value)
+        idnan = (np.isfinite(slabarr)==0)
+        slabarr[idnan] = -100000.0
+        idxmax = np.nanargmax(slabarr, axis=0)
         momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
         idnan = (np.isfinite(momtwo.value)==0)
@@ -135,10 +139,14 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         slab = scouseobject.cube
         maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit))
+
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
-        momnine=slab.spectral_axis[idxmax].value
+        slabarr = np.copy(slab.unmasked_data[:].value)
+        idnan = (np.isfinite(slabarr)==0)
+        slabarr[idnan] = -10000000.0
+        idxmax = np.nanargmax(slabarr, axis=0)
+        momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
         idnan = (np.isfinite(momtwo.value)==0)
         momnine[idnan] = np.nan
