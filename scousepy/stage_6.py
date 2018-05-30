@@ -456,6 +456,11 @@ class Stage6Fitter(object):
                     self.spec.specfit.button3action(event)
                     self.bf = fit(self.spec, idx=self.spectrum.index,
                                   scouse=self.scouseobject)
+                    self.spec.specfit.plot_fit(show_components=True)
+                    self.spec.specfit.plotresiduals(axis=self.spec.plotter.axis,
+                                               clear=False,
+                                               color='g',
+                                               label=False)
                     print_fit_information(self.bf, init_guess=True)
                     print("If you are happy with this fit, press Enter.  Otherwise, "
                           "use the 'f' key to re-enter the interactive fitter.")
