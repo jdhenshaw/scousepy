@@ -119,8 +119,9 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         slabarr = np.copy(slab.unmasked_data[:].value)
-        idnan = (np.isfinite(slabarr)==0)
-        slabarr[idnan] = -100000.0
+        idnan = (~np.isfinite(slabarr))
+        negative_inf = -1e10
+        slabarr[idnan] = negative_inf
         idxmax = np.nanargmax(slabarr, axis=0)
         momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
@@ -143,8 +144,9 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
         slabarr = np.copy(slab.unmasked_data[:].value)
-        idnan = (np.isfinite(slabarr)==0)
-        slabarr[idnan] = -10000000.0
+        idnan = (~np.isfinite(slabarr))
+        negative_inf = -1e10
+        slabarr[idnan] = negative_inf
         idxmax = np.nanargmax(slabarr, axis=0)
         momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
@@ -244,7 +246,7 @@ def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y, c
     finite = np.isfinite(momzero_cutout)
     nmask = np.count_nonzero(finite)
 
-    # range for looping (used in line 251)
+    # range for looping (used below)
     rangex = range(min(limx), max(limx)+1)
     rangey = range(min(limy), max(limy)+1)
 
