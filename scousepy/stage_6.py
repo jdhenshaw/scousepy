@@ -182,7 +182,7 @@ def auto_fit_blocks(scouseobject, block_dict, njobs, blocksize, verbose=False):
             # Now add this as the best-fitting model and add the others to models
             add_bf_model(spectrum, SAA.indiv_spectra[key].model_parent)
             update_model_list(spectrum, models)
-            decision = 'refit'
+            decision = 'block refit'
             add_decision(spectrum, decision)
 
 
