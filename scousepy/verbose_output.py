@@ -34,8 +34,13 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='coverage':
             if length != None:
                 print('Establishing coverage...')
-                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
-                                                   fill='=', blank='.')
+                #progress_bar = AnimatedProgressBar(end=length-1, width=50, \
+                #                                   fill='=', blank='.')
+                #print(progress_bar)
+                #print("")
+                #import sys
+                #sys.exit()
+                progress_bar=0
                 print('')
             else:
                 print('Number of spectra to fit manually: {}'.format(var))
@@ -75,21 +80,21 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             if length != None:
                 print("")
                 print("")
-                print('Initialising spectra: Rsaa = {0}'.format(var))
+                print('Initialising spectra: wsaa = {0}'.format(var))
                 progress_bar = AnimatedProgressBar(end=length-1, width=50, \
                                                    fill='=', blank='.')
                 print("")
         if step=='fitting':
             if length != None:
                 print("")
-                print('Automated fitting: Rsaa = {0}'.format(var))
-                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
-                                                   fill='=', blank='.')
+                print('Automated fitting: wsaa = {0}'.format(var))
+                progress_bar = []#AnimatedProgressBar(end=length-1, width=50, \
+                                #                   fill='=', blank='.')
                 print('')
         if step=='compile':
             print("")
             print("")
-            print("Compiling model solutions: Rsaa = {0}".format(var))
+            print("Compiling model solutions: wsaa = {0}".format(var))
             print("")
             progress_bar=[]
         if step=='merge':
@@ -131,9 +136,9 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='end':
             print("")
             if var == 1:
-                print("A single spectrum has been chosen for inspection.".format(var))
+                print("A single spectrum has been chosen for inspection.")
             else:
-                print("A total of {0} spectra have been chosen for inspection.".format(var))
+                print("A total of {0} spectra have been chosen for inspection\nThis includes {1} block(s) and {2} individual pixel(s).".format(var[0], var[1], var[2]))
             print("")
             print('scousepy stage 5 completed in: {0} minutes'.format((t2-t1)/60.))
             print("")
@@ -149,11 +154,11 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='fitting':
             if length != None:
                 print("")
-                print('Automated fitting: Rsaa = {0}'.format(var))
-                progress_bar = AnimatedProgressBar(end=length-1, width=50, \
-                                                   fill='=', blank='.')
+                print('Automated fitting: wsaa = {0}'.format(var))
+                progress_bar = []# AnimatedProgressBar(end=length-1, width=50, \
+                                    #               fill='=', blank='.')
                 print('')
-                
+
         if step=='end':
             print("")
             print('scousepy stage 6 completed in: {0} minutes'.format((t2-t1)/60.))

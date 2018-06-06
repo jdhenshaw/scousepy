@@ -25,14 +25,16 @@ from .io import *
 def compute_noise(scouseobject):
     """
     Estimate the typical rms noise across the map
+
+    Credit: Manuel Reiner
     """
 
     keep = scouseobject.cube.mask.include().any(axis=0)
 
     finiteidxs = np.array(np.where(keep))
-    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], np.shape(scouseobject.cube)[1:3]) for i in range(len(finiteidxs[0,:]))]
+    flatidxs = [np.ravel_multi_index(finiteidxs[:,i], scouseobject.cube.shape[1:]) for i in range(len(finiteidxs[0,:]))]
     random_indices = random.sample(list(flatidxs), k=len(flatidxs))
-    locations = np.array(np.unravel_index(random_indices, np.shape(scouseobject.cube)[1:3]))
+    locations = np.array(np.unravel_index(random_indices, scouseobject.cube.shape[1:]))
 
     if len(locations[0,:]) > 500.0:
         stop = 500.0
@@ -113,9 +115,14 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         slab = scouseobject.cube.spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
         maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s)
+
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
+        slabarr = np.copy(slab.unmasked_data[:].value)
+        idnan = (~np.isfinite(slabarr))
+        negative_inf = -1e10
+        slabarr[idnan] = negative_inf
+        idxmax = np.nanargmax(slabarr, axis=0)
         momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
         idnan = (np.isfinite(momtwo.value)==0)
@@ -133,10 +140,15 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         slab = scouseobject.cube
         maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit))
+
         momnine = np.empty(np.shape(momone))
         momnine.fill(np.nan)
-        idxmax = slab.apply_numpy_function(np.nanargmax, axis=0)
-        momnine=slab.spectral_axis[idxmax].value
+        slabarr = np.copy(slab.unmasked_data[:].value)
+        idnan = (~np.isfinite(slabarr))
+        negative_inf = -1e10
+        slabarr[idnan] = negative_inf
+        idxmax = np.nanargmax(slabarr, axis=0)
+        momnine = slab.spectral_axis[idxmax].value
         momnine[~maskslab.mask.include().any(axis=0)] = np.nan
         idnan = (np.isfinite(momtwo.value)==0)
         momnine[idnan] = np.nan
@@ -152,98 +164,144 @@ def get_coverage(momzero, spacing):
     """
     Returns locations of SAAss
     """
+
+    # Get the indices of the cols and rows in the momzero map where there is
+    # data
     cols, rows = np.where(momzero != 0.0)
 
+    # This sets the maximum extent of the coverage
     rangex = [np.min(rows), np.max(rows)]
     sizex = np.abs(np.min(rows)-np.max(rows))
     rangey = [np.min(cols), np.max(cols)]
     sizey = np.abs(np.min(cols)-np.max(cols))
 
-    nposx = int((sizex/(spacing*2.))+1.0)
-    nposy = int((sizey/(spacing*2.))+1.0)
+    # Here we define the total number of positions in x and y for the coverage
+    nposx = int((sizex/(spacing))+1.0)
+    nposy = int((sizey/(spacing))+1.0)
 
-    cov_x = np.max(rangex)-(spacing*2.)*np.arange(nposx)
-    cov_y = np.min(rangey)+(spacing*2.)*np.arange(nposy)
+    # This defines the coverage coordinates
+    cov_x = np.max(rangex)-(spacing)*np.arange(nposx)
+    cov_y = np.min(rangey)+(spacing)*np.arange(nposy)
 
     return cov_y, cov_x
 
-def define_coverage(cube, momzero, momzero_mod, rsaa, nrefine, verbose, redefine=False):
+def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, redefine=False):
     """
     Returns locations of SAAs which contain significant information and computes
     a spatially-averaged spectrum.
     """
 
-    spacing = rsaa/2.
+    # Coverage boxes are spaced by a half-width
+    spacing = wsaa/2.
+    # Get the coverage coordinates
     cov_y, cov_x = get_coverage(momzero, spacing)
 
-    maxspecinsaa = int((rsaa*3)**2)
-    coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
-    spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
-    ids = np.full([len(cov_y)*len(cov_x), maxspecinsaa, 2], np.nan)
-    frac = np.full([len(cov_y)*len(cov_x)], np.nan)
+    # maximum number of spectra contained within a coverage box. Increase the
+    # size by 1.5 just due to a silly indexing problem
+    maxspecinsaa = int((wsaa*1.5)**2)
+    # Generate empty arrays which will contain the coverage information
+    coverage = np.full([len(cov_y)*len(cov_x),2], np.nan) # coordinates
+    spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan) # spectra
+    ids = np.full([len(cov_y)*len(cov_x), maxspecinsaa, 2], np.nan) # the IDs
+    frac = np.full([len(cov_y)*len(cov_x)], np.nan) # the fraction of sig data
 
     count= 0.0
     if not redefine:
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='coverage', length=len(cov_y)*len(cov_x))
 
-    for cx,cy in ProgressBar(list(itertools.product(cov_x, cov_y))):
-        if not redefine:
-            if verbose and (count % 1 == 0):
-                progress_bar + 1
-                progress_bar.show_progress()
+    # Loop through the coords
+    if verbose:
+        for cx,cy in ProgressBar(list(itertools.product(cov_x, cov_y))):
+            coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y, coverage, spec, ids, frac, redefine, nrefine)
+    else:
+        for cx,cy in list(itertools.product(cov_x, cov_y)):
+            coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y, coverage, spec, ids, frac, redefine, nrefine)
 
-        idx = int((cov_x[0]-cx)/rsaa)
-        idy = int((cy-cov_y[0])/rsaa)
-
-        limx = [int(cx-spacing*2.), int(cx+spacing*2.)]
-        limy = [int(cy-spacing*2.), int(cy+spacing*2.)]
-        limx = [lim if (lim > 0) else 0 for lim in limx ]
-        limx = [lim if (lim < np.shape(momzero)[1]-1) else np.shape(momzero)[1]-1 for lim in limx ]
-        limy = [lim if (lim > 0) else 0 for lim in limy ]
-        limy = [lim if (lim < np.shape(momzero)[0]-1) else np.shape(momzero)[0]-1 for lim in limy ]
-
-        rangex = range(min(limx), max(limx)+1)
-        rangey = range(min(limy), max(limy)+1)
-
-        momzero_cutout = momzero_mod[min(limy):max(limy),
-                                     min(limx):max(limx)]
-
-        cube_cutout = cube[:,min(limy):max(limy), min(limx):max(limx)]
-
-        finite = np.isfinite(momzero_cutout)
-        nmask = np.count_nonzero(finite)
-        if nmask > 0:
-            tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
-            fraction = tot_non_zero / nmask
-            if redefine:
-                lim = 0.6/nrefine
-            else:
-                lim = 0.5
-            if fraction >= lim:
-                frac[idy+(idx*len(cov_y))] = fraction
-                coverage[idy+(idx*len(cov_y)),:] = cy,cx
-                if not redefine:
-                    spec[:, idy, idx] = cube_cutout.mean(axis=(1,2))
-                count=0
-
-                for i in rangex:
-                    for j in rangey:
-                        ids[idy+(idx*len(cov_y)), count, 0],\
-                        ids[idy+(idx*len(cov_y)), count, 1] = j, i
-                        count+=1
     if verbose:
         print('')
 
     return coverage, spec, ids, frac
 
-def get_rsaa(scouseobject):
-    rsaa = []
+def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y, coverage, spec, ids, frac, redefine, nrefine):
+
+    # identify the pixel limits - i.e. those pixels which are contained in
+    # the coverage box
+    limx = [int(cx-spacing), int(cx+spacing)]
+    limy = [int(cy-spacing), int(cy+spacing)]
+    limx = [lim if (lim > 0) else 0 for lim in limx ]
+    limx = [lim if (lim < np.shape(momzero)[1]-1) else np.shape(momzero)[1]-1 for lim in limx ]
+    limy = [lim if (lim > 0) else 0 for lim in limy ]
+    limy = [lim if (lim < np.shape(momzero)[0]-1) else np.shape(momzero)[0]-1 for lim in limy ]
+
+    # Take a cut out of the momzero map - all pixels contained within the
+    # box
+    momzero_cutout = momzero_mod[min(limy):max(limy),
+                                 min(limx):max(limx)]
+    # Do this for the cube as well
+    cube_cutout = cube[:,min(limy):max(limy), min(limx):max(limx)]
+
+    # Identify the locations of the non nan pixels contained within the
+    # cut out
+    finite = np.isfinite(momzero_cutout)
+    nmask = np.count_nonzero(finite)
+
+    # range for looping (used below)
+    rangex = range(min(limx), max(limx)+1)
+    rangey = range(min(limy), max(limy)+1)
+
+    # These ids refer to the coverage itself
+    idx = int((cov_x[0]-cx)/(spacing))
+    idy = int((cy-cov_y[0])/(spacing))
+
+    # If we have significant data in the box here we want to generate
+    # the average spectrum associated with that box.
+    if nmask > 0:
+        # Count the total of non zero values
+        tot_non_zero = np.count_nonzero(np.isfinite(momzero_cutout) & (momzero_cutout!=0))
+        # get the fration of non zero values
+        fraction = tot_non_zero / nmask
+
+        # This is a little bit empirical for the refined coverage, in
+        # general we want to ignore boxes with < 50% of non zero values.
+        # However, this needs tweaking a bit for the redefined coverage.
+        # This works for now but may need updating to something a bit more
+        # robust in the future.
+        if redefine:
+            lim = 0.6/nrefine
+        else:
+            lim = 0.5
+
+        # If we want to keep the box...
+        if fraction >= lim:
+            # ...then add the fraction and box location to the empty arrays
+            frac[idy+(idx*len(cov_y))] = fraction
+            coverage[idy+(idx*len(cov_y)),:] = cy,cx
+
+            # When redefining the coverage we don't want to create expensive
+            # arrays the whole time - we just want to know where we are to
+            # fit. This logic is explained better in scouse.py stage_1
+            if not redefine:
+                # add the spectrum
+                spec[:, idy, idx] = cube_cutout.mean(axis=(1,2))
+            count=0
+
+            # add the IDs
+            for i in rangex:
+                for j in rangey:
+                    ids[idy+(idx*len(cov_y)), count, 0],\
+                    ids[idy+(idx*len(cov_y)), count, 1] = j, i
+                    count+=1
+
+    return coverage, spec, ids, frac
+
+def get_wsaa(scouseobject):
+    wsaa = []
     for i in range(1, int(scouseobject.nrefine)+1):
-        newrsaa = scouseobject.rsaa[0]/i
-        if newrsaa > 0.5:
-            rsaa.append(newrsaa)
-    return rsaa
+        newwsaa = scouseobject.wsaa[0]/i
+        if newwsaa > 0.5:
+            wsaa.append(newwsaa)
+    return wsaa
 
 def get_random_saa(cc, samplesize, r, verbose=False):
     """
@@ -254,20 +312,20 @@ def get_random_saa(cc, samplesize, r, verbose=False):
         print('')
         print("Extracting randomly sampled SAAs for training set...")
 
-    npixpersaa = (r*2.0)**2.0
-    training_set_size = npixpersaa*samplesize
+    npixpewsaa = (r)**2.0
+    training_set_size = npixpewsaa*samplesize
 
     sample = np.sort(random.sample(range(0,len(cc[:,0])), samplesize))
 
     if verbose:
         print('Training set size = {}'.format(int(training_set_size)))
         if training_set_size < 1000.0:
-            print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent RSAA)'.format(int(training_set_size)))
+            print('WARNING: Training set size {} < 1000, try increasing the sample size (for equivalent wsaa)'.format(int(training_set_size)))
         print('')
 
     return sample
 
-def plot_rsaa(dict, momzero, rsaa, dir, filename):
+def plot_wsaa(dict, momzero, wsaa, dir, filename):
     """
     Plot the SAA boxes
     """
@@ -281,19 +339,19 @@ def plot_rsaa(dict, momzero, rsaa, dir, filename):
                interpolation='nearest')
     cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
-    for i, r in enumerate(rsaa, start=0):
+    for i, w in enumerate(wsaa, start=0):
         alpha = 0.1+(0.05*int(i))
         for j in range(len(dict[i].keys())):
             if dict[i][j].to_be_fit:
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[1] - r, \
-                             dict[i][j].coordinates[0] - r),\
-                             r * 2., r * 2., facecolor=cols[i],
+                            (dict[i][j].coordinates[1] - w/2., \
+                             dict[i][j].coordinates[0] - w/2.),\
+                             w , w , facecolor=cols[i],
                              edgecolor=cols[i], lw=0.1, alpha=alpha))
                 ax.add_patch(patches.Rectangle(
-                            (dict[i][j].coordinates[1] - r, \
-                             dict[i][j].coordinates[0] - r),\
-                             r * 2., r * 2., facecolor='None',
+                            (dict[i][j].coordinates[1] - w/2., \
+                             dict[i][j].coordinates[0] - w/2.),\
+                             w , w , facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
 
     plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')

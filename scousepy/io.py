@@ -98,7 +98,7 @@ def write_averaged_spectra(cube_header, saa_spectra, r, dir,
     saa_spectra : len(N) list
                   Contains spectra averaged over N scales
 
-    rsaa : len(N) list
+    wsaa : len(N) list
            List of averaging radii
 
     fits_fmatter : a string formatter for output files to be written to
@@ -106,7 +106,7 @@ def write_averaged_spectra(cube_header, saa_spectra, r, dir,
 
     #for aver_cube in :
     hdu = fits.PrimaryHDU(data=saa_spectra, header=cube_header)
-    hdu.header['RSAA'] = r
+    hdu.header['wsaa'] = r
     hdu.writeto(dir+'/saa_cube_r_{}.fits'.format(r), overwrite=True)
 
 def output_moments(momzero, momone, momtwo, momnine, dir, filename):
@@ -123,11 +123,11 @@ def output_ascii_saa(self, outputdir):
     Outputs an ascii table containing the information for each fit.
     """
 
-    for i in range(len(self.rsaa)):
+    for i in range(len(self.wsaa)):
         saa_dict = self.saa_dict[i]
         if any(SAA.to_be_fit for SAA in saa_dict.values()):
             table = make_table(self, saa_dict, saa=True)
-            table.write(outputdir+'/saa_model_solutions_'+str(self.rsaa[i])+'_.dat', format='ascii', \
+            table.write(outputdir+'/saa_model_solutions_'+str(self.wsaa[i])+'_.dat', format='ascii', \
                         overwrite=True, delimiter='\t')
         else:
             # I don't know how we got to this case, but I encountered it at least once.
@@ -215,8 +215,8 @@ def get_solnlist_saa(self, saa_dict):
             soln = SAA.model
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              SAA.coordinates[0], \
-                                              SAA.coordinates[1])
+                                              SAA.coordinates[1], \
+                                              SAA.coordinates[0])
                 solnlist.append(solution_desc)
 
     return solnlist
@@ -237,8 +237,8 @@ def get_solnlist_indiv(self):
         else:
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              spectrum.coordinates[0], \
-                                              spectrum.coordinates[1])
+                                              spectrum.coordinates[1], \
+                                              spectrum.coordinates[0])
                 solnlist.append(solution_desc)
 
     return solnlist

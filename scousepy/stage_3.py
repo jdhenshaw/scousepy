@@ -18,13 +18,13 @@ import time
 
 from astropy import log
 from astropy import units as u
+from astropy.utils.console import ProgressBar
 
 from .indiv_spec_description import *
 from .parallel_map import *
 from .saa_description import add_indiv_spectra, clean_up, merge_models
 from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
-
 
 def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
     """
@@ -33,54 +33,60 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
     can be located within the relavent SAA.
     """
 
-    # Cycle through potentially multiple Rsaa values
-    for i in range(len(scouseobject.rsaa)):
+    # Cycle through potentially multiple wsaa values
+    for i in range(len(scouseobject.wsaa)):
 
         # Get the relavent SAA dictionary
         saa_dict = scouseobject.saa_dict[i]
 
         if verbose:
             count=0
-            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.rsaa[i])
+            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
 
-        for j in range(len(saa_dict.keys())):
-
-            if verbose:
-                progress_bar + 1
-                progress_bar.show_progress()
-
-            # get the relavent SAA
-            SAA = saa_dict[j]
-            # Initialise indiv spectra
-            indiv_spectra = {}
-            # We only care about the SAA's that are to be fit at this stage
-            if SAA.to_be_fit:
-                if np.size(SAA.indices_flat) != 0.0:
-
-                    # Parallel
-                    if njobs > 1:
-                        args = [scouseobject, SAA]
-                        inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                        # Send to parallel_map
-                        indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
-                        merged_spec = [spec for spec in indiv_spec if spec is not None]
-                        merged_spec = np.asarray(merged_spec)
-                        for k in range(len(SAA.indices_flat)):
-                            # Add the spectra to the dict
-                            key = SAA.indices_flat[k]
-                            indiv_spectra[key] = merged_spec[k]
-                    else:
-                        for k in range(len(SAA.indices_flat)):
-                            key = SAA.indices_flat[k]
-                            args = [scouseobject, SAA]
-                            inputs = [[k] + args]
-                            inputs = inputs[0]
-                            indiv_spec = get_indiv_spec(inputs)
-                            indiv_spectra[key] = indiv_spec
-            add_indiv_spectra(SAA, indiv_spectra)
+        if verbose:
+            for j in ProgressBar(range(len(saa_dict.keys()))):
+                prep_spec(j, saa_dict, njobs, scouseobject)
+        else:
+            for j in range(len(saa_dict.keys())):
+                prep_spec(j, saa_dict, njobs, scouseobject)
 
     if verbose:
         print("")
+
+def prep_spec(j, saa_dict, njobs, scouseobject):
+    """
+    Prepares the spectra for automated fitting
+    """
+
+    # get the relavent SAA
+    SAA = saa_dict[j]
+    # Initialise indiv spectra
+    indiv_spectra = {}
+    # We only care about the SAA's that are to be fit at this stage
+    if SAA.to_be_fit:
+        if np.size(SAA.indices_flat) != 0.0:
+
+            # Parallel
+            if njobs > 1:
+                args = [scouseobject, SAA]
+                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                # Send to parallel_map
+                indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+                merged_spec = [spec for spec in indiv_spec if spec is not None]
+                merged_spec = np.asarray(merged_spec)
+                for k in range(len(SAA.indices_flat)):
+                    # Add the spectra to the dict
+                    key = SAA.indices_flat[k]
+                    indiv_spectra[key] = merged_spec[k]
+            else:
+                for k in range(len(SAA.indices_flat)):
+                    key = SAA.indices_flat[k]
+                    args = [scouseobject, SAA]
+                    inputs = [[k] + args]
+                    inputs = inputs[0]
+                    indiv_spec = get_indiv_spec(inputs)
+                    indiv_spectra[key] = indiv_spec
+    add_indiv_spectra(SAA, indiv_spectra)
 
 def get_indiv_spec(inputs):
     """
@@ -98,7 +104,7 @@ def get_indiv_spec(inputs):
 
     return indiv_spec
 
-def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
+def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1,
                       spatial=False, verbose=False, stage=3):
     """
     Automated fitting procedure for individual spectra
@@ -107,59 +113,73 @@ def fit_indiv_spectra(scouseobject, saa_dict, rsaa, njobs=1, \
     if verbose:
         count=0
         if stage == 3:
-            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            for _key in ProgressBar(list(saa_dict.keys())):
+                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
         else:
-            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=rsaa)
+            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            for _key in ProgressBar(list(saa_dict.keys())):
+                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
+    else:
+        count=0
+        if stage == 3:
+            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            for _key in saa_dict.keys():
+                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
+        else:
+            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            for _key in saa_dict.keys():
+                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
 
-    for _key in saa_dict.keys():
-        if verbose:
-            progress_bar + 1
-            progress_bar.show_progress()
+def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
+    """
+    fitting the spectra
+    """
 
-        # get the relavent SAA
-        SAA = saa_dict[_key]
+    # get the relavent SAA
+    SAA = saa_dict[_key]
 
-        # We only care about those locations we have SAA fits for.
-        if SAA.to_be_fit:
+    # We only care about those locations we have SAA fits for.
+    if SAA.to_be_fit:
 
-            # Shhh
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                old_log = log.level
-                log.setLevel('ERROR')
+        # Shhh
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
 
-                template_spectrum = generate_template_spectrum(scouseobject)
+            template_spectrum = generate_template_spectrum(scouseobject)
 
-                log.setLevel(old_log)
+            log.setLevel(old_log)
 
-            # Get the SAA model solution
-            parent_model = SAA.model
+        # Get the SAA model solution
+        parent_model = SAA.model
 
-            # Parallel
-            if njobs > 1:
-                if np.size(SAA.indices_flat) != 0.0:
-                    args = [scouseobject, SAA, parent_model, template_spectrum]
-                    inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                    # Send to parallel_map
-                    bfs = parallel_map(fit_spec, inputs, numcores=njobs)
-                    merged_bfs = [core_bf for core_bf in bfs if core_bf is not None]
-                    merged_bfs = np.asarray(merged_bfs)
+        # Parallel
+        if njobs > 1:
+            if np.size(SAA.indices_flat) != 0.0:
+                args = [scouseobject, SAA, parent_model, template_spectrum]
+                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+                # Send to parallel_map
+                bfs = parallel_map(fit_a_spectrum, inputs, numcores=njobs)
+                merged_bfs = [core_bf for core_bf in bfs if core_bf is not None]
+                merged_bfs = np.asarray(merged_bfs)
 
-                    for k in range(len(SAA.indices_flat)):
-                        # Add the models to the spectra
-                        key = SAA.indices_flat[k]
-                        add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
-                        add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
-            else:
-                # If njobs = 1 just cycle through
                 for k in range(len(SAA.indices_flat)):
+                    # Add the models to the spectra
                     key = SAA.indices_flat[k]
-                    args = [scouseobject, SAA, parent_model, template_spectrum]
-                    inputs = [[k] + args]
-                    inputs = inputs[0]
-                    bfs = fit_spec(inputs)
-                    add_model_parent(SAA.indiv_spectra[key], bfs[0])
-                    add_model_dud(SAA.indiv_spectra[key], bfs[1])
+                    add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
+                    add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
+        else:
+            # If njobs = 1 just cycle through
+            for k in range(len(SAA.indices_flat)):
+                key = SAA.indices_flat[k]
+                args = [scouseobject, SAA, parent_model, template_spectrum]
+                inputs = [[k] + args]
+                inputs = inputs[0]
+                bfs = fit_a_spectrum(inputs)
+                add_model_parent(SAA.indiv_spectra[key], bfs[0])
+                add_model_dud(SAA.indiv_spectra[key], bfs[1])
 
 def generate_template_spectrum(scouseobject):
     """
@@ -204,7 +224,7 @@ def get_spec(scouseobject, indiv_spec, template_spectrum):
 
     return template_spectrum
 
-def fit_spec(inputs):
+def fit_a_spectrum(inputs):
     """
     Process used for fitting spectra. Returns a best-fit solution and a dud for
     every spectrum.
@@ -406,7 +426,7 @@ def check_dispersion(scouseobject, inputs, parent_model, guesses, condition_pass
             relchange = 1./relchange
 
         # Does this satisfy the criteria
-        if (params[int((i*nparams)+idx)]*fwhmconv < scouseobject.specres*scouseobject.tolerances[1]) or \
+        if (params[int((i*nparams)+idx)]*fwhmconv < scouseobject.cube.header['CDELT3']*scouseobject.tolerances[1]) or \
            (relchange > scouseobject.tolerances[2]):
             # set to zero
             guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
@@ -567,13 +587,13 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
 
     return diff
 
-def compile_spectra(scouseobject, saa_dict, indiv_dict, rsaa, spatial=False, verbose=False):
+def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa, spatial=False, verbose=False):
     """
     Here we compile all best-fitting models into a single dictionary.
     """
 
     if verbose:
-        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=rsaa)
+        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=wsaa)
 
     key_list = []
     model_list = []
@@ -641,7 +661,7 @@ def compile_key_sets(scouseobject, key_set):
     """
     Returns unqiue keys
     """
-    if len(scouseobject.rsaa) == 1:
+    if len(scouseobject.wsaa) == 1:
         key_set=key_set[0]
         scouseobject.key_set = key_set
     else:
@@ -651,17 +671,17 @@ def compile_key_sets(scouseobject, key_set):
 
 def merge_dictionaries(scouseobject, indiv_dictionaries, spatial=False, verbose=False):
     """
-    There is now a dictionary for each Rsaa - merge these into a single one
+    There is now a dictionary for each wsaa - merge these into a single one
     """
 
     if verbose:
         progress_bar = print_to_terminal(stage='s3', step='merge', length=0)
 
     main_dict={}
-    if len(scouseobject.rsaa)>1:
+    if len(scouseobject.wsaa)>1:
         for key in scouseobject.key_set:
             # Search dictionaries for found keys
-            keyfound = np.zeros(len(scouseobject.rsaa), dtype='bool')
+            keyfound = np.zeros(len(scouseobject.wsaa), dtype='bool')
             for i in range(len(indiv_dictionaries.keys())):
                 if key in indiv_dictionaries[i]:
                     keyfound[i] = True

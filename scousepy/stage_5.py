@@ -338,11 +338,12 @@ def generate_2d_parametermap(scouseobject, spectrum_parameter):
     """
     blankmap = np.zeros(scouseobject.cube.shape[1:])
     blankmap[:] = np.nan
-
     for ind,spec in ProgressBar(scouseobject.indiv_dict.items()):
         cy,cx = spec.coordinates
-        blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
-
+        if getattr(spec.model, 'ncomps') != 0:
+            blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
+        else:
+            blankmap[cy, cx] = np.nan
     return blankmap
 
 def generate_diagnostic_maps(scouseobject, maps=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2']):
@@ -354,7 +355,7 @@ class DiagnosticImageFigure(object):
     def __init__(self, scouseobject, fig=None, ax=None, keep=False,
                  blocksize=6, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
                  plotkwargs=dict(interpolation='none', origin='lower'),
-                 savedir=None,
+                 savedir=None, repeat=False,
                 ):
         """
         """
@@ -374,7 +375,7 @@ class DiagnosticImageFigure(object):
         self.mapnames = mapnames
         self.maps = {}
 
-        if savedir is not None:
+        if savedir is not None and not repeat:
             loaded = self.load_maps(savedir)
             not_loaded = [x for x in self.mapnames if x not in loaded]
         else:
@@ -447,6 +448,7 @@ class DiagnosticImageFigure(object):
                 self.done_con = self.ax.contourf(self.done_block_mask, colors='w',
                                                  levels=[0.5, 1.5], alpha=0.8)
                 print("Number of pixels examined interactively is now {0}".format(self.done_block_mask.sum()))
+                print("")
 
     def keyentry(self, event):
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
