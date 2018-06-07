@@ -396,14 +396,14 @@ class Stage6Fitter(object):
         self.happy=False
         while not self.happy:
             # Interactive fitting with pyspeckit
-            spec.plotter(xmin=self.scouseobject.ppv_vol[0],
-                         xmax=self.scouseobject.ppv_vol[1])
+            spec.plotter(xmin=np.min(self.scouseobject.xtrim),
+                         xmax=np.max(self.scouseobject.xtrim))
             spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
             spec.specfit(interactive=True,
                          print_message=False,
-                         xmin=self.scouseobject.ppv_vol[0],
-                         xmax=self.scouseobject.ppv_vol[1])
+                         xmin=np.min(self.scouseobject.xtrim),
+                         xmax=np.max(self.scouseobject.xtrim))
 
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', category=DeprecationWarning)

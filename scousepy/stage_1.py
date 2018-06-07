@@ -92,8 +92,13 @@ def get_x_axis(scouseobject):
     Returns x_axis for spectra
     """
     x = np.array(scouseobject.cube.world[:,0,0][0])
-    trimids = ((x>scouseobject.ppv_vol[0])&(x<scouseobject.ppv_vol[1]))
+    if (scouseobject.ppv_vol[0] != 0.0) & (scouseobject.ppv_vol[1] != 0.0):
+        trimids = ((x>scouseobject.ppv_vol[0])&(x<scouseobject.ppv_vol[1]))
+    else:
+        trimids = np.ones(np.shape(x), dtype=bool)
+    print(trimids)
     xtrim = x[trimids]
+    print(xtrim)
     return x, xtrim, trimids
 
 def get_moments(scouseobject, write_moments, dir, filename, verbose):
