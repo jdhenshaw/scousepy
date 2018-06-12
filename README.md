@@ -2,10 +2,6 @@
 <img src="docs/source/SCOUSE_LOGO.png"  alt="" width = "600" />
 </p>
 
-Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-
-Copyright (c) 2017-2018 Jonathan D. Henshaw
-
 About
 =====
 
