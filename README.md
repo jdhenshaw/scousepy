@@ -8,7 +8,7 @@ About
 The ``scousepy`` package provides a method by which a large amount of complex
 astronomical spectral line data can be fitted in a systematic way.
 
-A description of the method and [original IDL code](https://github.com/jdhenshaw/SCOUSE)
+A description of the method and original [IDL version](https://github.com/jdhenshaw/SCOUSE) of the code
 can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H).
 For a more comprehensive description of ``scousepy``, including a
 simple tutorial, please head [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
@@ -97,10 +97,10 @@ Please also consider acknowledgements to the required packages in your work.
 Information
 ===========
 
-The method has been updated slightly from the original IDL version of the
-[code](https://github.com/jdhenshaw/SCOUSE). It is now more interactive than
-before which should hopefully speed things up a bit for the user. The method
-is broken down into six stages in total. Each stage is summarised below.
+The method has been updated slightly from the original [IDL version](https://github.com/jdhenshaw/SCOUSE)
+of the code. It is now more interactive than before which should hopefully speed
+things up a bit for the user. The method is broken down into six stages in
+total. Each stage is summarised below.
 
 Stage 1
 -------
