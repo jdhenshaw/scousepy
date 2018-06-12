@@ -112,17 +112,24 @@ class scouse(object):
 
             # Read in the datacube
             if cube is None:
-                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                _cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
                                                                            velocity_convention='radio')
             else:
-                self.cube = cube
+                _cube = cube
 
-            if self.cube.spectral_axis.diff()[0] < 0:
-                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
+            if _cube.spectral_axis.diff()[0] < 0:
+                if np.abs(_cube.spectral_axis[0].value - _cube[::-1].spectral_axis[-1].value) > 1e-5:
                     raise ImportError("Update to a more recent version of spectral-cube "
                                       " or reverse the axes manually.")
-                self.cube = self.cube[::-1]
+                _cube = _cube[::-1]
 
+            # Trim cube if necessary
+            if self.ppv_vol[2]!=0 or self.ppv_vol[3]!=0:
+                _cube = _cube[:, int(self.ppv_vol[2]):int(self.ppv_vol[3]), :]
+            if self.ppv_vol[4]!=0 or self.ppv_vol[5]!=0:
+                _cube = _cube[:, :, int(self.ppv_vol[4]):int(self.ppv_vol[5])]
+
+            self.cube = _cube
             # Generate the x axis common to the fitting process
             self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
