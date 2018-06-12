@@ -11,7 +11,7 @@ of the method and original [IDL version](https://github.com/jdhenshaw/SCOUSE) of
 can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H).
 For a more comprehensive description of ``scousepy``, including a
 simple tutorial, please head [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
-All data and example scripts required for the tutorials can be found in the [scousepy_tutorials](https://github.com/jdhenshaw/scousepy_tutorials)
+The example scripts and data required for the tutorials can be found in the [scousepy_tutorials](https://github.com/jdhenshaw/scousepy_tutorials)
 repo.
 
 Installing scousepy
