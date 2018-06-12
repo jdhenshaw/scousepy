@@ -12,8 +12,8 @@ can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXi
 For a more comprehensive description of ``scousepy``, including a
 simple tutorial, please head [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
-Installing ``scousepy``
-=======================
+Installing scousepy
+===================
 
 Requirements
 ------------
@@ -79,8 +79,8 @@ This package was developed by:
 * Adam Ginsburg
 * Manuel Reiner
 
-Citing ``scousepy``
-===================
+Citing scousepy
+===============
 
 If you make use of this package in a publication, please consider the following
 acknowledgement...
