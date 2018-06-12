@@ -112,25 +112,33 @@ class scouse(object):
 
             # Read in the datacube
             if cube is None:
-                self.cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                _cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
                                                                            velocity_convention='radio')
             else:
-                self.cube = cube
+                _cube = cube
 
-            if self.cube.spectral_axis.diff()[0] < 0:
-                if np.abs(self.cube.spectral_axis[0].value - self.cube[::-1].spectral_axis[-1].value) > 1e-5:
+            if _cube.spectral_axis.diff()[0] < 0:
+                if np.abs(_cube.spectral_axis[0].value - _cube[::-1].spectral_axis[-1].value) > 1e-5:
                     raise ImportError("Update to a more recent version of spectral-cube "
                                       " or reverse the axes manually.")
-                self.cube = self.cube[::-1]
+                _cube = _cube[::-1]
 
+            # Trim cube if necessary
+            if (self.ppv_vol[2] is not None) & (self.ppv_vol[3] is not None):
+                _cube = _cube[:, int(self.ppv_vol[2]):int(self.ppv_vol[3]), :]
+            if (self.ppv_vol[4] is not None) & (self.ppv_vol[5] is not None):
+                _cube = _cube[:, :, int(self.ppv_vol[4]):int(self.ppv_vol[5])]
+
+            self.cube = _cube
             # Generate the x axis common to the fitting process
             self.x, self.xtrim, self.trimids = get_x_axis(self)
             # Compute typical noise within the spectra
             self.rms_approx = compute_noise(self)
 
     @staticmethod
-    def stage_1(filename, datadirectory, ppv_vol, wsaa, mask_below=0.0,
-                cube=None, verbose = False, outputdir=None,
+    def stage_1(filename, datadirectory,
+                wsaa, ppv_vol=[None, None, None, None, None, None], 
+                mask_below=0.0, cube=None, verbose = False, outputdir=None,
                 write_moments=False, save_fig=True, training_set=False,
                 samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
                 fittype='gaussian'):
@@ -144,12 +152,14 @@ class scouse(object):
             Name of the file to be loaded
         datadirectory : string
             Directory containing the datacube
-        ppv_vol : list
+        ppv_vol : list, optional
             A list containing boundaries for fitting. You can use this to
             selectively fit part of a datacube. Should be in the format
             ppv_vol = [vmin, vmax, ymin, ymax, xmin, xmax] with the velocities
             in absolute units and the x, y values in pixels. If all are set to
-            zero scouse will ignore this and just fit the whole cube.
+            None scouse will ignore this and just fit the whole cube. Default
+            is ppv_vol = [None, None, None, None, None, None]; whole cube is
+            fitted.
         wsaa : list
             The width of a spectral averaging area in pixels. Note this has
             been updated from the IDL implementation where it previously used a
