@@ -92,7 +92,7 @@ def get_x_axis(scouseobject):
     Returns x_axis for spectra
     """
     x = np.array(scouseobject.cube.world[:,0,0][0])
-    if (scouseobject.ppv_vol[0] != 0.0) & (scouseobject.ppv_vol[1] != 0.0):
+    if (scouseobject.ppv_vol[0] is not None) & (scouseobject.ppv_vol[1] is not None):
         trimids = ((x>scouseobject.ppv_vol[0])&(x<scouseobject.ppv_vol[1]))
     else:
         trimids = np.ones(np.shape(x), dtype=bool)
@@ -108,7 +108,7 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         progress_bar = print_to_terminal(stage='s1', step='moments')
 
     # If upper and lower limits are imposed on the velocity range
-    if (scouseobject.ppv_vol[0] != 0) & (scouseobject.ppv_vol[1] != 0):
+    if (scouseobject.ppv_vol[0] is not None) & (scouseobject.ppv_vol[1] is not None):
         momzero = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,scouseobject.ppv_vol[1]*u.km/u.s).moment0(axis=0)
         momone = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
