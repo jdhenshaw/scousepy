@@ -11,7 +11,7 @@ astronomical spectral line data can be fitted in a systematic way.
 A description of the method and [original IDL code](https://github.com/jdhenshaw/SCOUSE)
 can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H).
 For a more comprehensive description of ``scousepy``, including a
-simple tutorial, please head over to [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
+simple tutorial, please head [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
 <img src="docs/source/Figure_cartoon.png"  alt="" width = "850" />
 
