@@ -12,7 +12,7 @@ astronomical spectral line data can be fitted in a systematic way.
 
 A description of the original IDL [code](https://github.com/jdhenshaw/SCOUSE)
 can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H).
-For a more comprehensive description of the ``scousepy`` package, including a
+For a more comprehensive description of ``scousepy``, including a
 simple tutorial, please head over to [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
 <img src="docs/source/Figure_cartoon.png"  alt="" width = "850" />
@@ -23,7 +23,7 @@ Installing ``scousepy``
 Requirements
 ------------
 
-``scousepy'' requires the following packages:
+``scousepy`` requires the following packages:
 
 * [Python](http://www.python.org) 3.x
 
@@ -35,7 +35,7 @@ Requirements
 * [spectral_cube](http://spectral-cube.readthedocs.io/en/latest/)>=0.4.4.dev1809
 
 Note that for interactive fitting with pyspeckit you may need to customise your
-matplotlib configuration. Namely, if you're using ``scousepy'' on a Mac you will
+matplotlib configuration. Namely, if you're using ``scousepy`` on a Mac you will
 most likely need to change your backend from 'macosx' to 'Qt5Agg' (or equiv.).
 You can find some information about how to do this [here](https://matplotlib.org/users/customizing.html#customizing-matplotlib).
 
@@ -69,9 +69,8 @@ root access.
 Reporting issues and getting help
 =================================
 
-Please help to improve this package by reporting issues via [GitHub]
-(https://github.com/jdhenshaw/scousepy/issues). Alternatively, you can get in
-touch at [...]
+Please help to improve this package by reporting issues via [GitHub](https://github.com/jdhenshaw/scousepy/issues).
+Alternatively, you can get in touch at [...]
 
 Developers
 ==========
@@ -108,7 +107,7 @@ is broken down into six stages in total. Each stage is summarised below.
 Stage 1
 -------
 
-Here ``scousepy'' identifies the spatial area over which to fit the data. It
+Here ``scousepy`` identifies the spatial area over which to fit the data. It
 generates a grid of spectral averaging areas (SAAs). The user is required to
 provide the width of the spectral averaging area. Extra refinement of spectral
 averaging areas (i.e. for complex regions) can be controlled using the keyword
@@ -118,7 +117,7 @@ Stage 2
 -------
 
 User-interactive fitting of the spatially averaged spectra output from stage 1.
-``scousepy'' makes use of the [pyspeckit](http://pyspeckit.readthedocs.io/en/latest/)
+``scousepy`` makes use of the [pyspeckit](http://pyspeckit.readthedocs.io/en/latest/)
 package and is fully interactive.
 
 Stage 3
@@ -132,7 +131,7 @@ for more details on each of these.
 Stage 4
 -------
 
-Here SCOUSE selects the best-fits that are output in stage 3.
+Here ``scousepy`` selects the best-fits that are output in stage 3.
 
 OPTIONAL STAGES
 ===============
@@ -158,8 +157,8 @@ Stage 5
 
 Checking the fits. Here the user is required to check the best-fitting
 solutions to the spectra. This stage is now fully interactive. The user is first
-presented with several diagnostic plots namely: 'rms', 'residstd', 'redchi2',
-'ncomps', 'aic', 'chi2'. These can be used to assess the quality of fits
+presented with several diagnostic plots namely: `rms`, `residstd`, `redchi2`,
+`ncomps`, `aic`, `chi2`. These can be used to assess the quality of fits
 throughout the map. Clicking on a particular region will show the spectra
 associated with that location. The user can then select spectra for closer
 inspection or refitting as required.
