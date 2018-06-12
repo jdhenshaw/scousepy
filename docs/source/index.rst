@@ -1,18 +1,25 @@
+.. image:: ./SCOUSE_LOGO.png
+  :align: center
+  :width: 750
+
+|
+
 ********
 scousepy
 ********
 
-The ``scousepy`` package provides a method by which large amounts of complex
-astronomical spectral line data in a systematic way. The current version fits
-multiple Gaussian profiles to spectral line emission. A description of the code
+The ``scousepy`` package provides a method by which a large amount of complex
+astronomical spectral line data can be fitted in a systematic way. A detailed
+description of the method (and the original `IDL version
+<https://github.com/jdhenshaw/SCOUSE>`_ of the code)
 can be found in `Henshaw et al. 2016 <http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H>`_.
+In the following pages you will find a :ref:`brief introduction <introduction>`
+to the method as well as a :ref:`tutorial <tutorial>`. The `source code
+<https://github.com/jdhenshaw/scousepy>`_ is available on GitHub and comments
+and contributions are very welcome.
 
-.. image:: Figure_cartoon.png
-   :width: 850px
-   :align: center
-
-Documents
-~~~~~~~~~
+Documentation
+~~~~~~~~~~~~~
 
 .. toctree::
   :maxdepth: 4
@@ -22,12 +29,13 @@ Documents
   tutorial.rst
   license.rst
 
-Reporting issues and help
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Reporting issues and getting help
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Please help to improve this package by reporting issues via `GitHub
-<https://github.com/jdhenshaw/scousepy/issues>`_. Alternatively, you can get in
-touch `here <mailto:jonathan.d.henshaw@gmail.com>`_.
+Please help to improve this package by reporting `issues
+<https://github.com/jdhenshaw/scousepy/issues>`_ via GitHub. Alternatively, if
+you have any questions or if you are having any problems getting set up you can
+get in touch `here <mailto:jonathan.d.henshaw@gmail.com>`_.
 
 Developers
 ~~~~~~~~~~
@@ -51,8 +59,8 @@ acknowledgement...
 
 Please also consider acknowledgements to the required packages in your work.
 
-Papers using ``scousepy``
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Papers using scousepy
+~~~~~~~~~~~~~~~~~~~~~
 
 * Henshaw et al. 2018, in prep.
 
