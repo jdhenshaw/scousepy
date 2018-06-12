@@ -70,7 +70,7 @@ Reporting issues and getting help
 =================================
 
 Please help to improve this package by reporting issues via [GitHub](https://github.com/jdhenshaw/scousepy/issues).
-Alternatively, you can get in touch [here](mailto:jonathan.d.henshaw@gmail.com)].
+Alternatively, you can get in touch [here](mailto:jonathan.d.henshaw@gmail.com).
 
 Developers
 ==========
