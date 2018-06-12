@@ -163,7 +163,8 @@ class Stage2Fitter(object):
                          print_message=False,
                          xmin=np.min(scouseobject.xtrim),
                          xmax=np.max(scouseobject.xtrim),
-                         show_components=True)
+                         show_components=True,
+                         use_lmfit=True)
             assert self.spec.plotter._active_gui is not None
 
             self.residuals_shown = False
@@ -184,7 +185,8 @@ class Stage2Fitter(object):
                          xmin=scouseobject.ppv_vol[0],
                          xmax=scouseobject.ppv_vol[1],
                          guesses=guesses,
-                         fittype=scouseobject.fittype)
+                         fittype=scouseobject.fittype,
+                         use_lmfit=True)
             spec.specfit.plot_fit(show_components=True)
             spec.specfit.plotresiduals(axis=spec.plotter.axis,
                                        clear=False,
