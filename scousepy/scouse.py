@@ -137,7 +137,7 @@ class scouse(object):
 
     @staticmethod
     def stage_1(filename, datadirectory,
-                wsaa, ppv_vol=[None, None, None, None, None, None], 
+                wsaa, ppv_vol=[None, None, None, None, None, None],
                 mask_below=0.0, cube=None, verbose = False, outputdir=None,
                 write_moments=False, save_fig=True, training_set=False,
                 samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
@@ -200,6 +200,7 @@ class scouse(object):
 
         if outputdir is None:
             outputdir=datadirectory
+
         self = scouse(fittype=fittype, filename=filename, outputdir=outputdir, datadirectory=datadirectory)
         self.wsaa = wsaa
         self.ppv_vol = ppv_vol
@@ -344,7 +345,7 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
+            with open(self.outputdirectory+'/stage_1/s1.scousepy', 'wb') as fh:
                 pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
 
         input("Press enter to continue...")
@@ -474,7 +475,7 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
+            with open(self.outputdirectory+'/stage_2/s2.scousepy', 'wb') as fh:
                 pickle.dump((self.saa_dict, self.fitcount), fh)
 
         # close all figures before moving on
@@ -586,7 +587,7 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+            with open(self.outputdirectory+'/stage_3/s3.scousepy', 'wb') as fh:
                 pickle.dump((self.indiv_dict, self.tolerances), fh)
 
         return self
@@ -641,7 +642,7 @@ class scouse(object):
 
         # Save the scouse object automatically
         if autosave:
-            with open(self.datadirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+            with open(self.outputdirectory+'/stage_4/s4.scousepy', 'wb') as fh:
                 pickle.dump(self.indiv_dict, fh)
 
         return self
@@ -739,15 +740,15 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.datadirectory+self.filename+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+newfile, 'wb') as fh:
                         pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
                 else:
                     os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
                               self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
-                    with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                    with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
                         pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
             else:
-                with open(self.datadirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
                     pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
 
         # close all figures before moving on
@@ -937,15 +938,15 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.datadirectory+self.filename+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+newfile, 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
                 else:
                     os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
                               self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
-                    with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                    with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
             else:
-                with open(self.datadirectory+self.filename+'/stage_6/s6.scousepy', 'wb') as fh:
+                with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
                     pickle.dump((self.indiv_dict, self.fitcounts6), fh)
 
         self.completed_stages.append('s6')
