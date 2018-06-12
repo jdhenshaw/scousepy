@@ -782,7 +782,7 @@ class scouse(object):
             Allows the user to fit only the individual spectra.
         bitesize : bool, optional
             Allows the user to fit the individual spectra in chunks.
-        npec : int, optional
+        nspec : int, optional
             The number of spectra to be fit during bitesize fitting.
         write_ascii : bool, optional
             Outputs an ascii table containing the best fitting solutions to the
