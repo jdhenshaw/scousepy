@@ -839,7 +839,7 @@ class scouse(object):
         # Give the user the option of fitting only blocks or individal spectra
         fit_blocks=True; fit_indiv=True
         if blocks_only:
-            fit_blocks=True; fit_indiv=False
+            fit_indiv=False
         elif indiv_only:
             fit_blocks=False
 
@@ -920,9 +920,9 @@ class scouse(object):
                 initialise_indiv_spectra_s6(self, SAA, njobs)
                 # Manual fitting of the blocks
                 manually_fit_blocks(self, block_dict, blocknum)
+                self.blockcount+=1
             # automated fitting of block spectra
             auto_fit_blocks(self, block_dict, njobs, self.blocksize, verbose=verbose)
-            self.blockcount+=1
 
         if write_ascii and (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
            and (self.blockcount == int(np.size(self.check_block_indices))):
