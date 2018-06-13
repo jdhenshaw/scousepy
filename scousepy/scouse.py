@@ -124,6 +124,10 @@ class scouse(object):
                 _cube = _cube[::-1]
 
             # Trim cube if necessary
+            if (self.ppv_vol[0] is not None) & (self.ppv_vol[1] is not None):
+                indx = np.where((_cube.spectral_axis.value > self.ppv_vol[0]) & \
+                                (_cube.spectral_axis.value < self.ppv_vol[1]))
+                _cube = _cube[np.min(indx):np.max(indx), :, :]
             if (self.ppv_vol[2] is not None) & (self.ppv_vol[3] is not None):
                 _cube = _cube[:, int(self.ppv_vol[2]):int(self.ppv_vol[3]), :]
             if (self.ppv_vol[4] is not None) & (self.ppv_vol[5] is not None):
