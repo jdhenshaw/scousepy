@@ -47,17 +47,14 @@ def compute_noise(scouseobject):
     while stopcount < stop:
 
         _spectrum = scouseobject.cube[:, locations[0, specidx], locations[1, specidx]].value
+        if not np.any(np.isfinite(_spectrum)):
+            continue
 
-        if not np.isnan(_spectrum).any() and not (_spectrum > 0).all():
-            if not np.isnan(_spectrum).any():
-                rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
-                rmsList.append(rmsVal)
-            elif not np.isnan(_spectrum).all():
-                nanmask = ~np.isnan(_spectrum)
-                _spectrum = _spectrum[nanmask]
-                rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
-                rmsList.append(rmsVal)
-            stopcount+=1
+        _spectrum = _spectrum[np.isfinite(_spectrum)]
+
+        rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
+        rmsList.append(rmsVal)
+        stopcount+=1
         specidx+=1
 
     rms = np.median(rmsList)
