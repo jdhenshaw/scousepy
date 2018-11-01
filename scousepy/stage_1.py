@@ -292,8 +292,8 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
     if verbose:
         for cx,cy in ProgressBar(list(itertools.product(cov_x, cov_y))):
             coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing,
-                                                        momzero, momzero_mod, c
-                                                        ov_x, cov_y, coverage,
+                                                        momzero, momzero_mod, 
+                                                        cov_x, cov_y, coverage,
                                                         spec, ids, frac,
                                                         redefine, nrefine)
     else:

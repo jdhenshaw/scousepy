@@ -738,7 +738,7 @@ class scouse(object):
         check_block_indices = dd.check_block_indices
 
         # For staged_checking - check and flatten
-        self.check_spec_indices, self.check_block_indices =
+        self.check_spec_indices, self.check_block_indices = \
                 check_and_flatten(self, check_spec_indices, check_block_indices)
         self.check_spec_indices = np.asarray(self.check_spec_indices)
         self.check_block_indices = np.asarray(self.check_block_indices)
