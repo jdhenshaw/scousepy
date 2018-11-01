@@ -244,7 +244,7 @@ def plot_neighbour_pixels(scouseobject, indices_adjacent, figsize):
 
     for i, key in enumerate(indices_adjacent, start=0):
 
-        if np.isfinite(key):
+        if np.isfinite(key) and key in scouseobject.indiv_dict:
 
             spectrum = scouseobject.indiv_dict[key]
             # Get the correct subplot axis

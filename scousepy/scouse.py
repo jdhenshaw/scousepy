@@ -289,7 +289,7 @@ class scouse(object):
 
                 if self.training_set:
                     # Randomly select saas to be fit
-                    self.sample = get_random_saa(cc, samplesize, r,
+                    self.sample = get_random_saa(cc, samplesize, w,
                                                  verbose=verbose)
                     totfit = len(self.sample)
                 else:
@@ -361,7 +361,7 @@ class scouse(object):
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                bitesize=False, nspec=None):
+                bitesize=False, nspec=None, training_set=False):
         """
         An interactive program designed to find best-fitting solutions to
         spatially averaged spectra taken from the SAAs.
@@ -445,6 +445,9 @@ class scouse(object):
                 SAAid=0
                 firstfit=True
             elif i == np.min(fitrange):
+                SAAid=SAA.index
+                firstfit=True
+            elif training_set:
                 SAAid=SAA.index
                 firstfit=True
 
@@ -927,6 +930,10 @@ class scouse(object):
         if write_ascii and (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
            and (self.blockcount == int(np.size(self.check_block_indices))):
             output_ascii_indiv(self, s6dir)
+
+        if (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
+           and (self.blockcount == int(np.size(self.check_block_indices))):
+            self.fitcounts6 = 0
 
         endtime = time.time()
         if verbose:

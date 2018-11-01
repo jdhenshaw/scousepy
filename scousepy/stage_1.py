@@ -304,7 +304,7 @@ def get_wsaa(scouseobject):
             wsaa.append(newwsaa)
     return wsaa
 
-def get_random_saa(cc, samplesize, r, verbose=False):
+def get_random_saa(cc, samplesize, w, verbose=False):
     """
     Get a randomly selected sample of spectral averaging areas
     """
@@ -313,7 +313,7 @@ def get_random_saa(cc, samplesize, r, verbose=False):
         print('')
         print("Extracting randomly sampled SAAs for training set...")
 
-    npixpewsaa = (r)**2.0
+    npixpewsaa = (w)**2.0
     training_set_size = npixpewsaa*samplesize
 
     sample = np.sort(random.sample(range(0,len(cc[:,0])), samplesize))

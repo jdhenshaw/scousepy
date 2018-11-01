@@ -10,6 +10,8 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import sys
+from astropy.table import Table
+from astropy.table import Column
 
 from .io import get_headings
 
@@ -28,6 +30,7 @@ class stats(object):
         self._noriginal = get_noriginal(self, scouse)
         self._nrefit = get_nrefit(self, scouse)
         self._nalt = get_nalt(self, scouse)
+        self._nmultiple = get_nmultiple(self, scouse)
         self._originalfrac = None
         self._refitfrac = None
         self._altfrac = None
@@ -87,6 +90,13 @@ class stats(object):
         Returns mean rms
         """
         return self._stats['rms'][5]
+
+    @property
+    def nmultiple(self):
+        """
+        Number of spectra requiring multicomponent fits
+        """
+        return self._nmultiple
 
     @property
     def noriginal(self):
@@ -304,6 +314,13 @@ def get_ncomps(self, scouse):
     """
     fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
     return np.sum(fits)
+
+def get_nmultiple(self, scouse):
+    """
+    Calculates number of components
+    """
+    fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps > 1.0)  ]
+    return len(fits)
 
 def get_nspecsaa(self, scouse):
     """
