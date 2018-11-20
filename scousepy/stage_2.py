@@ -181,6 +181,8 @@ class Stage2Fitter(object):
             spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
             assert self.spec.plotter._active_gui is None
+            if None in guesses:
+                raise ValueError("Encountered a 'None' value in guesses")
             spec.specfit(interactive=False,
                          xmin=scouseobject.ppv_vol[0],
                          xmax=scouseobject.ppv_vol[1],
