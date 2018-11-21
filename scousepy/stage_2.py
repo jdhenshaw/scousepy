@@ -152,8 +152,7 @@ class Stage2Fitter(object):
             # Interactive fitting with pyspeckit
             spec.plotter(xmin=np.min(scouseobject.xtrim),
                          xmax=np.max(scouseobject.xtrim),
-                         figure=plt.figure(1),
-                        )
+                         figure=plt.figure(1))
             # disable mpl key commands (especially 'q')
             spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
@@ -175,8 +174,7 @@ class Stage2Fitter(object):
             self.init_guess = False
             spec.plotter(xmin=scouseobject.ppv_vol[0],
                          xmax=scouseobject.ppv_vol[1],
-                         figure=plt.figure(1),
-                        )
+                         figure=plt.figure(1))
             # disable mpl key commands (especially 'q')
             spec.plotter.figure.canvas.callbacks.disconnect(3)
             spec.specfit.clear_all_connections()
