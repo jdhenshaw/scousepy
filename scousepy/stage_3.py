@@ -40,15 +40,13 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
         saa_dict = scouseobject.saa_dict[i]
 
         if verbose:
-            count=0
-            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
+            print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
+            pb = ProgressBar(len(saa_dict))
 
-        if verbose:
-            for j in ProgressBar(range(len(saa_dict.keys()))):
-                prep_spec(j, saa_dict, njobs, scouseobject)
-        else:
-            for j in range(len(saa_dict.keys())):
-                prep_spec(j, saa_dict, njobs, scouseobject)
+        for jj,key in enumerate(saa_dict.keys()):
+            prep_spec(key, saa_dict, njobs, scouseobject)
+            if verbose:
+                pb.update()
 
     if verbose:
         print("")
