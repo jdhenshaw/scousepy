@@ -43,7 +43,7 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
             print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
             pb = ProgressBar(len(saa_dict))
 
-        for jj,key in enumerate(saa_dict.keys()):
+        for key in saa_dict:
             prep_spec(key, saa_dict, njobs, scouseobject)
             if verbose:
                 pb.update()
