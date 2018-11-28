@@ -352,7 +352,8 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.outputdirectory+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
+                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol,
+                                                      self.outputdirectory), fh)
 
         input("Press enter to continue...")
         # close all figures before moving on
@@ -363,7 +364,8 @@ class scouse(object):
 
     def load_stage_1(self, fn):
         with open(fn, 'rb') as fh:
-            self.saa_dict,self.wsaa,self.ppv_vol = pickle.load(fh)
+            self.saa_dict,self.wsaa,self.ppv_vol,self.outputdirectory = \
+                                                                 pickle.load(fh)
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
