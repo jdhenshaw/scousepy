@@ -199,11 +199,15 @@ def print_fit_information(self, init_guess=False):
         parhigh = int((i*len(self.parnames))+len(self.parnames))
         parrange = np.arange(parlow,parhigh)
         for j in range(0, len(self.parnames)):
+            # print(("{0}:  {1} +/- {2}").format(self.parnames[j], \
+            #                                    np.around(self.params[parrange[j]],
+            #                                    decimals=5), \
+            #                                    np.around(self.errors[parrange[j]],
+            #                                    decimals=5)))
+
             print(("{0}:  {1} +/- {2}").format(self.parnames[j], \
-                                               np.around(self.params[parrange[j]], \
-                                               decimals=5), \
-                                               np.around(self.errors[parrange[j]], \
-                                               decimals=5)))
+                                               self.params[parrange[j]],
+                                               self.errors[parrange[j]]))
         print("")
         compcount+=1
     print(("chisq:    {0}").format(np.around(self.chi2, decimals=2)))

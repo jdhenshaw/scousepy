@@ -79,7 +79,7 @@ class saa(BaseSpectrum):
         """
         Return a nice printable format for the object.
         """
-        return "< SAA {0} >".format(self.index, self.coordinates)
+        return "< scousepy Spectral Averaging Area SAA {0} >".format(self.index, self.coordinates)
 
 
 def trim_spectrum(self, scouse, flux):
