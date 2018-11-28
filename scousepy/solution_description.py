@@ -209,7 +209,7 @@ def print_fit_information(self, init_guess=False):
     compcount=0
 
     if not self.converge:
-        print(colors._yellow_+"WARNING: Minimisation failed to converge. Please "
+        print(colors.fg._yellow_+"WARNING: Minimisation failed to converge. Please "
               "\nrefit manually. "+colors._endc_)
         print("")
 

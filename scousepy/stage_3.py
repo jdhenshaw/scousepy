@@ -39,17 +39,15 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
         # Get the relavent SAA dictionary
         saa_dict = scouseobject.saa_dict[i]
 
+        # initialise the progress bar
         if verbose:
             count=0
             progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
 
-        if verbose:
-            for j in ProgressBar(range(len(saa_dict.keys()))):
-                prep_spec(j, saa_dict, njobs, scouseobject)
-        else:
-            for j in range(len(saa_dict.keys())):
-                prep_spec(j, saa_dict, njobs, scouseobject)
-
+        for j in range(len(saa_dict.keys())):
+            prep_spec(j, saa_dict, njobs, scouseobject)
+            if verbose:
+                progress_bar.update()
     if verbose:
         print("")
 
@@ -111,25 +109,18 @@ def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1,
     """
 
     if verbose:
-        count=0
         if stage == 3:
             progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
-            for _key in ProgressBar(list(saa_dict.keys())):
-                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
         else:
             progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
-            for _key in ProgressBar(list(saa_dict.keys())):
-                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
-    else:
-        count=0
-        if stage == 3:
-            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
-            for _key in saa_dict.keys():
-                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
-        else:
-            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
-            for _key in saa_dict.keys():
-                fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
+
+    for _key in saa_dict.keys():
+        fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
+        if verbose:
+            progress_bar.update()
+            
+    if verbose:
+        print("")
 
 def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
     """

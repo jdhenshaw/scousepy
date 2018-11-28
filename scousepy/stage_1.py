@@ -18,7 +18,6 @@ from astropy import units as u
 from astropy.stats import median_absolute_deviation
 from astropy.utils.console import ProgressBar
 
-from .progressbar import AnimatedProgressBar
 from .verbose_output import print_to_terminal
 from .io import *
 
@@ -289,20 +288,14 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
                                                    length=len(cov_y)*len(cov_x))
 
     # Loop through the coords
-    if verbose:
-        for cx,cy in ProgressBar(list(itertools.product(cov_x, cov_y))):
-            coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing,
-                                                        momzero, momzero_mod,
-                                                        cov_x, cov_y, coverage,
-                                                        spec, ids, frac,
-                                                        redefine, nrefine)
-    else:
-        for cx,cy in list(itertools.product(cov_x, cov_y)):
-            coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing,
-                                                        momzero, momzero_mod,
-                                                        cov_x, cov_y, coverage,
-                                                        spec, ids, frac,
-                                                        redefine, nrefine)
+    for cx,cy in itertools.product(cov_x, cov_y):
+        coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing,
+                                                    momzero, momzero_mod,
+                                                    cov_x, cov_y, coverage,
+                                                    spec, ids, frac,
+                                                    redefine, nrefine)
+        if verbose:
+            progress_bar.update()
 
     if verbose:
         print('')

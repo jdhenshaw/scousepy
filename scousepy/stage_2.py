@@ -64,7 +64,7 @@ class Stage2Fitter(object):
                     if self.residuals_shown:
                         print("")
                         print("'enter' key acknowledged."+
-                        colors._green_+" Solution accepted"+colors._endc_+".")
+                        colors.fg._lightgreen_+" Solution accepted"+colors._endc_+".")
                         print("")
                         self.happy = True
                         self.bf = fit(self.spec, idx=self.SAA.index,
@@ -75,7 +75,7 @@ class Stage2Fitter(object):
                     else:
                         print("")
                         print("'enter' acknowledged."+
-                        colors._blue_+" Guess initialized, showing fit"+colors._endc_+".")
+                        colors.fg._cyan_+" Guess initialized, showing fit"+colors._endc_+".")
                         self.firstgo+=1
                         self.guesses = self.spec.specfit.parinfo.values
                         self.trainingset_fit(self.spec,
@@ -94,7 +94,7 @@ class Stage2Fitter(object):
                 elif event.key in ('f', 'F'):
                     print("")
                     print("'f' acknowledged."+
-                    colors._red_+" Re-entering interactive fitter"+colors._endc_+".")
+                    colors.fg._lightred_+" Re-entering interactive fitter"+colors._endc_+".")
                     self.residuals_shown = False
 
                 elif event.key in ('d','D','3',3):

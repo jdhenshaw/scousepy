@@ -332,30 +332,44 @@ def check_and_flatten(scouseobject, check_spec_indices, check_block_indices):
 
     return _check_spec_indices, _check_block_indices
 
-def generate_2d_parametermap(scouseobject, spectrum_parameter):
+def generate_2d_parametermap(scouseobject, spectrum_parameter,verbose=False):
     """
     Create a 2D map of a given spectral parameter
     """
     blankmap = np.zeros(scouseobject.cube.shape[1:])
     blankmap[:] = np.nan
-    for ind,spec in ProgressBar(scouseobject.indiv_dict.items()):
+
+    if verbose:
+        print("")
+        progress_bar = ProgressBar(len(scouseobject.indiv_dict.items()))
+
+    for ind,spec in scouseobject.indiv_dict.items():
         cy,cx = spec.coordinates
         if getattr(spec.model, 'ncomps') != 0:
             blankmap[cy, cx] = getattr(spec.model, spectrum_parameter)
         else:
             blankmap[cy, cx] = np.nan
+        if verbose:
+            progress_bar.update()
+
     return blankmap
 
-def generate_diagnostic_maps(scouseobject, maps=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2']):
+def generate_diagnostic_maps(scouseobject,
+                             maps=['rms','residstd','redchi2','ncomps','aic','chi2'],
+                             verbose=False):
+    mapdict={mapname: generate_2d_parametermap(scouseobject, mapname,
+             verbose=verbose) for mapname in maps}
+    if verbose:
+        print("")
+        
+    return mapdict
 
-    return {mapname: generate_2d_parametermap(scouseobject, mapname)
-            for mapname in maps}
 
 class DiagnosticImageFigure(object):
     def __init__(self, scouseobject, fig=None, ax=None, keep=False,
                  blocksize=6, mapnames=['rms', 'residstd', 'redchi2', 'ncomps', 'aic', 'chi2'],
                  plotkwargs=dict(interpolation='none', origin='lower'),
-                 savedir=None, repeat=False,
+                 savedir=None, repeat=False, verbose=False,
                 ):
         """
         """
@@ -381,7 +395,8 @@ class DiagnosticImageFigure(object):
         else:
             not_loaded = self.mapnames
 
-        self.maps.update(generate_diagnostic_maps(self.scouseobject, maps=not_loaded))
+        self.maps.update(generate_diagnostic_maps(self.scouseobject,
+                                               maps=not_loaded,verbose=verbose))
 
         self.save_maps(self.savedir)
 

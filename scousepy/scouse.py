@@ -32,7 +32,6 @@ from .stage_4 import *
 from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
-from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids
 from .solution_description import fit
 from .colors import *
@@ -433,14 +432,14 @@ class scouse(object):
                         for ii in fitrange])
 
         if n_to_fit <= 0:
-            raise ValueError(colors._red_+"No spectra are selected to be fit. Fitting has "
+            raise ValueError(colors.fg._red_+"No spectra are selected to be fit. Fitting has "
                              "completed."+colors._endc_)
 
         # Loop through the SAAs
         for i_,i in enumerate(fitrange):
-            print(colors._green_+"====================================================="+colors._endc_)
-            print(colors._green_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
-            print(colors._green_+"====================================================="+colors._endc_)
+            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+            print(colors.fg._lightgrey_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
             # Get the relevant SAA dictionary (if multiple wsaa values are
             # supplied)
             saa_dict = self.saa_dict[saa_list[i,1]]
@@ -712,6 +711,9 @@ class scouse(object):
 
         starttime = time.time()
 
+        if verbose:
+            progress_bar = print_to_terminal(stage='s5', step='start')
+
         # Begin interactive plotting
         interactive_state = plt.matplotlib.rcParams['interactive']
 
@@ -719,7 +721,7 @@ class scouse(object):
         # 'goodness of fit'. The user can use this to select regions which look
         # bad and from there, select spectra to refit.
         dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir,
-                                   repeat=repeat)
+                                   repeat=repeat, verbose=verbose)
         dd.show_first()
 
         with warnings.catch_warnings():
