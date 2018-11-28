@@ -35,6 +35,7 @@ from .io import *
 from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids
 from .solution_description import fit
+from .colors import *
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -432,13 +433,14 @@ class scouse(object):
                         for ii in fitrange])
 
         if n_to_fit <= 0:
-            raise ValueError("No spectra are selected to be fit. Fitting has "
-                             "completed.")
+            raise ValueError(colors._red_+"No spectra are selected to be fit. Fitting has "
+                             "completed."+colors._endc_)
 
         # Loop through the SAAs
         for i_,i in enumerate(fitrange):
-            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
-
+            print(colors._green_+"====================================================="+colors._endc_)
+            print(colors._green_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+            print(colors._green_+"====================================================="+colors._endc_)
             # Get the relevant SAA dictionary (if multiple wsaa values are
             # supplied)
             saa_dict = self.saa_dict[saa_list[i,1]]

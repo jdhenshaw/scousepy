@@ -22,6 +22,7 @@ from astropy import log
 
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
+from .colors import *
 
 def get_spec(scouseobject, y, rms):
     """
@@ -61,8 +62,10 @@ class Stage2Fitter(object):
             if hasattr(event, 'key'):
                 if event.key in ('enter'):
                     if self.residuals_shown:
-                        print("'enter' key acknowledged.  Moving to next spectrum "
-                              "or next step...")
+                        print("")
+                        print("'enter' key acknowledged."+
+                        colors._green_+" Solution accepted"+colors._endc_+".")
+                        print("")
                         self.happy = True
                         self.bf = fit(self.spec, idx=self.SAA.index,
                                             scouse=self.scouseobject)
@@ -70,8 +73,9 @@ class Stage2Fitter(object):
                         self.spec.plotter.disconnect()
                         assert self.spec.plotter._active_gui is None
                     else:
-                        print("'enter' acknowledged.  Guess initialized.  Showing "
-                              "fit.")
+                        print("")
+                        print("'enter' acknowledged."+
+                        colors._blue_+" Guess initialized, showing fit"+colors._endc_+".")
                         self.firstgo+=1
                         self.guesses = self.spec.specfit.parinfo.values
                         self.trainingset_fit(self.spec,
@@ -88,7 +92,11 @@ class Stage2Fitter(object):
                                                guesses=self.guesses,
                                               )
                 elif event.key in ('f', 'F'):
+                    print("")
+                    print("'f' acknowledged."+
+                    colors._red_+" Re-entering interactive fitter"+colors._endc_+".")
                     self.residuals_shown = False
+
                 elif event.key in ('d','D','3',3):
                     # The fit has been performed interactively, but we also
                     # want to print out the nicely-formatted additional
@@ -96,12 +104,16 @@ class Stage2Fitter(object):
                     self.spec.specfit.button3action(event)
                     bf = fit(self.spec, idx=self.SAA.index,
                              scouse=self.scouseobject)
-                    print_fit_information(bf, init_guess=True)
-                    print("If you are happy with this fit, press Enter.  Otherwise, "
-                          "use the 'f' key to re-enter the interactive fitter.")
+                    print_fit_information(bf, init_guess=self.init_guess)
+                    print("Options:"
+                          "\n"
+                          "1) If you are happy with this fit, press Enter."
+                          "\n"
+                          "2) If not, press 'f' to re-enter the interactive fitter.")
                     self.happy = None
                 else:
                     self.happy = None
+
             elif hasattr(event, 'button') and event.button in ('d','D','3',3):
                 # The fit has been performed interactively, but we also
                 # want to print out the nicely-formatted additional
@@ -109,8 +121,11 @@ class Stage2Fitter(object):
                 bf = fit(self.spec, idx=self.SAA.index,
                          scouse=self.scouseobject)
                 print_fit_information(bf, init_guess=True)
-                print("If you are happy with this fit, press Enter.  Otherwise, "
-                      "use the 'f' key to re-enter the interactive fitter.")
+                print("Options:"
+                      "\n"
+                      "1) If you are happy with this fit, press Enter."
+                      "\n"
+                      "2) If not, press 'f' to re-enter the interactive fitter.")
                 self.happy = None
             else:
                 self.happy = None
@@ -148,6 +163,8 @@ class Stage2Fitter(object):
 
         # if this is the initial guess then begin by fitting interactively
         if init_guess:
+            print("")
+            print("Press '?' for help with the interactive fitter. ")
             self.init_guess = True
             # Interactive fitting with pyspeckit
             spec.plotter(xmin=np.min(scouseobject.xtrim),
@@ -182,7 +199,7 @@ class Stage2Fitter(object):
 
             if None in guesses:
                 raise ValueError("Encountered a 'None' value in guesses")
-                
+
             spec.specfit(interactive=False,
                          xmin=scouseobject.ppv_vol[0],
                          xmax=scouseobject.ppv_vol[1],
@@ -200,7 +217,6 @@ class Stage2Fitter(object):
 
         log.setLevel(old_log)
 
-
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
 
@@ -211,9 +227,12 @@ class Stage2Fitter(object):
                 if self.residuals_shown:
                     bf = fit(self.spec, idx=self.SAA.index,
                              scouse=self.scouseobject)
-                    print_fit_information(bf, init_guess=True)
-                print("If you are happy with this fit, press Enter.  Otherwise, "
-                      "use the 'f' key to re-enter the interactive fitter.")
+                    print_fit_information(bf, init_guess=self.init_guess)
+                    print("Options:"
+                          "\n"
+                          "1) If you are happy with this fit, press Enter."
+                          "\n"
+                          "2) If not, press 'f' to re-enter the interactive fitter.")
             else:
                 plt.show()
                 self.happy = self.interactive_callback('noninteractive')
