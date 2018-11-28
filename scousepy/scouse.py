@@ -693,9 +693,10 @@ class scouse(object):
             Sometimes you may want to run stage 5 multiple times. Combined with
             newfile, this allows you to. If you are repeating the process, set
             to true.
-        newfile : bool, optional
-            If true, scouse will write the output to a new file rather than
-            overwriting the previous one.
+        newfile : string, optional
+            If a string scouse will write the output to a new file rather than
+            overwriting the previous one. If nothing is entered, but repeat is
+            True then scouse will simply append '.bk' to the old s5 output.
 
         """
         if not bitesize:
@@ -764,13 +765,13 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+self.filename+'/stage_5/'+newfile,'wb') as fh:
                         pickle.dump((self.check_spec_indices,
                                      self.check_block_indices,
                                      self.blocksize), fh)
                 else:
-                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
-                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
+                    os.rename(self.outputdirectory+self.filename+'/stage_5/s5.scousepy', \
+                              self.outputdirectory+self.filename+'/stage_5/s5.scousepy.bk')
                     with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
                         pickle.dump((self.check_spec_indices,
                                      self.check_block_indices,
@@ -974,11 +975,11 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+self.filename+'/stage_6/'+newfile, 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
                 else:
-                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
-                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
+                    os.rename(self.outputdirectory+self.filename+'/stage_6/s6.scousepy', \
+                              self.outputdirectory+self.filename+'/stage_6/s6.scousepy.bk')
                     with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
             else:
