@@ -901,7 +901,9 @@ class scouse(object):
 
             # Loop through the spectra that are to be fit
             for i_,i in enumerate(fitrange):
-                print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
+                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+                print(colors.fg._lightgrey_+"Checking {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
 
                 # Here we will fit the individual spectra that have been
                 # selected for refitting

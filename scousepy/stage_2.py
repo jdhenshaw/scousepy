@@ -93,7 +93,7 @@ class Stage2Fitter(object):
                                               )
                 elif event.key in ('f', 'F'):
                     print("")
-                    print("'f' acknowledged."+
+                    print("'f' key acknowledged."+
                     colors.fg._lightred_+" Re-entering interactive fitter"+colors._endc_+".")
                     self.residuals_shown = False
 
