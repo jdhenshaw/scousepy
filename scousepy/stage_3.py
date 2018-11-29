@@ -31,33 +31,53 @@ def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
     Here, the individual spectra are primed ready for fitting. We create a new
     object for each spectrum and they are contained within a dictionary which
     can be located within the relavent SAA.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    verbose : bool (optional)
+        verbose output
+    njobs : number (optional)
+        number of cores used for the computation - prep spec is parallelised
+
     """
 
     # Cycle through potentially multiple wsaa values
     for i in range(len(scouseobject.wsaa)):
-
         # Get the relavent SAA dictionary
         saa_dict = scouseobject.saa_dict[i]
-
         # initialise the progress bar
         if verbose:
             count=0
-            progress_bar = print_to_terminal(stage='s3', step='init', length=len(saa_dict.keys()), var=scouseobject.wsaa[i])
+            progress_bar = print_to_terminal(stage='s3', step='init',
+                                             length=len(saa_dict.keys()),
+                                             var=scouseobject.wsaa[i])
 
-        for j in range(len(saa_dict.keys())):
-            prep_spec(j, saa_dict, njobs, scouseobject)
+        for _key in saa_dict.keys():
+            prep_spec(_key, saa_dict, njobs, scouseobject)
             if verbose:
                 progress_bar.update()
     if verbose:
         print("")
 
-def prep_spec(j, saa_dict, njobs, scouseobject):
+def prep_spec(_key, saa_dict, njobs, scouseobject):
     """
     Prepares the spectra for automated fitting
+
+    Parameters
+    ----------
+    _key : number
+        key for SAA dictionary entry - used to select the correct SAA
+    saa_dict : dictionary
+        dictionary of spectral averaging areas
+    njobs : number
+        number of cores used for the computation - prep spec is parallelised
+    scouseobject : Instance of the scousepy class
+
     """
 
     # get the relavent SAA
-    SAA = saa_dict[j]
+    SAA = saa_dict[_key]
     # Initialise indiv spectra
     indiv_spectra = {}
     # We only care about the SAA's that are to be fit at this stage
@@ -69,7 +89,8 @@ def prep_spec(j, saa_dict, njobs, scouseobject):
                 args = [scouseobject, SAA]
                 inputs = [[k] + args for k in range(len(SAA.indices_flat))]
                 # Send to parallel_map
-                indiv_spec = parallel_map(get_indiv_spec, inputs, numcores=njobs)
+                indiv_spec = parallel_map(get_indiv_spec,inputs,numcores=njobs)
+                # flatten the output from parallel map
                 merged_spec = [spec for spec in indiv_spec if spec is not None]
                 merged_spec = np.asarray(merged_spec)
                 for k in range(len(SAA.indices_flat)):
@@ -84,17 +105,24 @@ def prep_spec(j, saa_dict, njobs, scouseobject):
                     inputs = inputs[0]
                     indiv_spec = get_indiv_spec(inputs)
                     indiv_spectra[key] = indiv_spec
+    # add the spectra to the spectral averaging areas
     add_indiv_spectra(SAA, indiv_spectra)
 
 def get_indiv_spec(inputs):
     """
     Returns a spectrum
+
+    Parameters
+    ----------
+    inputs : list
+        list containing inputs to parallel map - contains the index of the
+        relavent spectrum, the scouseobject, and the SAA
+
     """
-
     idx, scouseobject, SAA = inputs
-    _coords = np.unravel_index(SAA.indices_flat[idx], scouseobject.cube.shape[1:])
-
-
+    # get the coordinates of the pixel based on the flattened index
+    _coords = np.unravel_index(SAA.indices_flat[idx],scouseobject.cube.shape[1:])
+    # create a pyspeckit spectrum
     indiv_spec = spectrum(_coords, \
                           scouseobject.cube[:,_coords[0], _coords[1]].value, \
                           idx=SAA.indices_flat[idx], \
@@ -106,25 +134,59 @@ def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1,
                       spatial=False, verbose=False, stage=3):
     """
     Automated fitting procedure for individual spectra
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    saa_dict : dictionary
+        dictionary of spectral averaging areas
+    wsaa : number
+        width of the SAA
+    njobs : number (optional)
+        number of cores used for the computation - prep spec is parallelised
+    spatial : bool (optional)
+        not implemented yet
+    verbose : bool (optional)
+        verbose output
+    stage : number (optional)
+        indicates whether the fitting is being performed during stage 3 or 6
     """
 
     if verbose:
         if stage == 3:
-            progress_bar = print_to_terminal(stage='s3', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            progress_bar = print_to_terminal(stage='s3', step='fitting',
+                                             length=len(saa_dict.keys()),
+                                             var=wsaa)
         else:
-            progress_bar = print_to_terminal(stage='s6', step='fitting', length=len(saa_dict.keys()), var=wsaa)
+            progress_bar = print_to_terminal(stage='s6', step='fitting',
+                                             length=len(saa_dict.keys()),
+                                             var=wsaa)
 
     for _key in saa_dict.keys():
         fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
         if verbose:
             progress_bar.update()
-            
+
     if verbose:
         print("")
 
 def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
     """
-    fitting the spectra
+    The automated fitting process followed by scouse
+
+    Parameters
+    ----------
+    _key : number
+        key for SAA dictionary entry - used to select the correct SAA
+    scouseobject : Instance of the scousepy class
+    saa_dict : dictionary
+        dictionary of spectral averaging areas
+    wsaa : number
+        width of the SAA
+    njobs : number
+        number of cores used for the computation - prep spec is parallelised
+    spatial : bool
+        not implemented yet
     """
 
     # get the relavent SAA
@@ -138,7 +200,7 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-
+            # Generate a template spectrum
             template_spectrum = generate_template_spectrum(scouseobject)
 
             log.setLevel(old_log)
@@ -174,7 +236,15 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
 
 def generate_template_spectrum(scouseobject):
     """
-    Generate the spectrum.
+    Generate a template spectrum to be passed to the fitter. This will contain
+    some basic information that will be updated during the fitting process. This
+    is implemented because the parallelised fitting replaces the spectrum in
+    memory and things...break
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
     """
     x=scouseobject.xtrim
     y=scouseobject.saa_dict[0][0].ytrim
@@ -187,7 +257,6 @@ def generate_template_spectrum(scouseobject):
                               unit=scouseobject.cube.header['BUNIT'],
                               xarrkwargs={'unit':'km/s',
                                           'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
-                                          # I'm sure there's a way to determine this on the fly...
                                           'velocity_convention': 'radio',
                                          },
                               verbose=False
@@ -196,6 +265,12 @@ def generate_template_spectrum(scouseobject):
 def get_flux(scouseobject, indiv_spec):
     """
     Returns flux for a given spectrum
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    indiv_spec : pyspeckit spectrum
+        the spectrum to be fit, produced by prep spec
     """
     y=scouseobject.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
     y=y[scouseobject.trimids]
@@ -203,7 +278,16 @@ def get_flux(scouseobject, indiv_spec):
 
 def get_spec(scouseobject, indiv_spec, template_spectrum):
     """
-    Generate the spectrum
+    Here we update the template with values corresponding to the spectrum
+    we want to fit
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    indiv_spec : pyspeckit spectrum
+        the spectrum to be fit, produced by prep spec
+    template_spectrum : pyspeckit spectrum
+        dummy spectrum to be updated
     """
     y = get_flux(scouseobject, indiv_spec)
     rms=indiv_spec.rms
@@ -219,6 +303,13 @@ def fit_a_spectrum(inputs):
     """
     Process used for fitting spectra. Returns a best-fit solution and a dud for
     every spectrum.
+
+    Parameters
+    ----------
+    inputs : list
+        list containing inputs to parallel map - contains the spectrum index,
+        the scouseobject, SAA, the best-fitting model solution to the SAA, and
+        the template spectrum
     """
     idx, scouseobject, SAA, parent_model, template_spectrum = inputs
     key = SAA.indices_flat[idx]
@@ -229,12 +320,13 @@ def fit_a_spectrum(inputs):
         warnings.simplefilter('ignore')
         old_log = log.level
         log.setLevel('ERROR')
-
+        # update the template
         spec = get_spec(scouseobject, SAA.indiv_spectra[key], template_spectrum)
-
         log.setLevel(old_log)
 
+    # begin the fitting process
     bf = fitting_process_parent(scouseobject, SAA, key, spec, parent_model)
+    # if the result is a zero component fit, create a dud spectrum
     if bf.ncomps == 0.0:
         dud = bf
     else:
@@ -243,8 +335,20 @@ def fit_a_spectrum(inputs):
 
 def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
     """
-    The process used for fitting individual spectra using the parent SAA
-    solution
+    Pyspeckit fitting of an individual spectrum using the parent SAA model
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    SAA : Instance of the saa class
+        scousepy spectral averaging area
+    key : number
+        index of the individual spectrum
+    spec : pyspeckit spectrum
+        the spectrum to fit
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+
     """
 
     # Check the model
@@ -299,6 +403,16 @@ def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
 def fitting_process_duds(scouseobject, SAA, key, spec):
     """
     Fitting duds
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    SAA : Instance of the saa class
+        scousepy spectral averaging area
+    key : number
+        index of the individual spectrum
+    spec : pyspeckit spectrum
+        the spectrum to fit
     """
     bf = fit(spec, idx=key, scouse=scouseobject, fit_dud=True,\
              noise=SAA.indiv_spectra[key].rms, \
@@ -308,28 +422,53 @@ def fitting_process_duds(scouseobject, SAA, key, spec):
 
 def check_spec(scouseobject, parent_model, inputs, happy):
     """
+    This routine controls the fit quality.
+
     Here we are going to check the output spectrum against user-defined
     tolerance levels described in Henshaw et al. 2016 and against the SAA fit.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+    happy : bool
+        fitting stops when happy = True
     """
 
     guesses = np.asarray(inputs[2])
     condition_passed = np.zeros(3, dtype='bool')
-    condition_passed, guesses = check_rms(scouseobject, inputs, guesses, condition_passed)
+    condition_passed, guesses = check_rms(scouseobject, inputs, guesses,
+                                         condition_passed)
     if condition_passed[0]:
-        condition_passed, guesses = check_dispersion(scouseobject, inputs, parent_model, guesses, condition_passed)
+        condition_passed, guesses = check_dispersion(scouseobject, inputs,
+                                                     parent_model, guesses,
+                                                     condition_passed)
         if (condition_passed[0]) and (condition_passed[1]):
-            condition_passed, guesses = check_velocity(scouseobject, inputs, parent_model, guesses, condition_passed)
+            condition_passed, guesses = check_velocity(scouseobject, inputs,
+                                                       parent_model, guesses,
+                                                       condition_passed)
             if np.all(condition_passed):
                 if (inputs[1][0] == 1):
                     happy = True
                 else:
-                    happy, guesses = check_distinct(scouseobject, inputs, parent_model, guesses, happy)
+                    happy, guesses = check_distinct(scouseobject, inputs,
+                                                    parent_model, guesses,
+                                                    happy)
 
     return happy, guesses
 
 def unpack_inputs(inputs):
     """
     Unpacks the input list
+
+    Parameters:
+    -----------
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+
     """
     parnames = [pname.lower() for pname in inputs[0]]
     nparams = np.size(parnames)
@@ -344,18 +483,37 @@ def get_index(parnames, namelist):
     """
     Searches for a particular parname in a list and returns the index of where
     that parname appears
+
+    Parameters
+    ----------
+    parnames : list
+        list of strings containing the names of the parameters in the pyspeckit
+        fit. This will vary depending on the input model so keep as general as
+        possibleself
+    namelist : list
+        list of various names used by pyspeckit for parameters in the model
+
     """
     foundname = [pname in namelist for pname in parnames]
     foundname = np.array(foundname)
     idx = np.where(foundname==True)[0]
-
-    #print("size idx: ", np.size(idx[0]))
 
     return np.asscalar(idx[0])
 
 def check_rms(scouseobject, inputs, guesses, condition_passed):
     """
     Check the rms of the best-fitting model components
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+    guesses : array like
+        array or list of guesses to be fed to pyspeckit in case refitting is
+        required
+    condition_passed : list
+        boolean list indicating which quality control steps have been satisfied
 
     Notes
     -----
@@ -391,9 +549,23 @@ def check_rms(scouseobject, inputs, guesses, condition_passed):
 
     return condition_passed, guesses
 
-def check_dispersion(scouseobject, inputs, parent_model, guesses, condition_passed):
+def check_dispersion(scouseobject,inputs,parent_model,guesses,condition_passed):
     """
     Check the fwhm of the best-fitting model components
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+    guesses : array like
+        array or list of guesses to be fed to pyspeckit in case refitting is
+        required
+    condition_passed : list
+        boolean list indicating which quality control steps have been satisfied
+
     """
 
     fwhmconv = 2.*np.sqrt(2.*np.log(2.))
@@ -432,9 +604,23 @@ def check_dispersion(scouseobject, inputs, parent_model, guesses, condition_pass
 
     return condition_passed, guesses
 
-def check_velocity(scouseobject, inputs, parent_model, guesses, condition_passed):
+def check_velocity(scouseobject,inputs,parent_model,guesses,condition_passed):
     """
     Check the centroid velocity of the best-fitting model components
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+    guesses : array like
+        array or list of guesses to be fed to pyspeckit in case refitting is
+        required
+    condition_passed : list
+        boolean list indicating which quality control steps have been satisfied
+
     """
 
     parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
@@ -474,9 +660,23 @@ def check_velocity(scouseobject, inputs, parent_model, guesses, condition_passed
 
     return condition_passed, guesses
 
-def check_distinct(scouseobject, inputs, parent_model, guesses, happy):
+def check_distinct(scouseobject,inputs,parent_model,guesses,happy):
     """
-    Check to see if component pairs can be distinguished
+    Check to see if component pairs can be distinguished in velocity
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    inputs : list
+        contains various information about the model (see fitting_process_parent)
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+    guesses : array like
+        array or list of guesses to be fed to pyspeckit in case refitting is
+        required
+    condition_passed : list
+        boolean list indicating which quality control steps have been satisfied
+
     """
 
     parnames, nparams, ncomponents, params, errors, rms = unpack_inputs(inputs)
@@ -567,6 +767,20 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
     """
     Find the closest matching component in the parent SAA model to the current
     component in bf.
+
+    Parameters
+    ----------
+    i : number
+        index for params
+    nparams : number
+        number of parameters in the pyspeckit model
+    ncomponents : number
+        number of spectral components
+    params : list
+        model parameters
+    parent_model : instance of the fit class
+        best-fitting model solution to the parent SAA
+
     """
 
     diff = np.zeros(int(parent_model.ncomps))
@@ -578,13 +792,29 @@ def find_closest_match(i, nparams, ncomponents, params, parent_model):
 
     return diff
 
-def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa, spatial=False, verbose=False):
+def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa,
+                    spatial=False, verbose=False):
     """
     Here we compile all best-fitting models into a single dictionary.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    saa_dict : dictionary
+        dictionary of spectral averaging areas
+    indiv_dict : dictionary
+        dictionary containing the individual spectra
+    wsaa : number
+        width of the SAA
+    spatial : bool (optional)
+        not implemented yet
+    vebose : bool (optional)
+        verbose output to terminal
     """
 
     if verbose:
-        progress_bar = print_to_terminal(stage='s3', step='compile', length=0, var=wsaa)
+        progress_bar = print_to_terminal(stage='s3', step='compile',
+                                         length=0, var=wsaa)
 
     key_list = []
     model_list = []
@@ -601,7 +831,8 @@ def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa, spatial=False, ver
 
     if not key_list:
         # if it's empty, we have a problem
-        raise ValueError("Empty key list found; the SAA has no entries.")
+        raise ValueError(colors.fg._red_+"Empty key list found; the SAA has no"+
+                         " entries."+colors.fg._endc_)
 
     # sort the lists
     key_arr = np.array(key_list)
@@ -651,6 +882,14 @@ def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa, spatial=False, ver
 def compile_key_sets(scouseobject, key_set):
     """
     Returns unqiue keys
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    key_set : list like
+        list of keys for the individual dictionary - contains indices of all
+        spectra with a best-fitting solution
+
     """
     if len(scouseobject.wsaa) == 1:
         key_set=key_set[0]
@@ -663,6 +902,16 @@ def compile_key_sets(scouseobject, key_set):
 def merge_dictionaries(scouseobject, indiv_dictionaries, spatial=False, verbose=False):
     """
     There is now a dictionary for each wsaa - merge these into a single one
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    indiv_dictionaries : dictionary
+        contains each of the individual dictionaries
+    spatial : bool (optional)
+        not implemented yet
+    vebose : bool (optional)
+        verbose output to terminal
     """
 
     if verbose:
@@ -705,6 +954,12 @@ def merge_dictionaries(scouseobject, indiv_dictionaries, spatial=False, verbose=
 def remove_duplicates(scouseobject, verbose):
     """
     Removes duplicate models from the model dictionary
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    vebose : bool (optional)
+        verbose output to terminal
     """
     if verbose:
         progress_bar = print_to_terminal(stage='s3', step='duplicates', length=0)
@@ -732,6 +987,16 @@ def remove_duplicates(scouseobject, verbose):
 def get_model_list(model_list, _spectrum, spatial=False):
     """
     Add to model list
+
+    Parameters
+    ----------
+    model_list : list
+        list of models corresponding to a spectrum
+    _spectrum : instance of the BaseSpectrum class
+        individual spectrum containing several models  : bool (optional)
+    spatial : bool (optional)
+        not implemented yet
+
     """
 
     model_list.append(_spectrum.model_parent)
@@ -746,6 +1011,13 @@ def get_model_list(model_list, _spectrum, spatial=False):
 def argsort(data, reversed=False):
     """
     Returns sorted indices
+
+    Parameters
+    ----------
+    data : ndarray
+        data to be sorted
+    reversed : bool (optional)
+        reverse the order of the sorting
 
     Notes
     -----
@@ -764,6 +1036,12 @@ def clean_SAAs(scouseobject, saa_dict):
     """
     This is to save space - there is lots of (often duplicated) information
     stored within the SAAs - get rid of this.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    saa_dict : dictionary
+        dictionary containing the SAAs
     """
 
     for j in range(len(saa_dict.keys())):

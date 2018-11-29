@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 plt.ion()
 
 Fitter = Stage2Fitter()
-fitting = Fitter.fitting
+fitting = Fitter.preparefit
 
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
@@ -253,8 +253,9 @@ class scouse(object):
                 self.wsaa = get_wsaa(self)
                 if verbose:
                     if np.size(self.wsaa) != self.nrefine:
-                        raise ValueError('wsaa < 1 pixel. Either increase wsaa '
-                                         'or decrease nrefine.')
+                        raise ValueError(colors.fg._red_+"wsaa < 1 pixel. "+
+                                         "Either increase wsaa or decrease"+
+                                         " nrefine."+colors.fg._endc_)
 
                 delta_v = calculate_delta_v(self, momone, momnine)
                 # generate logarithmically spaced refinement steps
@@ -434,8 +435,8 @@ class scouse(object):
                         for ii in fitrange])
 
         if n_to_fit <= 0:
-            raise ValueError(colors.fg._red_+"No spectra are selected to be fit. Fitting has "
-                             "completed."+colors._endc_)
+            raise ValueError(colors.fg._red_+"No spectra are selected to be fit."+
+                             "Fitting has completed."+colors._endc_)
 
         # Loop through the SAAs
         for i_,i in enumerate(fitrange):
@@ -899,8 +900,9 @@ class scouse(object):
             n_to_fit = np.size(fitrange)
 
             if n_to_fit <= 0:
-                raise ValueError("No spectra are selected to be fit. Re-fitting"
-                                 " individual spectra has completed.")
+                raise ValueError(colors.fg._red_+"No spectra are selected to be "+
+                                 "fit. Re-fitting individual spectra has "+
+                                 "completed."+colors.fg._endc_)
 
             # Loop through the spectra that are to be fit
             for i_,i in enumerate(fitrange):

@@ -20,7 +20,7 @@ from .stage_3 import get_flux, get_indiv_spec, fit_indiv_spectra
 from .stage_5 import *
 
 Fitter = Stage2Fitter()
-fitting = Fitter.fitting
+fitting = Fitter.preparefit
 
 from .saa_description import *
 from .interactiveplot import showplot

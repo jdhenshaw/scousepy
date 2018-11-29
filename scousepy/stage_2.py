@@ -26,10 +26,19 @@ from .colors import *
 
 def get_spec(scouseobject, y, rms):
     """
-    Generate the spectrum
+    Generate the spectrum. Returns a pyspeckit spectrum object
 
     (we assume by default that the cube has a rest value defined; if it is not,
     refX will be 0 and km/s <-> frq conversions will break)
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    y : ndarray
+        data corresponding to the spectrum
+    rms : ndarray
+        rms noise value computed in s1
+
     """
     fig = plt.figure(1)
     fig.clf()
@@ -56,10 +65,17 @@ class Stage2Fitter(object):
     def interactive_callback(self, event):
         """
         A 'callback function' to be triggered when the user selects a fit.
+
+        Parameters
+        ----------
+        event : interactive event
+
         """
 
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
+
+                # Enter to continue
                 if event.key in ('enter'):
                     if self.residuals_shown:
                         print("")
@@ -78,25 +94,26 @@ class Stage2Fitter(object):
                         colors.fg._cyan_+" Guess initialized, showing fit"+colors._endc_+".")
                         self.firstgo+=1
                         self.guesses = self.spec.specfit.parinfo.values
-                        self.trainingset_fit(self.spec,
-                                                   init_guess=False,
-                                                   guesses=self.guesses,
-                                                  )
+                        self.scouse_fit(self.spec, init_guess=False,
+                                                          guesses=self.guesses,)
+
+                #
                 elif event.key == 'esc':
                     self.happy = False
                     self.spec.specfit.clear_all_connections()
                     assert self.spec.plotter._active_gui is None
                     self.firstgo+=1
-                    self.trainingset_fit(self.spec,
-                                               init_guess=True, # re-initialize guess
-                                               guesses=self.guesses,
-                                              )
+                    self.scouse_fit(self.spec, init_guess=True,
+                                                          guesses=self.guesses,)
+
+                # To re-enter the fitter
                 elif event.key in ('f', 'F'):
                     print("")
                     print("'f' key acknowledged."+
                     colors.fg._lightred_+" Re-entering interactive fitter"+colors._endc_+".")
                     self.residuals_shown = False
 
+                # to indicate that all components have been selected
                 elif event.key in ('d','D','3',3):
                     # The fit has been performed interactively, but we also
                     # want to print out the nicely-formatted additional
@@ -153,13 +170,28 @@ class Stage2Fitter(object):
 
             return self.happy
 
-    def trainingset_fit(self, spec, init_guess=False, guesses=None):
+    def scouse_fit(self, spec, init_guess=False, guesses=None):
+        """
+        The fitting process followed by scouse
+
+        Parameters:
+        spec : pyspeckit spectrum
+            Instance of the pyspeckit spectrum class - the spectrum to be fit
+        init_guess : bool
+            indicates whether the spectrum is the first to be fit (in which case
+            the spectrum has to be fit manually)
+        guesses : ndarray
+            An array of guesses to help the minimisation algorithm converge
+
+        """
         self.guesses = guesses
         scouseobject = self.scouseobject
         self.spec = spec
 
         old_log = log.level
         log.setLevel('ERROR')
+
+        # The following if statement prepares pyspeckit for fitting
 
         # if this is the initial guess then begin by fitting interactively
         if init_guess:
@@ -198,7 +230,8 @@ class Stage2Fitter(object):
             assert self.spec.plotter._active_gui is None
 
             if None in guesses:
-                raise ValueError("Encountered a 'None' value in guesses")
+                raise ValueError(colors.fg._red_+"Encountered a 'None' value in"+
+                                 " guesses"+colors.fg._endc_)
 
             spec.specfit(interactive=False,
                          xmin=scouseobject.ppv_vol[0],
@@ -217,13 +250,14 @@ class Stage2Fitter(object):
 
         log.setLevel(old_log)
 
+        # Here is where the interactive fitting takes place
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=DeprecationWarning)
 
             if plt.matplotlib.rcParams['interactive']:
                 self.happy = None
                 spec.plotter.axis.figure.canvas.mpl_connect('key_press_event',
-                                                            self.interactive_callback)
+                                                      self.interactive_callback)
                 if self.residuals_shown:
                     bf = fit(self.spec, idx=self.SAA.index,
                              scouse=self.scouseobject)
@@ -238,18 +272,51 @@ class Stage2Fitter(object):
                 self.happy = self.interactive_callback('noninteractive')
 
             if not hasattr(spec.specfit, 'fitter'):
-                raise ValueError("No fitter available for the spectrum."
-                                 "  This can occur if you have plt.ion() set"
-                                 " or if you did not fit the spectrum."
-                                )
+                raise ValueError(colors.fg._red_+"No fitter available for the "+
+                                 "spectrum. This can occur if you have plt.ion()"+
+                                 " set or if you did not fit the spectrum."+
+                                 colors.fg._endc_)
 
-    def fitting(self, scouseobject, SAA, saa_dict, count, training_set=False,
-                init_guess=False, guesses=None):
+    def preparefit(self, scouseobject, SAA, saa_dict, count, training_set=False,
+                   init_guess=False, guesses=None):
+
+        """
+        Preparation for the fitting process followed by scouse - this is called
+        in stage 2 of scouse.py.
+
+        The method is broken up into two main processes. The first is the usual
+        methodology, whereby we cycle through each spectral averaging area and
+        manually fit the spectra. The second is designed for usage where a
+        training set is required.
+
+        Parameters
+        ----------
+        scouseobject : Instance of the scousepy class
+        SAA : Instance of the saa class
+            contains information regarding the spectral averaging area
+        saa_dict : dictionary
+            Dictionary housing the SAAs
+        count : number
+            refers to the index of the previous SAA (unless there isn't one).
+            To reduce interactivity scouse will use the previous solution as an
+            initial guess to the current spectrum.
+        training_set : bool
+            indicates whether or not the user is fitting a training set or
+            fitting an entire dataset
+        init_guess : bool
+            indicates whether the spectrum is the first to be fit (in which case
+            the spectrum has to be fit manually)
+        guesses : ndarray
+            An array of guesses to help the minimisation algorithm converge
+
+        """
 
         self.SAA = SAA
         self.scouseobject = scouseobject
 
         if training_set:
+            # Training set fitting
+            # although note that all fits pass through here
             self.happy=False
             self.firstgo = 0
 
@@ -263,8 +330,7 @@ class Stage2Fitter(object):
                 log.setLevel(old_log)
 
             self.spec = spec
-            self.trainingset_fit(spec, init_guess=init_guess,
-                                       guesses=guesses)
+            self.scouse_fit(spec, init_guess=init_guess, guesses=guesses)
 
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', category=DeprecationWarning)
@@ -281,27 +347,35 @@ class Stage2Fitter(object):
             bf = self.bf
 
         else:
+            # Normal fitting
             if init_guess:
-                bf = self.fitting(scouseobject, SAA, saa_dict, count,
-                                        training_set=True,
-                                        init_guess=init_guess)
+                # if this is the first spectrum don't send any guesses
+                bf = self.preparefit(scouseobject, SAA, saa_dict, count,
+                                       training_set=True, init_guess=init_guess)
             else:
+                # else look for a model
                 model = saa_dict[count].model
                 if model is None:
-                    bf = self.fitting(scouseobject, SAA, saa_dict, count,
-                                            training_set=True, init_guess=True)
+                    # If there is no model available for the previous spectrum
+                    # use manual fitting
+                    bf = self.preparefit(scouseobject, SAA, saa_dict, count,
+                                             training_set=True, init_guess=True)
                 else:
+                    # else send the fitter some guesses
                     guesses = saa_dict[count].model.params
-                    bf = self.fitting(scouseobject, SAA, saa_dict,
-                                            count, guesses=guesses,
-                                            training_set=True,
-                                            init_guess=init_guess)
+                    bf = self.preparefit(scouseobject, SAA, saa_dict,count,
+                        guesses=guesses,training_set=True,init_guess=init_guess)
 
         return bf
 
 def generate_saa_list(scouseobject):
     """
     Returns a list constaining all spectral averaging areas.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
     """
     saa_list=[]
     for i in range(len(scouseobject.wsaa)):
