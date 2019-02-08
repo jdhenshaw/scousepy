@@ -24,12 +24,26 @@ from matplotlib import pyplot
 
 from .interactiveplot import showplot, InteractivePlot
 from .stage_3 import argsort, get_flux
+from .colors import *
 
 def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=False,
                      blockrange=None):
     """
     Generate an interactive plot so the user can select fits they would like to
     take a look at again.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    blocksize : number (optional)
+        size (width) of the block of spectra to be plotted at one time
+    figsize : array like (optional)
+        size of the figure to be plotted
+    plot_residuals : bool (optional)
+        whether or not the user would like to simulateously plot the residuals
+    blockrange : array like
+        for bitesize checking
+
     """
 
     check_spec_indices = []
@@ -50,11 +64,17 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         else:
             blockrange=np.arange(int(np.min(blockrange)),int(np.max(blockrange)))
 
-    # Cycle through the blocks
-    #for i in blockrange:
-    #    blocknum = i+1
-
     def callback_check_spec(blocknum, intplot):
+        """
+        callback method for checking the spectra
+
+        Parameters
+        ----------
+        blocknum : number
+            the block of spectra to check
+        intplot : instance of the InteractivePlot class
+            the interactive plot window
+        """
         keep = (blockarr == blocknum)
         speckeys = spec_mask[keep]
 
@@ -73,7 +93,17 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
             [xx.set_visible(False) for xx in ax.get_xticklabels()]
 
     def plot_blocknum(blocknum, intplot):
+        """
+        callback method for plotting the spectra
 
+        Parameters
+        ----------
+        blocknum : number
+            the block of spectra to check
+        intplot : instance of the InteractivePlot class
+            the interactive plot window
+
+        """
         keep = (blockarr == blocknum)
         speckeys = spec_mask[keep]
         fitkeys = fit_mask[keep]
@@ -81,7 +111,9 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         # We are only interested in blocks where there is at least 1 model
         # solution - don't bother with the others
         if np.any(np.isfinite(fitkeys)):
-            print("Checking block {0}".format(blocknum))
+            print("")
+            print(colors.fg._lightgrey_+"Checking block {0}".format(blocknum)+
+                  colors._endc_)
 
             # Cycle through the spectra contained within the block
             for j in range(np.size(speckeys)):
@@ -97,13 +129,9 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
                     # Get the correct subplot axis
                     axis = axes_flat[j]
 
-                    # clear the axes
-                    # (this is now handled in the other callback)
-                    #axis.cla()
-
-                    # First plot the Spectrum
-                    axis.plot(scouseobject.xtrim, get_flux(scouseobject, spectrum), 'k-',
-                              drawstyle='steps', lw=1)
+                    # First plot the spectra
+                    axis.plot(scouseobject.xtrim, get_flux(scouseobject, spectrum),
+                              'k-',drawstyle='steps', lw=1)
                     # Recreate the model from information held in the solution
                     # description
                     bfmodel = spectrum.model
@@ -123,7 +151,8 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 
             return True
         else:
-            print("Nothing to plot for this block; no fits available.")
+            print(colors.fg._yellow_+"WARNING: Nothing to plot for this block; "
+                  "no fits available."+colors._endc_)
             return True
 
     # set up the plot window *once*
@@ -166,14 +195,11 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
         check_spec_indices = check_spec_indices[sortidx]
         check_spec_indices = list(check_spec_indices)
     else:
-        #check_spec_indices = np.array([])
         check_spec_indices = []
 
     if np.size(check_block_indices) > 0.0:
-        #check_block_indices = np.array(check_block_indices)
         check_block_indices = list(check_block_indices)
     else:
-        #check_block_indices = np.array([])
         check_block_indices = []
 
     return check_spec_indices, check_block_indices
@@ -181,6 +207,14 @@ def interactive_plot(scouseobject, blocksize=7, figsize=None, plot_residuals=Fal
 def get_indices(plot, speckeys):
     """
     Returns indices of spectra we want to take a closer look at
+
+    Parameters
+    ----------
+    plot : instance of InteractivePlot class
+        the interactive plot
+    speckeys : list
+        a list of all the indices contained within the current block
+
     """
 
     subplots = plot.subplots
@@ -192,6 +226,13 @@ def get_blocks(scouseobject, blocksize):
     """
     Break the map up into blocks for plotting the spectra as they appear on the
     sky
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    blocksize : number (optional)
+        size (width) of the block of spectra to be plotted at one time
+
     """
 
     # Get the correct number of blocks - this can be controlled by the user with
@@ -225,7 +266,18 @@ def pad_spec(scouseobject, blocksize, nxblocks, nyblocks):
     Returns a mask containing keys indicating where we have best-fitting
     solutions
 
-    Notes:
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    blocksize : number (optional)
+        size (width) of the block of spectra to be plotted at one time
+    nxblocks : number
+        number of blocks in the x dimension
+    nyblocks : number
+        number of blocks in the y dimension
+
+    Notes
+    -----
     This is padded to fill blocks for the interactive plotting - same as pad
     fits - its a little clunky and could no doubt be improved, but it does the
     job
@@ -248,7 +300,18 @@ def pad_fits(scouseobject, blocksize, nxblocks, nyblocks):
     Returns a mask containing keys indicating where we have best-fitting
     solutions which have ncomps != 0.0 - i.e. where we actually have fits
 
-    Notes:
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    blocksize : number (optional)
+        size (width) of the block of spectra to be plotted at one time
+    nxblocks : number
+        number of blocks in the x dimension
+    nyblocks : number
+        number of blocks in the y dimension
+
+    Notes
+    -----
     This is padded to fill blocks for the interactive plotting - same as pad
     fits - its a little clunky and could no doubt be improved, but it does the
     job
@@ -267,9 +330,18 @@ def pad_fits(scouseobject, blocksize, nxblocks, nyblocks):
 
     return fit_mask
 
-def recreate_model(scouseobject, spectrum, bf, alternative=False):
+def recreate_model(scouseobject, spectrum, bf):
     """
     Recreates model from parameters
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    spectrum : pyspeckit spectrum
+        spectrum from which to recreate the model
+    bf : instance of the fit class
+        best-fitting model solution to the spectrum
+
     """
 
     # Make pyspeckit be quiet
@@ -298,6 +370,13 @@ def recreate_model(scouseobject, spectrum, bf, alternative=False):
 def get_spec(scouseobject, indiv_spec):
     """
     Generate the spectrum.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    indiv_spec : Instance of the fit class
+        The individual spectrum of interest
+
     """
     x=scouseobject.xtrim
     y = get_flux(scouseobject, indiv_spec)
@@ -312,6 +391,11 @@ def check_and_flatten(scouseobject, check_spec_indices, check_block_indices):
     """
     Checks to see if staged_fitting has been initiated. If so it appends
     current list to the existing one.
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
     """
 
     _check_spec_indices=None
@@ -335,6 +419,11 @@ def check_and_flatten(scouseobject, check_spec_indices, check_block_indices):
 def generate_2d_parametermap(scouseobject, spectrum_parameter,verbose=False):
     """
     Create a 2D map of a given spectral parameter
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
     """
     blankmap = np.zeros(scouseobject.cube.shape[1:])
     blankmap[:] = np.nan
@@ -357,11 +446,18 @@ def generate_2d_parametermap(scouseobject, spectrum_parameter,verbose=False):
 def generate_diagnostic_maps(scouseobject,
                              maps=['rms','residstd','redchi2','ncomps','aic','chi2'],
                              verbose=False):
+    """
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
+    """
     mapdict={mapname: generate_2d_parametermap(scouseobject, mapname,
              verbose=verbose) for mapname in maps}
     if verbose:
         print("")
-        
+
     return mapdict
 
 
@@ -372,6 +468,14 @@ class DiagnosticImageFigure(object):
                  savedir=None, repeat=False, verbose=False,
                 ):
         """
+
+        Parameters
+        ----------
+        scouseobject : Instance of the scousepy class
+
+        blocksize : number (optional)
+            size (width) of the block of spectra to be plotted at one time
+
         """
 
         if fig is None:
@@ -411,6 +515,13 @@ class DiagnosticImageFigure(object):
         self.check_block_indices = []
 
     def load_maps(self, savedir):
+        """
+
+        Parameters
+        ----------
+
+        """
+
         loaded = []
         for mapname in self.mapnames:
             fn = os.path.join(savedir, "stage_5_"+mapname+".fits")
@@ -421,25 +532,53 @@ class DiagnosticImageFigure(object):
         return loaded
 
     def save_maps(self, savedir, overwrite=True):
+        """
 
+        Parameters
+        ----------
+
+        """
         for mapname in self.mapnames:
             fh = fits.PrimaryHDU(data=self.maps[mapname], header=self.scouseobject.cube[0,:,:].header)
             fh.writeto(os.path.join(savedir, "stage_5_"+mapname+".fits"), overwrite=overwrite)
 
     def disconnect(self):
+        """
+
+        Parameters
+        ----------
+
+        """
         self.fig.canvas.mpl_disconnect(self.click)
         self.fig.canvas.mpl_disconnect(self.keyentry)
 
     def show_first(self):
+        """
+
+        Parameters
+        ----------
+
+        """
+
         self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
         self.ax.set_title('Diagnostic Plot: '+self.mapnames[0]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
 
     def show(self):
+        """
+
+        Parameters
+        ----------
+
+        """
         self.fig.canvas.draw()
 
     def click(self, event):
         """
         What happens following mouse click
+
+        Parameters
+        ----------
+
         """
         if self.fig.canvas.manager.toolbar._active is None:
             if event.button == 1:
@@ -466,6 +605,12 @@ class DiagnosticImageFigure(object):
                 print("")
 
     def keyentry(self, event):
+        """
+
+        Parameters
+        ----------
+
+        """
         if event.key in string.digits and int(event.key) in range(len(self.mapnames)):
             print("Showing map number {0}: {1}".format(event.key, self.mapnames[int(event.key)]))
             self.ax.set_title('Diagnostic Plot: '+self.mapnames[int(event.key)]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")

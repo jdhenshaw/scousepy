@@ -269,7 +269,7 @@ def get_flux(scouseobject, indiv_spec):
     Parameters
     ----------
     scouseobject : Instance of the scousepy class
-    indiv_spec : pyspeckit spectrum
+    indiv_spec : Instance of the fit class
         the spectrum to be fit, produced by prep spec
     """
     y=scouseobject.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
@@ -832,7 +832,7 @@ def compile_spectra(scouseobject, saa_dict, indiv_dict, wsaa,
     if not key_list:
         # if it's empty, we have a problem
         raise ValueError(colors.fg._red_+"Empty key list found; the SAA has no"+
-                         " entries."+colors.fg._endc_)
+                         " entries."+colors._endc_)
 
     # sort the lists
     key_arr = np.array(key_list)

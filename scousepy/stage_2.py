@@ -231,7 +231,7 @@ class Stage2Fitter(object):
 
             if None in guesses:
                 raise ValueError(colors.fg._red_+"Encountered a 'None' value in"+
-                                 " guesses"+colors.fg._endc_)
+                                 " guesses"+colors._endc_)
 
             spec.specfit(interactive=False,
                          xmin=scouseobject.ppv_vol[0],
@@ -275,7 +275,7 @@ class Stage2Fitter(object):
                 raise ValueError(colors.fg._red_+"No fitter available for the "+
                                  "spectrum. This can occur if you have plt.ion()"+
                                  " set or if you did not fit the spectrum."+
-                                 colors.fg._endc_)
+                                 colors._endc_)
 
     def preparefit(self, scouseobject, SAA, saa_dict, count, training_set=False,
                    init_guess=False, guesses=None):

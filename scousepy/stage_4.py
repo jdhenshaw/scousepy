@@ -15,6 +15,11 @@ def select_best_model(scouseobject):
     """
     Selects the best model out of those fitted - that with the smallest aic
     value
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+    
     """
 
     for key in scouseobject.indiv_dict.keys():

@@ -285,7 +285,7 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
     if not redefine:
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='coverage',
-                                                   length=len(cov_y)*len(cov_x))
+                                                length=len(cov_y)*len(cov_x))
 
     # Loop through the coords
     for cx,cy in itertools.product(cov_x, cov_y):
@@ -294,8 +294,9 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
                                                     cov_x, cov_y, coverage,
                                                     spec, ids, frac,
                                                     redefine, nrefine)
-        if verbose:
-            progress_bar.update()
+        if not redefine:
+            if verbose:
+                progress_bar.update()
 
     if verbose:
         print('')
