@@ -4,9 +4,10 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>A brief introduction to scousepy &#8212; scousepy  documentation</title>
+    <title>A brief introduction to scousepy &#8212; scousepy 0.0.dev0270 documentation</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
@@ -16,6 +17,7 @@
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
     <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Tutorial" href="tutorial.html" />
@@ -38,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           scousepy</a>
-        <span class="navbar-text navbar-version pull-left"><b></b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.0.dev0270</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -126,7 +128,23 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">A brief introduction to scousepy</a><ul>
+<li><a class="reference internal" href="#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
+<li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
+<li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
+<li><a class="reference internal" href="#stage-4-selecting-the-best-fits">Stage 4: selecting the best fits</a></li>
+<li><a class="reference internal" href="#optional-stages">Optional Stages</a></li>
+<li><a class="reference internal" href="#stage-5-checking-the-best-fitting-solutions">Stage 5: checking the best-fitting solutions</a></li>
+<li><a class="reference internal" href="#stage-6-re-analysing-the-identified-spectra">Stage 6: re-analysing the identified spectra</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <div class="section" id="a-brief-introduction-to-scousepy">
 <span id="introduction"></span><h1>A brief introduction to scousepy<a class="headerlink" href="#a-brief-introduction-to-scousepy" title="Permalink to this headline">¶</a></h1>
@@ -141,7 +159,7 @@ is broken down into six stages in total. Each stage is summarised below.</p>
 generates a grid of spectral averaging areas (SAAs). The user is required to
 provide the width of the spectral averaging area. Extra refinement of spectral
 averaging areas (i.e. for complex regions) can be controlled using the keyword
-<cite>refine_grid</cite>.</p>
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">refine_grid</span></code>.</p>
 </div>
 <div class="section" id="stage-2-fitting-the-spectral-averaging-areas">
 <h2>Stage 2: fitting the spectral averaging areas<a class="headerlink" href="#stage-2-fitting-the-spectral-averaging-areas" title="Permalink to this headline">¶</a></h2>
@@ -179,8 +197,8 @@ check the fit quality.</p>
 <h2>Stage 5: checking the best-fitting solutions<a class="headerlink" href="#stage-5-checking-the-best-fitting-solutions" title="Permalink to this headline">¶</a></h2>
 <p>Checking the fits. Here the user is required to check the best-fitting
 solutions to the spectra. This stage is now fully interactive. The user is first
-presented with several diagnostic plots namely: <cite>rms</cite>, <cite>residstd</cite>, <cite>redchi2</cite>,
-<cite>ncomps</cite>, <cite>aic</cite>, <cite>chi2</cite>. These can be used to assess the quality of fits
+presented with several diagnostic plots namely: <code class="xref py py-obj docutils literal notranslate"><span class="pre">rms</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">residstd</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">redchi2</span></code>,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">ncomps</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">aic</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">chi2</span></code>. These can be used to assess the quality of fits
 throughout the map. Clicking on a particular region will show the spectra
 associated with that location. The user can then select spectra for closer
 inspection or refitting as required.</p>
@@ -205,6 +223,7 @@ re-fit completely the spectra identified in stage 5.</p>
     </p>
     <p>
         &copy; Copyright 2019, Jonathan D. Henshaw.<br/>
+      Last updated on 11 Feb 2019.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.<br/>
     </p>
   </div>

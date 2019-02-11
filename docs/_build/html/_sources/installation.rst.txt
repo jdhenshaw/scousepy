@@ -9,7 +9,7 @@ Requirements
 
 * `Python <http://www.python.org>`_ 3.x
 
-* `astropy <http://www.astropy.org/>`_ >=3.0.2
+* `astropy <http://www.astropy.org/>`__ >=3.0.2
 * `lmfit <http://lmfit.github.io/lmfit-py/>`_ >=0.8.0
 * `matplotlib <http://matplotlib.org/>`_ >=2.2.2
 * `numpy <http://www.numpy.org/>`_ >=1.14.2
