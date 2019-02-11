@@ -119,53 +119,75 @@ version = package.__version__.split('-', 1)[0]
 release = package.__version__
 
 
-# -- Options for HTML output --------------------------------------------------
+# At the top.
+import sphinx_bootstrap_theme
 
-# A NOTE ON HTML THEMES
-# The global astropy configuration uses a custom theme, 'bootstrap-astropy',
-# which is installed along with astropy. A different theme can be used or
-# the options for this theme can be modified by overriding some of the
-# variables set in the global configuration. The variables set in the
-# global configuration are listed below, commented out.
+# ...
 
+# Activate the theme.
+html_theme = 'bootstrap'
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+# html_theme = 'sphinx_rtd_theme'
 
-# Add any paths that contain custom themes here, relative to this directory.
-# To use a different custom theme, add the directory containing the theme.
-#html_theme_path = []
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
+#
+# html_theme_options = {}
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes. To override the custom theme, set this to the
-# name of a builtin theme or the name of a custom theme in html_theme_path.
-#html_theme = None
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['_static']
 
-
-# Please update these texts to match the name of your package.
-html_theme_options = {
-    'logotext1': 'scouse',  # white,  semi-bold
-    'logotext2': 'py',  # orange, light
-    'logotext3': ':docs'   # white,  light
-    }
-
-
-# Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
-
-# The name of an image file (relative to this directory) to place at the top
-# of the sidebar.
-#html_logo = ''
-
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-#html_favicon = ''
-
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-# using the given strftime format.
-#html_last_updated_fmt = ''
-
-# The name for this set of Sphinx documents.  If None, it defaults to
-# "<project> v<release> documentation".
-html_title = '{0} v{1}'.format(project, release)
+#uncomment below if you prefer the astropy theme
+#  # -- Options for HTML output --------------------------------------------------
+#  
+#  # A NOTE ON HTML THEMES
+#  # The global astropy configuration uses a custom theme, 'bootstrap-astropy',
+#  # which is installed along with astropy. A different theme can be used or
+#  # the options for this theme can be modified by overriding some of the
+#  # variables set in the global configuration. The variables set in the
+#  # global configuration are listed below, commented out.
+#  
+#  
+#  # Add any paths that contain custom themes here, relative to this directory.
+#  # To use a different custom theme, add the directory containing the theme.
+#  #html_theme_path = []
+#  
+#  # The theme to use for HTML and HTML Help pages.  See the documentation for
+#  # a list of builtin themes. To override the custom theme, set this to the
+#  # name of a builtin theme or the name of a custom theme in html_theme_path.
+#  #html_theme = None
+#  
+#  
+#  # Please update these texts to match the name of your package.
+#  html_theme_options = {
+#      'logotext1': 'scouse',  # white,  semi-bold
+#      'logotext2': 'py',  # orange, light
+#      'logotext3': ':docs'   # white,  light
+#      }
+#  
+#  
+#  # Custom sidebar templates, maps document names to template names.
+#  #html_sidebars = {}
+#  
+#  # The name of an image file (relative to this directory) to place at the top
+#  # of the sidebar.
+#  #html_logo = ''
+#  
+#  # The name of an image file (within the static path) to use as favicon of the
+#  # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+#  # pixels large.
+#  #html_favicon = ''
+#  
+#  # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
+#  # using the given strftime format.
+#  #html_last_updated_fmt = ''
+#  
+#  # The name for this set of Sphinx documents.  If None, it defaults to
+#  # "<project> v<release> documentation".
+#  html_title = '{0} v{1}'.format(project, release)
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + 'doc'
