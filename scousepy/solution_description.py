@@ -14,6 +14,7 @@ import sys
 import warnings
 from astropy import log
 from astropy.stats import akaike_info_criterion as aic
+from .colors import *
 
 class fit(object):
     #TODO: Need to make this generic for pyspeckit's other models
@@ -131,6 +132,13 @@ class fit(object):
         """
         return self._aic
 
+    @property
+    def converge(self):
+        """
+        indicates whether or not the minimisation algorithm has converged or not
+        """
+        return self._converge
+
     def __repr__(self):
         """
         Return a nice printable format for the object.
@@ -154,6 +162,7 @@ def fit_pars_dud(self, spec, scouse, noise, duddata):
     self._chi2 = 0.0
     self._redchi2 = 0.0
     self._aic = 0.0
+    self._converge = True
 
 def fit_pars(self, spec, scouse):
     """
@@ -171,6 +180,12 @@ def fit_pars(self, spec, scouse):
     self._redchi2 = spec.specfit.chi2/spec.specfit.dof
     self._aic = get_aic(self, spec)
 
+    if None in self.errors:
+        self._converge = False
+        self._errors = np.zeros(len(spec.specfit.modelerrs))
+    else:
+        self._converge = True
+
 def get_aic(self, spec):
     """
     Calculates the AIC value from the spectrum
@@ -182,10 +197,8 @@ def print_fit_information(self, init_guess=False):
     """
     Prints fit information to terminal
     """
-    print("=============================================================")
-    if init_guess:
-        print("Best-fitting model based on previous SAA as input guess.")
-        print("")
+    print("")
+    print("-----------------------------------------------------")
 
     print(self)
     print("")
@@ -194,25 +207,27 @@ def print_fit_information(self, init_guess=False):
     print(("Number of components: {0}").format(self.ncomps))
     print("")
     compcount=0
+
+    if not self.converge:
+        print(colors.fg._yellow_+"WARNING: Minimisation failed to converge. Please "
+              "\nrefit manually. "+colors._endc_)
+        print("")
+
     for i in range(0, int(self.ncomps)):
         parlow = int((i*len(self.parnames)))
         parhigh = int((i*len(self.parnames))+len(self.parnames))
         parrange = np.arange(parlow,parhigh)
         for j in range(0, len(self.parnames)):
             print(("{0}:  {1} +/- {2}").format(self.parnames[j], \
-                                               np.around(self.params[parrange[j]], \
-                                               decimals=5), \
-                                               np.around(self.errors[parrange[j]], \
-                                               decimals=5)))
+                                         np.around(self.params[parrange[j]],
+                                         decimals=5), \
+                                         np.around(self.errors[parrange[j]],
+                                         decimals=5)))
         print("")
         compcount+=1
+
     print(("chisq:    {0}").format(np.around(self.chi2, decimals=2)))
     print(("redchisq: {0}").format(np.around(self.redchi2, decimals=2)))
     print(("AIC:      {0}").format(np.around(self.aic, decimals=2)))
+    print("-----------------------------------------------------")
     print("")
-
-    if init_guess:
-        print("To enter interative fitting mode type 'f'")
-        print("")
-
-    print("=============================================================")

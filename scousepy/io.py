@@ -41,7 +41,7 @@ def mkdir_s2(outputdir, s2dir):
     Make the output directory for stage 2
     """
     if not os.path.exists(s2dir):
-        os.mkdir(s2dir)
+        os.makedirs(s2dir)
     else:
         # TODO: error handling
         pass
@@ -51,7 +51,7 @@ def mkdir_s3(outputdir, s3dir):
     Make the output directory for stage 3
     """
     if not os.path.exists(s3dir):
-        os.mkdir(s3dir)
+        os.makedirs(s3dir)
     else:
         # TODO: error handling
         pass
@@ -61,7 +61,7 @@ def mkdir_s4(outputdir, s4dir):
     Make the output directory for stage 4
     """
     if not os.path.exists(s4dir):
-        os.mkdir(s4dir)
+        os.makedirs(s4dir)
     else:
         # TODO: error handling
         pass
@@ -71,7 +71,7 @@ def mkdir_s5(outputdir, s5dir):
     Make the output directory for stage 5
     """
     if not os.path.exists(s5dir):
-        os.mkdir(s5dir)
+        os.makedirs(s5dir)
     else:
         # TODO: error handling
         pass
@@ -81,7 +81,7 @@ def mkdir_s6(outputdir, s6dir):
     Make the output directory for stage 6
     """
     if not os.path.exists(s6dir):
-        os.mkdir(s6dir)
+        os.makedirs(s6dir)
     else:
         # TODO: error handling
         pass

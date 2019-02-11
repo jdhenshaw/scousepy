@@ -32,16 +32,16 @@ from .stage_4 import *
 from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
-from .progressbar import AnimatedProgressBar
 from .saa_description import saa, add_ids
 from .solution_description import fit
+from .colors import *
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 plt.ion()
 
 Fitter = Stage2Fitter()
-fitting = Fitter.fitting
+fitting = Fitter.preparefit
 
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
@@ -113,14 +113,16 @@ class scouse(object):
             # Read in the datacube
             if cube is None:
                 _cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
-                                                                           velocity_convention='radio')
+                                                    velocity_convention='radio')
             else:
                 _cube = cube
 
             if _cube.spectral_axis.diff()[0] < 0:
-                if np.abs(_cube.spectral_axis[0].value - _cube[::-1].spectral_axis[-1].value) > 1e-5:
-                    raise ImportError("Update to a more recent version of spectral-cube "
-                                      " or reverse the axes manually.")
+                if np.abs(_cube.spectral_axis[0].value -
+                                    _cube[::-1].spectral_axis[-1].value) > 1e-5:
+                    raise ImportError("Update to a more recent version of "
+                                      "spectral-cube or reverse the axes "
+                                      "manually.")
                 _cube = _cube[::-1]
 
             # Trim cube if necessary
@@ -143,8 +145,9 @@ class scouse(object):
                 samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
                 fittype='gaussian'):
         """
-        Initial steps - here scousepy identifies the spatial area over which the
-        fitting will be implemented.
+        Stage 1
+
+        Identify the spatial area over which the fitting will be implemented.
 
         Parameters
         ----------
@@ -152,7 +155,12 @@ class scouse(object):
             Name of the file to be loaded
         datadirectory : string
             Directory containing the datacube
-        ppv_vol : list, optional
+        wsaa : number
+            The width of a spectral averaging area in pixels. Note this has
+            been updated from the IDL implementation where it previously used a
+            half-width (denoted rsaa). Can provide multiple values in a list
+            as an alternative to the refine_grid option (see below).
+        ppv_vol : array like, optional
             A list containing boundaries for fitting. You can use this to
             selectively fit part of a datacube. Should be in the format
             ppv_vol = [vmin, vmax, ymin, ymax, xmin, xmax] with the velocities
@@ -160,11 +168,6 @@ class scouse(object):
             None scouse will ignore this and just fit the whole cube. Default
             is ppv_vol = [None, None, None, None, None, None]; whole cube is
             fitted.
-        wsaa : list
-            The width of a spectral averaging area in pixels. Note this has
-            been updated from the IDL implementation where it previously used a
-            half-width (denoted rsaa). Can provide multiple values in a list
-            as an alternative to the refine_grid option (see below).
         mask_below : float, optional
             Used for moment computation - mask all data below this absolute
             value.
@@ -201,7 +204,8 @@ class scouse(object):
         if outputdir is None:
             outputdir=datadirectory
 
-        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir, datadirectory=datadirectory)
+        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir,
+                      datadirectory=datadirectory)
         self.wsaa = wsaa
         self.ppv_vol = ppv_vol
         self.nrefine = nrefine
@@ -249,7 +253,9 @@ class scouse(object):
                 self.wsaa = get_wsaa(self)
                 if verbose:
                     if np.size(self.wsaa) != self.nrefine:
-                        raise ValueError('wsaa < 1 pixel. Either increase wsaa or decrease nrefine.')
+                        raise ValueError(colors.fg._red_+"wsaa < 1 pixel. "+
+                                         "Either increase wsaa or decrease"+
+                                         " nrefine."+colors.fg._endc_)
 
                 delta_v = calculate_delta_v(self, momone, momnine)
                 # generate logarithmically spaced refinement steps
@@ -325,7 +331,8 @@ class scouse(object):
                         self.saa_dict[i][speccount] = SAA
                         # Add the indices of the individual spectra contained
                         # within the SAA box to the SAA.
-                        indices = ids[SAA.index,(np.isfinite(ids[SAA.index,:,0])),:]
+                        indices = ids[SAA.index,
+                                            (np.isfinite(ids[SAA.index,:,0])),:]
                         add_ids(SAA, indices)
                         speccount+=1
             log.setLevel(old_log)
@@ -346,7 +353,8 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.outputdirectory+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol), fh)
+                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol,
+                                                      self.outputdirectory), fh)
 
         input("Press enter to continue...")
         # close all figures before moving on
@@ -357,14 +365,16 @@ class scouse(object):
 
     def load_stage_1(self, fn):
         with open(fn, 'rb') as fh:
-            self.saa_dict,self.wsaa, self.ppv_vol = pickle.load(fh)
+            self.saa_dict,self.wsaa,self.ppv_vol,self.outputdirectory = \
+                                                                 pickle.load(fh)
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
                 bitesize=False, nspec=None, training_set=False):
         """
-        An interactive program designed to find best-fitting solutions to
-        spatially averaged spectra taken from the SAAs.
+        Stage 2
+
+        Manual fitting of the SAAs
 
         Parameters
         ----------
@@ -376,10 +386,10 @@ class scouse(object):
         autosave : bool, optional
             Autosaves the scouse file.
         bitesize : bool, optional
-            Bitesized fitting. Allows a user to break the fitting process down into
-            multiple stages. Combined with nspec a user can fit 'nspec' spectra
-            at a time. For large data cubes fitting everything in one go can be
-            a bit much...
+            Bitesized fitting. Allows a user to break the fitting process down
+            into multiple stages. Combined with nspec a user can fit 'nspec'
+            spectra at a time. For large data cubes fitting everything in one go
+            can be a bit much...
         nspec : int, optional
             Fit this many spectra at a time.
 
@@ -425,12 +435,14 @@ class scouse(object):
                         for ii in fitrange])
 
         if n_to_fit <= 0:
-            raise ValueError("No spectra are selected to be fit. Fitting has completed.")
+            raise ValueError(colors.fg._red_+"No spectra are selected to be fit."+
+                             "Fitting has completed."+colors._endc_)
 
         # Loop through the SAAs
         for i_,i in enumerate(fitrange):
-            print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
-
+            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+            print(colors.fg._lightgrey_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
             # Get the relevant SAA dictionary (if multiple wsaa values are
             # supplied)
             saa_dict = self.saa_dict[saa_list[i,1]]
@@ -453,8 +465,6 @@ class scouse(object):
 
             if SAA.to_be_fit:
                 with warnings.catch_warnings():
-                    # This is to catch an annoying matplotlib deprecation warning:
-                    # "Using default event loop until function specific to this GUI is implemented"
                     warnings.simplefilter('ignore', category=DeprecationWarning)
 
                     # enter the fitting process
@@ -495,11 +505,13 @@ class scouse(object):
     def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
                 clear_cache=True, autosave=True):
         """
-        This stage governs the automated fitting of the data.
+        Stage 3
+
+        Automated fitting of the data.
 
         Parameters
         ----------
-        tol : list
+        tol : array like
             Tolerance values for the fitting. Should be in the form
             tol = [T1, T2, T3, T4, T4]. See Henshaw et al. 2016a for full
             explanation but in short:
@@ -526,7 +538,7 @@ class scouse(object):
             largely covered by the SAA fits but it might be worthwhile
             implementing in the future.
         clear_cache : bool, optional
-            Gets rid of the dead weight. Scouse generates *big* output filesself.
+            Gets rid of the dead weight. Scouse generates *big* output files.
         autosave : bool, optional
             Autosaves the scouse file.
 
@@ -611,7 +623,9 @@ class scouse(object):
 
     def stage_4(self, verbose=False, autosave=True):
         """
-        In this stage we select the best fits out of those performed in stage 3.
+        Stage 4
+
+        Select the best fits out of those performed in stage 3.
 
         Parameters
         ----------
@@ -657,6 +671,8 @@ class scouse(object):
                 verbose=False, autosave=True, bitesize=False, repeat=False,
                 newfile=None):
         """
+        Stage 5
+
         In this stage the user is required to check the best-fitting solutions
 
         Parameters
@@ -680,9 +696,10 @@ class scouse(object):
             Sometimes you may want to run stage 5 multiple times. Combined with
             newfile, this allows you to. If you are repeating the process, set
             to true.
-        newfile : bool, optional
-            If true, scouse will write the output to a new file rather than
-            overwriting the previous one.
+        newfile : string, optional
+            If a string scouse will write the output to a new file rather than
+            overwriting the previous one. If nothing is entered, but repeat is
+            True then scouse will simply append '.bk' to the old s5 output.
 
         """
         if not bitesize:
@@ -698,13 +715,17 @@ class scouse(object):
 
         starttime = time.time()
 
+        if verbose:
+            progress_bar = print_to_terminal(stage='s5', step='start')
+
         # Begin interactive plotting
         interactive_state = plt.matplotlib.rcParams['interactive']
 
         # First create an interactive plot displaying the main diagnostics of
         # 'goodness of fit'. The user can use this to select regions which look
         # bad and from there, select spectra to refit.
-        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir, repeat=repeat)
+        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir,
+                                   repeat=repeat, verbose=verbose)
         dd.show_first()
 
         with warnings.catch_warnings():
@@ -725,7 +746,8 @@ class scouse(object):
         check_block_indices = dd.check_block_indices
 
         # For staged_checking - check and flatten
-        self.check_spec_indices, self.check_block_indices = check_and_flatten(self, check_spec_indices, check_block_indices)
+        self.check_spec_indices, self.check_block_indices = \
+                check_and_flatten(self, check_spec_indices, check_block_indices)
         self.check_spec_indices = np.asarray(self.check_spec_indices)
         self.check_block_indices = np.asarray(self.check_block_indices)
 
@@ -733,8 +755,11 @@ class scouse(object):
         if verbose:
             progress_bar = print_to_terminal(stage='s5', step='end', \
                                              t1=starttime, t2=endtime, \
-                                             var=[np.size(self.check_spec_indices)+(np.size(self.check_block_indices)*(self.blocksize**2)),
-                                                  np.size(self.check_block_indices), np.size(self.check_spec_indices)])
+                                             var=[np.size(self.check_spec_indices)+\
+                                                 (np.size(self.check_block_indices)*\
+                                                 (self.blocksize**2)),
+                                                  np.size(self.check_block_indices), \
+                                                  np.size(self.check_spec_indices)])
 
         self.completed_stages.append('s5')
 
@@ -743,16 +768,22 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+newfile, 'wb') as fh:
-                        pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+                    with open(self.outputdirectory+self.filename+'/stage_5/'+newfile,'wb') as fh:
+                        pickle.dump((self.check_spec_indices,
+                                     self.check_block_indices,
+                                     self.blocksize), fh)
                 else:
-                    os.rename(self.datadirectory+self.filename+'/stage_5/s5.scousepy', \
-                              self.datadirectory+self.filename+'/stage_5/s5.scousepy.bk')
+                    os.rename(self.outputdirectory+self.filename+'/stage_5/s5.scousepy', \
+                              self.outputdirectory+self.filename+'/stage_5/s5.scousepy.bk')
                     with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
-                        pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+                        pickle.dump((self.check_spec_indices,
+                                     self.check_block_indices,
+                                     self.blocksize), fh)
             else:
                 with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
-                    pickle.dump((self.check_spec_indices, self.check_block_indices, self.blocksize), fh)
+                    pickle.dump((self.check_spec_indices,
+                                 self.check_block_indices,
+                                 self.blocksize), fh)
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
@@ -762,7 +793,8 @@ class scouse(object):
 
     def load_stage_5(self, fn):
         with open(fn, 'rb') as fh:
-            self.check_spec_indices, self.check_block_indices, self.blocksize = pickle.load(fh)
+            self.check_spec_indices, self.check_block_indices, \
+            self.blocksize = pickle.load(fh)
         self.completed_stages.append('s5')
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
@@ -771,7 +803,9 @@ class scouse(object):
                 write_ascii=False, repeat=None, newfile=None,
                 njobs=1 ):
         """
-        In this stage the user takes a closer look at the spectra selected in s5
+        Stage 6
+
+        Take a closer look at the spectra selected in s5
 
         Parameters
         ----------
@@ -823,13 +857,6 @@ class scouse(object):
         # create the stage_6 directory
         mkdir_s6(self.outputdirectory, s6dir)
 
-        #if specrange is not None:
-            # Fail safe in case people try to re-run s1 midway through fitting
-            # Without this - it would lose all previously fitted spectra.
-        #    if np.min(specrange) != 0.0:
-        #        if not 's6' in self.completed_stages:
-        #            raise ValueError('Load from autosaved S6 to avoid losing your work!')
-
         starttime = time.time()
 
         if verbose:
@@ -863,7 +890,8 @@ class scouse(object):
                 if lower >= np.size(self.check_spec_indices):
                     fitrange=[]
                 else:
-                    fitrange=np.arange(int(lower),int(np.size(self.check_spec_indices)))
+                    fitrange=np.arange(int(lower),\
+                                       int(np.size(self.check_spec_indices)))
             else:
                 fitrange=np.arange(int(lower),int(upper))
 
@@ -872,11 +900,15 @@ class scouse(object):
             n_to_fit = np.size(fitrange)
 
             if n_to_fit <= 0:
-                raise ValueError("No spectra are selected to be fit. Re-fitting individual spectra has completed.")
+                raise ValueError(colors.fg._red_+"No spectra are selected to be "+
+                                 "fit. Re-fitting individual spectra has "+
+                                 "completed."+colors.fg._endc_)
 
             # Loop through the spectra that are to be fit
             for i_,i in enumerate(fitrange):
-                print("Fitting {0} out of {1}".format(i_+1, n_to_fit))
+                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+                print(colors.fg._lightgrey_+"Checking {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
 
                 # Here we will fit the individual spectra that have been
                 # selected for refitting
@@ -884,8 +916,8 @@ class scouse(object):
                 key = self.check_spec_indices[i]
 
                 # This first of all plots the neighbouring pixels - this can be
-                # useful if you forget why you selected that spectrum in the first
-                # place - it helps to provide a bit of context
+                # useful if you forget why you selected that spectrum in the
+                # first place - it helps to provide a bit of context
                 if plot_neighbours:
                     # Find the neighbours
                     indices_adjacent = neighbours(self.cube.shape[1:],
@@ -896,16 +928,17 @@ class scouse(object):
                 # This will plot the current model solution as well as all
                 # possible alternatives. The user should either select one of
                 # these or press enter to enter the manual fitting mode
-                models, selection = plot_alternatives(self, key, figsize, plot_residuals=plot_residuals)
+                models, selection = plot_alternatives(self, key, figsize, \
+                                                  plot_residuals=plot_residuals)
                 update_models(self, key, models, selection)
 
                 self.fitcounts6+=1
 
         if fit_blocks:
-            # Stage 5 gives the user the option to select all pixels within a block
-            # for refitting - this first of all generates a pseudo-SAA from the
-            # block, we then manually fit. This solution is then applied to all
-            # spectra contained within the block.
+            # Stage 5 gives the user the option to select all pixels within a
+            # block for refitting - this first of all generates a pseudo-SAA
+            # from the block, we then manually fit. This solution is then
+            # applied to all spectra contained within the block.
             block_dict={}
             # cycle through all the blocks
             for blocknum in self.check_block_indices:
@@ -914,8 +947,8 @@ class scouse(object):
                 # get all of the individual pixel indices contained within that
                 # block
                 block_indices = get_block_indices(self, blocknum)
-                # turn the flattened indices into 2D indices such that we can find
-                # the spectra in the cube
+                # turn the flattened indices into 2D indices such that we can
+                # find the spectra in the cube
                 coords = gen_2d_coords(self,block_indices)
                 # create an SAA
                 SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
@@ -925,9 +958,10 @@ class scouse(object):
                 manually_fit_blocks(self, block_dict, blocknum)
                 self.blockcount+=1
             # automated fitting of block spectra
-            auto_fit_blocks(self, block_dict, njobs, self.blocksize, verbose=verbose)
+            auto_fit_blocks(self, block_dict, njobs, self.blocksize, \
+                            verbose=verbose)
 
-        if write_ascii and (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
+        if write_ascii and (self.fitcounts6==int(np.size(self.check_spec_indices))) \
            and (self.blockcount == int(np.size(self.check_block_indices))):
             output_ascii_indiv(self, s6dir)
 
@@ -945,11 +979,11 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+self.filename+'/stage_6/'+newfile, 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
                 else:
-                    os.rename(self.datadirectory+self.filename+'/stage_6/s6.scousepy', \
-                              self.datadirectory+self.filename+'/stage_6/s6.scousepy.bk')
+                    os.rename(self.outputdirectory+self.filename+'/stage_6/s6.scousepy', \
+                              self.outputdirectory+self.filename+'/stage_6/s6.scousepy.bk')
                     with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
             else:

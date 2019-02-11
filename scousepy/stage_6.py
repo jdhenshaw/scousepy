@@ -20,7 +20,7 @@ from .stage_3 import get_flux, get_indiv_spec, fit_indiv_spectra
 from .stage_5 import *
 
 Fitter = Stage2Fitter()
-fitting = Fitter.fitting
+fitting = Fitter.preparefit
 
 from .saa_description import *
 from .interactiveplot import showplot
@@ -375,9 +375,19 @@ def update_models(scouseobject, key, models, selection):
         decision = 'alternative'
         add_decision(spectrum, decision)
 
+        print("")
+        print("Selection acknowledged. "+
+              colors.fg._lightgreen_+"Alternative spectrum selected"+colors._endc_+".")
+        print_fit_information(bf, init_guess=False)
+
     else:
         # If the first spectrum was selected then the user has chosen to accept
         # the current best-fitting solution - so do nothing.
+        print("")
+        print("Selection acknowledged. "+
+              colors.fg._lightgreen_+"Original solution retained"+colors._endc_+".")
+        print_fit_information(spectrum.model, init_guess=False)
+
         pass
 
 class Stage6Fitter(object):
@@ -388,7 +398,9 @@ class Stage6Fitter(object):
         """
         Interactive fitter for stage 6
         """
+        print("")
         print("Beginning interactive fit of spectrum {0}".format(spectrum))
+        self.residuals_shown = False
         self.spec = spec
         self.spectrum = spectrum
         self.scouseobject = scouseobject
@@ -411,8 +423,6 @@ class Stage6Fitter(object):
                 if plt.matplotlib.rcParams['interactive']:
                     spec.plotter.axis.figure.canvas.mpl_connect('key_press_event',
                                                                 self.interactive_callback)
-                    print("If you are happy with this fit, press Enter.  Otherwise, "
-                          "use the 'f' key to re-enter the interactive fitter.")
                     event_loop()
                 else:
                     plt.show()
@@ -424,10 +434,6 @@ class Stage6Fitter(object):
                                      " or if you did not fit the spectrum."
                                     )
 
-            print("")
-            print_fit_information(self.bf, init_guess=False)
-            print("")
-
         return self.bf
 
     def interactive_callback(self, event):
@@ -437,18 +443,29 @@ class Stage6Fitter(object):
 
         if plt.matplotlib.rcParams['interactive']:
             if hasattr(event, 'key'):
+
                 if event.key in ('enter'):
-                    self.guesses = self.spec.specfit.parinfo.values
-                    self.happy = True
-                    plt.close(self.spec.plotter.figure.number)
+                    if self.residuals_shown:
+                        print("")
+                        print("'enter' key acknowledged."+
+                        colors.fg._lightgreen_+" Solution accepted"+colors._endc_+".")
+                        print("")
+                        self.guesses = self.spec.specfit.parinfo.values
+                        self.happy = True
+                        plt.close(self.spec.plotter.figure.number)
                     return True
+
                 elif event.key == 'esc':
                     self.happy = False
                     self.spec.specfit.clear_all_connections()
                     assert self.spec.plotter._active_gui is None
+
                 elif event.key in ('f', 'F'):
-                    # this just goes to pyspeckit
-                    pass
+                    print("")
+                    print("'f' key acknowledged."+
+                    colors.fg._lightred_+" Re-entering interactive fitter"+colors._endc_+".")
+                    self.residuals_shown = False
+
                 elif event.key in ('d','D','3',3):
                     # The fit has been performed interactively, but we also
                     # want to print out the nicely-formatted additional
@@ -461,12 +478,18 @@ class Stage6Fitter(object):
                                                clear=False,
                                                color='g',
                                                label=False)
+                    self.residuals_shown = True
+
                     print_fit_information(self.bf, init_guess=True)
-                    print("If you are happy with this fit, press Enter.  Otherwise, "
-                          "use the 'f' key to re-enter the interactive fitter.")
+                    print("Options:"
+                          "\n"
+                          "1) If you are happy with this fit, press Enter."
+                          "\n"
+                          "2) If not, press 'f' to re-enter the interactive fitter.")
                     self.happy = None
                 else:
                     self.happy = None
+
             elif hasattr(event, 'button') and event.button in ('d','D','3',3):
                 # The fit has been performed interactively, but we also
                 # want to print out the nicely-formatted additional
@@ -474,8 +497,11 @@ class Stage6Fitter(object):
                 self.bf = fit(self.spec, idx=self.spectrum.index,
                               scouse=self.scouseobject)
                 print_fit_information(self.bf, init_guess=True)
-                print("If you are happy with this fit, press Enter.  Otherwise, "
-                      "use the 'f' key to re-enter the interactive fitter.")
+                print("Options:"
+                      "\n"
+                      "1) If you are happy with this fit, press Enter."
+                      "\n"
+                      "2) If not, press 'f' to re-enter the interactive fitter.")
                 self.happy = None
             else:
                 self.happy = None
