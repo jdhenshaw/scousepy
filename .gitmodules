@@ -2,5 +2,5 @@
 	path = astropy_helpers
 	url = https://github.com/astropy/astropy-helpers.git
 [submodule "astropy-helpers"]
-	path = astropy-helpers
-	url = ./astropy-helpers
+	path = astropy_helpers
+	url = ./astropy_helpers
