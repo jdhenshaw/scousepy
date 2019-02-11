@@ -12,7 +12,3 @@ dependencies:
     - https://github.com/pyspeckit/pyspeckit.git
     - https://github.com/radio-astro-tools/spectral-cube.git
     - https://github.com/lmfit/lmfit-py.git
-
-sphinx:
-  builder: html
-  configuration: docs/conf.py

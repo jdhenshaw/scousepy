@@ -39,7 +39,7 @@ except ImportError:
             sys.path.insert(1, a_h_path)
 
 # Load all of the global Astropy configuration
-from astropy_helpers.sphinx.conf import *
+from sphinx_astropy.conf import *
 
 try:
     from sphinx_astropy.conf.v1 import *  # noqa
@@ -142,49 +142,49 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 #uncomment below if you prefer the astropy theme
 #  # -- Options for HTML output --------------------------------------------------
-#  
+#
 #  # A NOTE ON HTML THEMES
 #  # The global astropy configuration uses a custom theme, 'bootstrap-astropy',
 #  # which is installed along with astropy. A different theme can be used or
 #  # the options for this theme can be modified by overriding some of the
 #  # variables set in the global configuration. The variables set in the
 #  # global configuration are listed below, commented out.
-#  
-#  
+#
+#
 #  # Add any paths that contain custom themes here, relative to this directory.
 #  # To use a different custom theme, add the directory containing the theme.
 #  #html_theme_path = []
-#  
+#
 #  # The theme to use for HTML and HTML Help pages.  See the documentation for
 #  # a list of builtin themes. To override the custom theme, set this to the
 #  # name of a builtin theme or the name of a custom theme in html_theme_path.
 #  #html_theme = None
-#  
-#  
+#
+#
 #  # Please update these texts to match the name of your package.
 #  html_theme_options = {
 #      'logotext1': 'scouse',  # white,  semi-bold
 #      'logotext2': 'py',  # orange, light
 #      'logotext3': ':docs'   # white,  light
 #      }
-#  
-#  
+#
+#
 #  # Custom sidebar templates, maps document names to template names.
 #  #html_sidebars = {}
-#  
+#
 #  # The name of an image file (relative to this directory) to place at the top
 #  # of the sidebar.
 #  #html_logo = ''
-#  
+#
 #  # The name of an image file (within the static path) to use as favicon of the
 #  # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 #  # pixels large.
 #  #html_favicon = ''
-#  
+#
 #  # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 #  # using the given strftime format.
 #  #html_last_updated_fmt = ''
-#  
+#
 #  # The name for this set of Sphinx documents.  If None, it defaults to
 #  # "<project> v<release> documentation".
 #  html_title = '{0} v{1}'.format(project, release)
