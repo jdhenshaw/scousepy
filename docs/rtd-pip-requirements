@@ -2,6 +2,7 @@ astropy-helpers
 astropy
 numpy
 matplotlib
-pyspeckit
-spectral_cube
-lmfit
+https://github.com/pyspeckit/pyspeckit.git
+https://github.com/radio-astro-tools/spectral-cube.git
+https://github.com/lmfit/lmfit-py.git
+sphinx-astropy
