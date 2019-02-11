@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'scousepy'
-copyright = u'2017, Jonathan D. Henshaw'
+copyright = u'2017-2019, Jonathan D. Henshaw'
 author = u'Jonathan D. Henshaw'
 
 # The version info for the project you're documenting, acts as replacement for
