@@ -1,0 +1,7 @@
+astropy-helpers
+astropy
+numpy
+matplotlib
+pyspeckit
+spectral_cube
+lmfit
