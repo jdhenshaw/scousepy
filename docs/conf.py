@@ -69,7 +69,7 @@ highlight_language = 'python3'
 # major.minor, call `check_sphinx_version("x.y.z")` here.
 # check_sphinx_version("1.2.1")
 
-# add any intersphinx for dendrocat
+# add any intersphinx
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/',
                (None, 'http://data.astropy.org/intersphinx/python3.inv')),
@@ -83,9 +83,9 @@ intersphinx_mapping = {
     'matplotlib': ('http://matplotlib.org/',
                    (None, 'http://data.astropy.org/intersphinx/matplotlib.inv')),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'h5py': ('http://docs.h5py.org/en/stable/', None),
-    'astrodendro': ('https://dendrograms.readthedocs.io/en/stable/', None),
-    'regions': ('https://astropy-regions.readthedocs.io/en/latest/', None),
+    'lmfit': ('https://lmfit-py.readthedocs.io/en/latest/', None),
+    'pyspeckit': ('https://pyspeckit.readthedocs.io/en/latest/', None),
+    'spectral-cube': ('https://spectral-cube.readthedocs.io/en/latest/', None),
     }
 
 
@@ -141,8 +141,8 @@ release = package.__version__
 
 # Please update these texts to match the name of your package.
 html_theme_options = {
-    'logotext1': 'package',  # white,  semi-bold
-    'logotext2': '-template',  # orange, light
+    'logotext1': 'scouse',  # white,  semi-bold
+    'logotext2': 'py',  # orange, light
     'logotext3': ':docs'   # white,  light
     }
 
