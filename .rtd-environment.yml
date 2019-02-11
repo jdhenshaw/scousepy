@@ -1,0 +1,14 @@
+name: scousepy
+
+channels:
+  - astropy
+
+dependencies:
+  - astropy-helpers
+  - astropy
+  - numpy
+  - matplotlib
+  - pip:
+    - https://github.com/pyspeckit/pyspeckit.git
+    - https://github.com/radio-astro-tools/spectral-cube.git
+    - https://github.com/lmfit/lmfit-py.git
