@@ -6,3 +6,4 @@ https://github.com/pyspeckit/pyspeckit/archive/master.zip
 https://github.com/radio-astro-tools/spectral-cube/archive/master.zip
 https://github.com/lmfit/lmfit-py/archive/master.zip
 sphinx-astropy
+sphinx-bootstrap-theme
