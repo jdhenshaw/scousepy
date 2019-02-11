@@ -1,6 +1,6 @@
-
-conda:
-  file: .rtd-environment.yml
-
 python:
   setup_py_install: true
+  install:
+     - requirements: docs/requirements.txt
+     - method: pip
+       path: .
