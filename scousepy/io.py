@@ -15,13 +15,18 @@ from astropy import wcs
 from astropy.table import Table
 from astropy.table import Column
 from astropy import log
+from astropy.utils.console import ProgressBar
 import numpy as np
 import os
 import sys
 import warnings
+import pyspeckit
 import shutil
 import time
 import pickle
+
+from .parallel_map import *
+
 if sys.version_info.major >= 3:
     proto=3
 else:
@@ -270,6 +275,82 @@ def get_soln_desc(idx, soln, x, y):
     solution_desc = params_non_specific[0:3]+parameters+params_non_specific[3::]
 
     return solution_desc
+
+def create_modelcube(self, njobs=1, verbose=True):
+    """
+    Generates a "clean" datacube from the scousepy decomposition. Returns a
+    clean cube
+
+    Parameters
+    ----------
+    self : instance of the scousepy class
+    njobs : Number
+        number of cpus
+    verbose: bool
+        verbose output
+
+    """
+
+    # Time it
+    starttime = time.time()
+
+    cube = self.cube
+    x = np.array(cube.world[:,0,0][0])
+    if (self.ppv_vol[0] is not None) & (self.ppv_vol[1] is not None):
+        trimids = np.where((x>self.ppv_vol[0])&(x<self.ppv_vol[1]))[0]
+
+    _cube = cube[min(trimids):max(trimids)+1, :, :]
+    _modelcube = np.full_like(_cube, np.nan)
+
+    if verbose:
+        print("")
+        print("Generating models:")
+        print("")
+
+    args = [self]
+    inputs = [[key] + args for key in self.indiv_dict.keys()]
+    if njobs==1:
+        mods = ProgressBar.map(genmodel, inputs)
+    else:
+        mods = parallel_map(genmodel, inputs, numcores=njobs)
+    mergedmods = [mod for mod in mods]
+    mergedmods = np.asarray(mergedmods)
+
+    if verbose:
+        print("")
+        print("Creating model cube:")
+        print("")
+        progress_bar = ProgressBar(self.indiv_dict.keys())
+
+    for i, key in enumerate(self.indiv_dict.keys()):
+        _modelcube[:, self.indiv_dict[key].coordinates[0],
+                      self.indiv_dict[key].coordinates[1]] = mergedmods[i]
+        if verbose:
+            progress_bar.update()
+
+    endtime = time.time()
+    if verbose:
+        print("")
+        print('Process completed in: {0} minutes'.format((endtime-starttime)/60.))
+        print("")
+
+    return SpectralCube(data=_modelcube, wcs=_cube.wcs)
+
+def genmodel(inputs):
+    """
+    generates the model for the creation of the model cube
+    """
+    key, self = inputs
+    spectrum = self.indiv_dict[key]
+    bfmodel = spectrum.model
+    if bfmodel.ncomps>0:
+        from .stage_5 import recreate_model
+        mod,res = recreate_model(self, spectrum, bfmodel)
+        totmod = np.nansum(mod, axis=1)
+    else:
+        totmod = np.full_like(self.xtrim, np.nan)
+
+    return totmod
 
 def save(self, filename):
     """
