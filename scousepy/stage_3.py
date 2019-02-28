@@ -381,7 +381,7 @@ def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
                         warnings.simplefilter('ignore')
                         old_log = log.level
                         log.setLevel('ERROR')
-                        if np.any(np.isnan(sp.error)):
+                        if np.any(np.isnan(spec.error)):
                             raise ValueError("NaNs in sp.error")
                         spec.specfit(interactive=False, \
                                     clear_all_connections=True,\
