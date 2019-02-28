@@ -83,6 +83,16 @@ def calc_rms(spectrum):
 
     # Find all negative values
     negative_indices = (spectrum < 0.0)
+
+    if negative_indices.sum() < 2:
+        # spectrum is not continuum subtracted, maybe?
+        # first baseline-subtract the spectrum conservatively
+        # (note that this is a reassignment operation, it doesn't change the
+        # data)
+        spectrum = spectrum - np.percentile(spectrum, 25)
+        negative_indices = (spectrum < 0.0)
+        assert negative_indices.sum() >= 2
+
     spectrum_negative_values = spectrum[negative_indices]
     reflected_noise = np.concatenate((spectrum[negative_indices],
                                                abs(spectrum[negative_indices])))
@@ -96,6 +106,9 @@ def calc_rms(spectrum):
         maximum_value = 4.0*MAD
     noise = spectrum[spectrum < abs(maximum_value)]
     rms = np.sqrt(np.sum(noise**2) / np.size(noise))
+
+    if np.isnan(rms):
+        raise ValueError("RMS was NaN, which is not allowed.")
 
     return rms
 

@@ -110,4 +110,7 @@ def get_rms(self, scouse, flux):
     else:
         rms = scouse.rms_approx
 
+    if np.isnan(rms):
+        raise ValueError("RMS is NaN")
+
     return rms

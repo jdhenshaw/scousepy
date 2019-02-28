@@ -93,6 +93,8 @@ def prep_spec(_key, saa_dict, njobs, scouseobject):
                 # flatten the output from parallel map
                 merged_spec = [spec for spec in indiv_spec if spec is not None]
                 merged_spec = np.asarray(merged_spec)
+                if np.isnan(merged_spec.rms):
+                    raise ValueError("RMS is NaN")
                 for k in range(len(SAA.indices_flat)):
                     # Add the spectra to the dict
                     key = SAA.indices_flat[k]
@@ -105,6 +107,8 @@ def prep_spec(_key, saa_dict, njobs, scouseobject):
                     inputs = inputs[0]
                     indiv_spec = get_indiv_spec(inputs)
                     indiv_spectra[key] = indiv_spec
+                    if np.isnan(indiv_spec.rms):
+                        raise ValueError("RMS is NaN")
     # add the spectra to the spectral averaging areas
     add_indiv_spectra(SAA, indiv_spectra)
 
@@ -123,10 +127,15 @@ def get_indiv_spec(inputs):
     # get the coordinates of the pixel based on the flattened index
     _coords = np.unravel_index(SAA.indices_flat[idx],scouseobject.cube.shape[1:])
     # create a pyspeckit spectrum
-    indiv_spec = spectrum(_coords, \
-                          scouseobject.cube[:,_coords[0], _coords[1]].value, \
-                          idx=SAA.indices_flat[idx], \
+    data = scouseobject.cube[:,_coords[0], _coords[1]].value
+    if np.any(np.isnan(data)):
+        raise ValueError("Found NaN in data")
+    indiv_spec = spectrum(_coords,
+                          data,
+                          idx=SAA.indices_flat[idx],
                           scouse=scouseobject)
+    if np.isnan(indiv_spec.rms):
+        raise ValueError("RMS is NaN")
 
     return indiv_spec
 
@@ -223,6 +232,8 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
                     key = SAA.indices_flat[k]
                     add_model_parent(SAA.indiv_spectra[key], merged_bfs[k,0])
                     add_model_dud(SAA.indiv_spectra[key], merged_bfs[k,1])
+                    if np.isnan(SAA.indiv_spectra[key].rms):
+                        raise ValueError("RMS is nan")
         else:
             # If njobs = 1 just cycle through
             for k in range(len(SAA.indices_flat)):
@@ -233,6 +244,8 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
                 bfs = fit_a_spectrum(inputs)
                 add_model_parent(SAA.indiv_spectra[key], bfs[0])
                 add_model_dud(SAA.indiv_spectra[key], bfs[1])
+                if np.isnan(SAA.indiv_spectra[key].rms):
+                    raise ValueError("RMS is nan")
 
 def generate_template_spectrum(scouseobject):
     """
@@ -321,7 +334,11 @@ def fit_a_spectrum(inputs):
         old_log = log.level
         log.setLevel('ERROR')
         # update the template
+        if np.isnan(SAA.indiv_spectra[key].rms):
+            raise ValueError("RMS is NaN")
         spec = get_spec(scouseobject, SAA.indiv_spectra[key], template_spectrum)
+        if np.any(np.isnan(spec.error)):
+            raise ValueError("NaNs in sp.error")
         log.setLevel(old_log)
 
     # begin the fitting process
@@ -364,6 +381,8 @@ def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
                         warnings.simplefilter('ignore')
                         old_log = log.level
                         log.setLevel('ERROR')
+                        if np.any(np.isnan(sp.error)):
+                            raise ValueError("NaNs in sp.error")
                         spec.specfit(interactive=False, \
                                     clear_all_connections=True,\
                                     xmin=scouseobject.ppv_vol[0], \
@@ -476,6 +495,8 @@ def unpack_inputs(inputs):
     params = inputs[2]
     errors = inputs[3]
     rms = inputs[4][0]
+    if np.isnan(rms):
+        raise ValueError("RMS is nan")
 
     return parnames, nparams, ncomponents, params, errors, rms
 

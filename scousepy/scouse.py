@@ -238,7 +238,7 @@ class scouse(object):
             old_log = log.level
             log.setLevel('ERROR')
 
-            self.load_cube(fitsfile=fitsfile)
+            self.load_cube(fitsfile=fitsfile, cube=cube)
 
             # Generate moment maps
             momzero, momone, momtwo, momnine = get_moments(self, write_moments,
