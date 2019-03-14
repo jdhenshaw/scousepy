@@ -271,9 +271,10 @@ class scouse(object):
 
                 # Make a first pass at defining the coverage.
                 cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
-                                                    momzero.value, w, 1.0,
-                                                    verbose)
-
+                                                    momzero.value, w, nrefine,
+                                                    verbose,
+                                                    refine_grid=refine_grid,
+                                                    redefine=False)
                 if refine_grid:
                     # When refining the coverage - we have to recompute the
                     # momzero map according to which regions have more complex
@@ -288,6 +289,7 @@ class scouse(object):
                                                             momzero.value,
                                                             mom_zero, w, nref,
                                                             verbose,
+                                                            refine_grid=refine_grid,
                                                             redefine=True)
                 else:
                     _cc, _ss, _ids, _frac = cc, ss, ids, frac

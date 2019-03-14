@@ -240,7 +240,7 @@ def get_coverage(momzero, spacing):
     return cov_y, cov_x
 
 def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
-                    redefine=False):
+                    redefine=False, refine_grid=False):
     """
     Returns locations of SAAs and computes a spatially-averaged spectrum.
 
@@ -262,8 +262,10 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
         Number of refinement steps for the saas
     verbose : bool
         verbose output
+    refine_grid : bool, optional
+        If true, scouse will refine the SAA size.
     redefine : bool
-        refine grid (default=False)
+        Boolean option for during redefinition of coverage (default=False)
 
     """
 
@@ -292,8 +294,8 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
         coverage, spec, ids, frac = update_coverage(cube, cx, cy, spacing,
                                                     momzero, momzero_mod,
                                                     cov_x, cov_y, coverage,
-                                                    spec, ids, frac,
-                                                    redefine, nrefine)
+                                                    spec, ids, frac, refine_grid,
+                                                    nrefine, redefine)
         if not redefine:
             if verbose:
                 progress_bar.update()
@@ -304,7 +306,8 @@ def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
     return coverage, spec, ids, frac
 
 def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y,
-                                  coverage, spec, ids, frac, redefine, nrefine):
+                                  coverage, spec, ids, frac, refine_grid, nrefine,
+                                  redefine):
     """
     Where the coverage is computed
 
@@ -331,10 +334,12 @@ def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y,
         empty array which will house the coverage ids
     frac : ndarray
         empty array defining the number of significant pixels within the SAA
-    redefine : bool
-        refine grid (default=False)
+    refine_grid : bool, optional
+        If true, scouse will refine the SAA size.
     nrefine : number
         Number of refinement steps for the saas
+    redefine : bool
+        Boolean option for during redefinition of coverage (default=False)
 
     """
 
@@ -353,14 +358,10 @@ def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y,
     # box
     momzero_cutout = momzero_mod[min(limy):max(limy),
                                  min(limx):max(limx)]
+    # total number of pixels
+    nmask = np.size(momzero_cutout)
     # Do this for the cube as well
     cube_cutout = cube[:,min(limy):max(limy), min(limx):max(limx)]
-
-    # Identify the locations of the non nan pixels contained within the
-    # cut out
-    #finite = np.isfinite(momzero_cutout)
-    #nmask = np.count_nonzero(finite)
-    nmask = np.size(momzero_cutout)
 
     # range for looping (used below)
     rangex = range(min(limx), max(limx)+1)
@@ -384,7 +385,7 @@ def update_coverage(cube, cx, cy, spacing, momzero, momzero_mod, cov_x, cov_y,
         # However, this needs tweaking a bit for the redefined coverage.
         # This works for now but may need updating to something a bit more
         # robust in the future.
-        if redefine:
+        if refine_grid:
             lim = 0.6/nrefine
         else:
             lim = 0.35
@@ -505,7 +506,7 @@ def plot_wsaa(dict, momzero, wsaa, dir, filename):
                              dict[i][j].coordinates[0] - w/2.),\
                              w , w , facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
-
+                             
     plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
     plt.show()
