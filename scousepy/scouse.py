@@ -904,7 +904,7 @@ class scouse(object):
             if n_to_fit <= 0:
                 raise ValueError(colors.fg._red_+"No spectra are selected to be "+
                                  "fit. Re-fitting individual spectra has "+
-                                 "completed."+colors.fg._endc_)
+                                 "completed."+colors._endc_)
 
             # Loop through the spectra that are to be fit
             for i_,i in enumerate(fitrange):
