@@ -145,3 +145,6 @@ that might be useful, particularly ``bitesize``. This enables the user to
 perform bitesize fitting where the process is broken down into sessions and the
 user fits a fixed number of spectra at any one time. The number of spectra to
 fit in any one session can be controlled using the ``nspec`` keyword.
+
+Stage 3
+~~~~~~~
