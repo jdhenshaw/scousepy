@@ -55,7 +55,7 @@ Citing scousepy
 If you make use of this package in a publication, please consider the following
 acknowledgement... ::
 
-  @ARTICLE{2019MNRAS.485.2457H,
+  @ARTICLE{henshaw19,
       author = {{Henshaw}, J.~D. and {Ginsburg}, A. and {Haworth}, T.~J. and
 	       {Longmore}, S.~N. and {Kruijssen}, J.~M.~D. and {Mills}, E.~A.~C. and
 	       {Sokolov}, V. and {Walker}, D.~L. and {Barnes}, A.~T. and {Contreras}, Y. and
