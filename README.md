@@ -79,7 +79,7 @@ This package was developed by:
 [Contributors](https://github.com/jdhenshaw/scousepy/graphs/contributors) include:
 
 * Adam Ginsburg
-* Manuel Reiner
+* Manuel Riener
 
 Citing scousepy
 ===============

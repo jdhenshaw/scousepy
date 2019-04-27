@@ -1,4 +1,4 @@
-.. _introduction:
+.. _description:
 
 ********************************
 A brief introduction to scousepy
