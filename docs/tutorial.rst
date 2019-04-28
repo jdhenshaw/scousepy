@@ -235,7 +235,10 @@ Stage 5
 Now we want to check our work. Stage 5 works interactively and is run in the
 following way ::
 
-  s = scouse.stage_5(s, blocksize = 6, figsize = [18,10], plot_residuals=True, verbose=True)
+  s = scouse.stage_5(s, blocksize = 6,
+                        figsize = [18,10],
+                        plot_residuals=True,
+                        verbose=True)
 
 First, a bunch of diagnostic plots will be created (these are all saved to the
 stage 5 directory). These include plots of the rms, residuals, reduced chi-squared,
@@ -291,4 +294,170 @@ without actually selecting any spectra. The idea is to have a quick glance at
 whether or not the fits are any good. If not, or if I feel I will have to do a
 lot of re-fitting (maybe >5-10% of the data), I will stop at this stage and tweak
 the parameters of stage 3 and re-run from there. Once I'm happy that the majority
-of the fits are reasonable I will go through stage 5 in earnest. 
+of the fits are reasonable I will go through stage 5 in earnest.
+
+Stage 6
+~~~~~~~
+
+Here we are going to look again at the spectra we selected during stage 5.
+Stage 6 is run using ::
+
+  s = scouse.stage_6(s, plot_neighbours=True,
+                        radius_pix = 2,
+                        figsize = [18,10],
+                        plot_residuals=True,
+                        write_ascii=True,
+                        verbose=True)
+
+The ``plot_neighbours`` keyword here is optional. If set to True stage 6 will
+begin by reminding you of each spectrum and its surroundings. This isn't
+particularly necessary for the tutorial data, but for large datasets, where it
+easy to forget perhaps why a spectrum was selected for reevaluation, it can be
+useful. If set to True, the first pop up window will look something like this...
+
+.. image:: ./stage6_1.png
+  :align: center
+  :width: 900
+
+Here, the central pixel is the first pixel we selected during stage 5 (see above).
+It is at the edge of the map (hence the pixels with X values). Pressing Enter
+will move ``scousepy`` onto the next phase. At the next phase you will be
+presented with a choice. ``scousepy`` will show the current fit and any other
+alternative solutions to this spectrum. In the example below no alternatives are
+available. However, ``scousepy`` will always provide a no-fit option. In my
+personal experience I have found that sometimes having no-fit is better than
+having a bad fit.
+
+.. image:: ./stage6_2.png
+  :align: center
+  :width: 900
+
+At this point you can make a choice. Either select the current spectrum,
+select an alternative, or press Enter to enter the interactive fitter you will
+now be familiar with from stage 2. Let's say we aren't happy with this fit but
+we also don't think we can do a better job - we can click on the no-fit option
+like so...
+
+.. image:: ./stage6_3.png
+  :align: center
+  :width: 900
+
+This will select the no-fit option and move on to the next spectrum. Moving on,
+we see one we want to re-fit. Pressing Enter will enter the interactive fitter
+from ``pyspeckit``. Using the same commands as in stage 2 we can try to fit
+two components like so...
+
+.. image:: ./stage6_4.png
+  :align: center
+  :width: 400
+
+and as before, ``scousepy`` will give you a running commentary on what is
+happening in the terminal...
+
+.. image:: ./stage6_5.png
+  :align: center
+  :width: 900
+
+Repeat this process until all of the spectra selected in stage 5 have been
+checked over. As with stage 2, stages 5 and 6 can be run in bitesize mode. This
+type of fitting is a little more fiddly and will be described in the
+:ref:`Tips & Tricks <tips>` sections of this documentation.
+
+Complete Example
+~~~~~~~~~~~~~~~~
+
+In reality you might not want to run all of the stages back to back. To save
+memory each output file produced by ``scousepy`` only contains essential
+information. An example code to run ``scousepy`` may therefore look something
+like this... ::
+
+  from scousepy import scouse
+  from astropy.io import fits
+  import os
+  pl.ion()
+
+  def run_scousepy():
+    datadirectory = '../data/'
+    outputdir     = '../output/simple_example_run/'
+    filename      = 'n2h+10_37'
+    ppv_vol       = [32.0,42.0,None,None,None,None]
+    wsaa          = [8.0]
+    tol           = [3.0, 1.0, 3.0, 3.0, 0.5]
+    verb          = True
+    fittype       = 'gaussian'
+    njobs         = 4
+    mask          = 0.3
+
+    #==========================================================================#
+    # Stage 1
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_1/s1.scousepy'):
+        s = scouse(outputdir=outputdir, filename=filename, fittype=fittype,
+                   datadirectory=datadirectory)
+        s.load_stage_1(outputdir+filename+'/stage_1/s1.scousepy')
+        s.load_cube(fitsfile=datadirectory+filename+".fits")
+    else:
+        s = scouse.stage_1(filename, datadirectory, wsaa,
+                           ppv_vol=ppv_vol,
+                           outputdir=outputdir,
+                           mask_below=mask,
+                           fittype=fittype,
+                           verbose = verb,
+                           write_moments=True,
+                           save_fig=True)
+
+    #==========================================================================#
+    # Stage 2
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_2/s2.scousepy'):
+        s.load_stage_2(outputdir+filename+'/stage_2/s2.scousepy')
+    else:
+        s = scouse.stage_2(s, verbose=verb, write_ascii=True)
+
+    #==========================================================================#
+    # Stage 3
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_3/s3.scousepy'):
+        s.load_stage_3(outputdir+filename+'/stage_3/s3.scousepy')
+    else:
+        s = scouse.stage_3(s, tol, njobs=njobs, verbose=verb)
+
+    #==========================================================================#
+    # Stage 4
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_4/s4.scousepy'):
+        s.load_stage_4(outputdir+filename+'/stage_4/s4.scousepy')
+    else:
+        s = scouse.stage_4(s, verbose=verb)
+
+    #==========================================================================#
+    # Stage 5
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_5/s5.scousepy'):
+        s.load_stage_5(outputdir+filename+'/stage_5/s5.scousepy')
+    else:
+        s = scouse.stage_5(s, blocksize = 6,
+                              figsize = [18,10],
+                              plot_residuals=True,
+                              verbose=verb)
+
+    #==========================================================================#
+    # Stage 6
+    #==========================================================================#
+    if os.path.exists(outputdir+filename+'/stage_6/s6.scousepy'):
+        s.load_stage_6(outputdir+filename+'/stage_6/s6.scousepy')
+    else:
+        s = scouse.stage_6(s, plot_neighbours=True,
+                              radius_pix = 2,
+                              figsize = [18,10],
+                              plot_residuals=True,
+                              write_ascii=True,
+                              verbose=verb)
+
+    return s
+
+  s = run_scousepy()
+
+This format was largely introduced to prevent people from overwriting their
+hard work. In this way each stage can be run independently, without having to
+run the process from start to finish.

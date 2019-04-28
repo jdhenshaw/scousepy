@@ -27,6 +27,7 @@ Documentation
   installation.rst
   description.rst
   tutorial.rst
+  tips.rst
   license.rst
 
 Reporting issues and getting help
@@ -76,14 +77,12 @@ acknowledgement... ::
       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
 
-
-
 Please also consider acknowledgements to the required packages in your work.
 
 Papers using scousepy
 ~~~~~~~~~~~~~~~~~~~~~
 
-* Henshaw et al. 2018, in prep.
+* Henshaw et al. 2019, MNRAS, 485, 2457
 
 Recipe
 ~~~~~~
