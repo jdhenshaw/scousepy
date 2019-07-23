@@ -770,13 +770,13 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+self.filename+'/stage_5/'+newfile,'wb') as fh:
+                    with open(self.outputdirectory+'/stage_5/'+newfile,'wb') as fh:
                         pickle.dump((self.check_spec_indices,
                                      self.check_block_indices,
                                      self.blocksize), fh)
                 else:
-                    os.rename(self.outputdirectory+self.filename+'/stage_5/s5.scousepy', \
-                              self.outputdirectory+self.filename+'/stage_5/s5.scousepy.bk')
+                    os.rename(self.outputdirectory+'/stage_5/s5.scousepy', \
+                              self.outputdirectory+'/stage_5/s5.scousepy.bk')
                     with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
                         pickle.dump((self.check_spec_indices,
                                      self.check_block_indices,
@@ -981,11 +981,11 @@ class scouse(object):
         if autosave:
             if repeat:
                 if newfile is not None:
-                    with open(self.outputdirectory+self.filename+'/stage_6/'+newfile, 'wb') as fh:
+                    with open(self.outputdirectory+'/stage_6/'+newfile, 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
                 else:
-                    os.rename(self.outputdirectory+self.filename+'/stage_6/s6.scousepy', \
-                              self.outputdirectory+self.filename+'/stage_6/s6.scousepy.bk')
+                    os.rename(self.outputdirectory+'/stage_6/s6.scousepy', \
+                              self.outputdirectory+'/stage_6/s6.scousepy.bk')
                     with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
                         pickle.dump((self.indiv_dict, self.fitcounts6), fh)
             else:
