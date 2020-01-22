@@ -489,7 +489,7 @@ def plot_wsaa(dict, momzero, wsaa, dir, filename):
     fig.clf()
     ax = fig.add_subplot(111)
     plt.imshow(momzero, cmap='Greys', origin='lower',
-               interpolation='nearest')
+               interpolation='nearest', vmin=0, vmax=5)
     cols = ['blue', 'red', 'yellow', 'limegreen', 'cyan', 'magenta']
 
     for i, w in enumerate(wsaa, start=0):
@@ -506,7 +506,7 @@ def plot_wsaa(dict, momzero, wsaa, dir, filename):
                              dict[i][j].coordinates[0] - w/2.),\
                              w , w , facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
-                             
+
     plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
     plt.show()

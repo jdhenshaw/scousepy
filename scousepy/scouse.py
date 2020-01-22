@@ -372,7 +372,7 @@ class scouse(object):
         self.completed_stages.append('s1')
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                bitesize=False, nspec=None, training_set=False):
+                bitesize=False, nspec=None, training_set=False, derivspec=False):
         """
         Stage 2
 
@@ -405,6 +405,21 @@ class scouse(object):
         # generate a list of all SAA's (inc. all wsaas)
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
+
+        from scousepy.scousefitter import ScouseFitter
+        for i in range(len(self.wsaa)):
+        # NOTE: insert something here about the fit range. default should be all.
+        # Can we include a check here to see which ones already have solutions?
+            saa_dict=self.saa_dict[i]
+            spectratobefit=spectra_to_be_fit(self,saa_dict)
+            myfitter=ScouseFitter(method='scouse', scouseobject=self,
+                                  spectra=spectratobefit, spectra_dict=saa_dict)
+            myfitter.show()
+            sys.exit()
+
+        sys.exit()
+
+
 
         # bitesize fitting preparation
         if bitesize:
@@ -472,7 +487,7 @@ class scouse(object):
                     # enter the fitting process
                     bf = fitting(self, SAA, saa_dict, SAAid,
                                  training_set=self.training_set,
-                                 init_guess=firstfit)
+                                 init_guess=firstfit, derivspec=derivspec)
                 SAAid = SAA.index
                 firstfit=False
 

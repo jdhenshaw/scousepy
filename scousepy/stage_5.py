@@ -559,7 +559,7 @@ class DiagnosticImageFigure(object):
         ----------
 
         """
-
+        
         self.ax.imshow(self.maps[self.mapnames[0]], **self.plotkwargs)
         self.ax.set_title('Diagnostic Plot: '+self.mapnames[0]+"\n0:rms; 1:residstd; 2:redchi2; 3:ncomps; 4:aic; 5:chi2")
 

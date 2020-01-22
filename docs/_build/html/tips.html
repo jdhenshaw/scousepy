@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tips and Tricks &#8212; scousepy 0.0.dev290 documentation</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Tutorial" href="tutorial.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          scousepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.0.dev290</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installing <code class="docutils literal notranslate"><span class="pre">scousepy</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="description.html">A brief introduction to scousepy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tips and Tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Tips and Tricks</a><ul>
+<li><a class="reference internal" href="#bitesized-fitting">Bitesized Fitting</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="tutorial.html" title="Previous Chapter: Tutorial"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Tutorial</span>
+    </a>
+  </li>
+  <li>
+    <a href="license.html" title="Next Chapter: License"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">License &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/tips.rst.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">Tips and Tricks</a><ul>
+<li><a class="reference internal" href="#bitesized-fitting">Bitesized Fitting</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    <div class="col-md-9 content">
+      
+  <div class="section" id="tips-and-tricks">
+<span id="tips"></span><h1>Tips and Tricks<a class="headerlink" href="#tips-and-tricks" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="bitesized-fitting">
+<h2>Bitesized Fitting<a class="headerlink" href="#bitesized-fitting" title="Permalink to this headline">¶</a></h2>
+<p>One thing that I have found particularly useful in my own work is to break the
+fitting process up into chunks. This can be really helpful if you have a lot of
+spectra to fit. I have included a bitesized fitting process into <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
+which can be run in stage 2 in the following way…</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">datadirectory</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_2/s2.scousepy&#39;</span><span class="p">):</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">load_stage_2</span><span class="p">(</span><span class="n">datadirectory</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_2/s2.scousepy&#39;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+  <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nspec</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nspec</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Check out the <a class="reference internal" href="tutorial.html#tutorial"><span class="std std-ref">Complete Example</span></a> in the tutorial
+section of the documentation to understand what is going on here with some more
+context. However, in short, the first run I have used the keywords <code class="docutils literal notranslate"><span class="pre">bitesize=True</span></code>
+and <code class="docutils literal notranslate"><span class="pre">nspec=10</span></code>. This will fit the first 10 spectra as normal. Note the
+indentation on the second call to stage 2. After the first run with 10 spectra
+each subsequent call to the code will load the <code class="docutils literal notranslate"><span class="pre">s2.scousepy</span></code> file and then
+100 spectra will be fitted until the process is complete. Of course, you can
+change this to whatever value you like.</p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019, Jonathan D. Henshaw.<br/>
+      Last updated on 28 Apr 2019.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

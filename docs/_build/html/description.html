@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>A brief introduction to scousepy &#8212; scousepy 0.0.dev290 documentation</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Installing scousepy" href="installation.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          scousepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.0.dev290</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installing <code class="docutils literal notranslate"><span class="pre">scousepy</span></code></a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">A brief introduction to scousepy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">A brief introduction to scousepy</a><ul>
+<li><a class="reference internal" href="#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
+<li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
+<li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
+<li><a class="reference internal" href="#stage-4-selecting-the-best-fits">Stage 4: selecting the best fits</a></li>
+<li><a class="reference internal" href="#optional-stages">Optional Stages</a></li>
+<li><a class="reference internal" href="#stage-5-checking-the-best-fitting-solutions">Stage 5: checking the best-fitting solutions</a></li>
+<li><a class="reference internal" href="#stage-6-re-analysing-the-identified-spectra">Stage 6: re-analysing the identified spectra</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="installation.html" title="Previous Chapter: Installing scousepy"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Installing scousepy</span>
+    </a>
+  </li>
+  <li>
+    <a href="tutorial.html" title="Next Chapter: Tutorial"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Tutorial &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/description.rst.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">A brief introduction to scousepy</a><ul>
+<li><a class="reference internal" href="#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
+<li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
+<li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
+<li><a class="reference internal" href="#stage-4-selecting-the-best-fits">Stage 4: selecting the best fits</a></li>
+<li><a class="reference internal" href="#optional-stages">Optional Stages</a></li>
+<li><a class="reference internal" href="#stage-5-checking-the-best-fitting-solutions">Stage 5: checking the best-fitting solutions</a></li>
+<li><a class="reference internal" href="#stage-6-re-analysing-the-identified-spectra">Stage 6: re-analysing the identified spectra</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    <div class="col-md-9 content">
+      
+  <div class="section" id="a-brief-introduction-to-scousepy">
+<span id="description"></span><h1>A brief introduction to scousepy<a class="headerlink" href="#a-brief-introduction-to-scousepy" title="Permalink to this headline">¶</a></h1>
+<p>The method has been updated slightly from the <a class="reference external" href="https://github.com/jdhenshaw/SCOUSE">original IDL version of the
+code</a>. It is now more interactive than
+before which should hopefully speed things up a bit for the user. The method
+is broken down into six stages in total. Each stage is summarised below.</p>
+<a class="reference internal image-reference" href="_images/Figure_cartoon.png"><img alt="_images/Figure_cartoon.png" class="align-center" src="_images/Figure_cartoon.png" style="width: 850px;" /></a>
+<div class="section" id="stage-1-defining-the-coverage">
+<h2>Stage 1: defining the coverage<a class="headerlink" href="#stage-1-defining-the-coverage" title="Permalink to this headline">¶</a></h2>
+<p>Here <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> identifies the spatial area over which to fit the data. It
+generates a grid of spectral averaging areas (SAAs). The user is required to
+provide the width of the spectral averaging area. Extra refinement of spectral
+averaging areas (i.e. for complex regions) can be controlled using the keyword
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">refine_grid</span></code>.</p>
+</div>
+<div class="section" id="stage-2-fitting-the-spectral-averaging-areas">
+<h2>Stage 2: fitting the spectral averaging areas<a class="headerlink" href="#stage-2-fitting-the-spectral-averaging-areas" title="Permalink to this headline">¶</a></h2>
+<p>User-interactive fitting of the spatially averaged spectra output from stage 1.
+<code class="docutils literal notranslate"><span class="pre">scousepy</span></code> makes use of the <a class="reference external" href="http://pyspeckit.readthedocs.io/en/latest/">pyspeckit</a>
+package and is fully interactive.</p>
+</div>
+<div class="section" id="stage-3-automated-fitting">
+<h2>Stage 3: automated fitting<a class="headerlink" href="#stage-3-automated-fitting" title="Permalink to this headline">¶</a></h2>
+<p>Non user-interactive fitting of individual spectra contained within all SAAs.
+The user is required to input several tolerance levels to <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Please
+refer to <a class="reference external" href="http://adsabs.harvard.edu/abs/2016MNRAS.457.2675H">Henshaw et al. 2016</a>
+for more details on each of these.</p>
+</div>
+<div class="section" id="stage-4-selecting-the-best-fits">
+<h2>Stage 4: selecting the best fits<a class="headerlink" href="#stage-4-selecting-the-best-fits" title="Permalink to this headline">¶</a></h2>
+<p>Here <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> selects the best-fits that are output in stage 3.</p>
+</div>
+<div class="section" id="optional-stages">
+<h2>Optional Stages<a class="headerlink" href="#optional-stages" title="Permalink to this headline">¶</a></h2>
+<p>Unfortunately there is no one-size-fits-all method to selecting a best-fitting
+solution when multiple choices are available (stage 4). SCOUSE uses the Akaike
+Information Criterion, which weights the chi-squared value of a best-fitting
+solution according to the number of free-parameters.</p>
+<p>While AIC does a good job of returning the best-fitting solutions, there are
+areas where the best-fitting solutions can be improved. As such the following
+stages are optional but <em>highly recommended</em>.</p>
+<p>This part of the process has changed significantly from the original code. The
+user is now presented with several diagnostic plots (see below), selecting
+different regions will display the corresponding spectra, allowing the user to
+check the fit quality.</p>
+<p>Depending on the data a user may wish to perform a few iterations of Stages 5-6.</p>
+</div>
+<div class="section" id="stage-5-checking-the-best-fitting-solutions">
+<h2>Stage 5: checking the best-fitting solutions<a class="headerlink" href="#stage-5-checking-the-best-fitting-solutions" title="Permalink to this headline">¶</a></h2>
+<p>Checking the fits. Here the user is required to check the best-fitting
+solutions to the spectra. This stage is now fully interactive. The user is first
+presented with several diagnostic plots namely: <code class="xref py py-obj docutils literal notranslate"><span class="pre">rms</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">residstd</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">redchi2</span></code>,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">ncomps</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">aic</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">chi2</span></code>. These can be used to assess the quality of fits
+throughout the map. Clicking on a particular region will show the spectra
+associated with that location. The user can then select spectra for closer
+inspection or refitting as required.</p>
+</div>
+<div class="section" id="stage-6-re-analysing-the-identified-spectra">
+<h2>Stage 6: re-analysing the identified spectra<a class="headerlink" href="#stage-6-re-analysing-the-identified-spectra" title="Permalink to this headline">¶</a></h2>
+<p>In this stage the user is required to either select an alternative solution or
+re-fit completely the spectra identified in stage 5.</p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019, Jonathan D. Henshaw.<br/>
+      Last updated on 28 Apr 2019.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

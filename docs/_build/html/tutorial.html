@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tutorial &#8212; scousepy 0.0.dev290 documentation</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tips and Tricks" href="tips.html" />
+    <link rel="prev" title="A brief introduction to scousepy" href="description.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          scousepy</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.0.dev290</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installing <code class="docutils literal notranslate"><span class="pre">scousepy</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="description.html">A brief introduction to scousepy</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and Tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Tutorial</a><ul>
+<li><a class="reference internal" href="#data">Data</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#stage-1">Stage 1</a></li>
+<li><a class="reference internal" href="#stage-2">Stage 2</a></li>
+<li><a class="reference internal" href="#stage-3">Stage 3</a></li>
+<li><a class="reference internal" href="#stage-4">Stage 4</a></li>
+<li><a class="reference internal" href="#stage-5">Stage 5</a></li>
+<li><a class="reference internal" href="#stage-6">Stage 6</a></li>
+<li><a class="reference internal" href="#complete-example">Complete Example</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="description.html" title="Previous Chapter: A brief introduction to scousepy"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; A brief intro...</span>
+    </a>
+  </li>
+  <li>
+    <a href="tips.html" title="Next Chapter: Tips and Tricks"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Tips and Tricks &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/tutorial.rst.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">Tutorial</a><ul>
+<li><a class="reference internal" href="#data">Data</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#stage-1">Stage 1</a></li>
+<li><a class="reference internal" href="#stage-2">Stage 2</a></li>
+<li><a class="reference internal" href="#stage-3">Stage 3</a></li>
+<li><a class="reference internal" href="#stage-4">Stage 4</a></li>
+<li><a class="reference internal" href="#stage-5">Stage 5</a></li>
+<li><a class="reference internal" href="#stage-6">Stage 6</a></li>
+<li><a class="reference internal" href="#complete-example">Complete Example</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    <div class="col-md-9 content">
+      
+  <div class="section" id="tutorial">
+<span id="id1"></span><h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>The aim of this tutorial is to give a basic introduction to the main workflow of
+<code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Each stage will be described below along with some of the
+important customisable keywords. All data for the tutorial can be found <a class="reference external" href="https://github.com/jdhenshaw/scousepy_tutorials">here</a>, along with some example
+scripts.</p>
+<div class="section" id="data">
+<h2>Data<a class="headerlink" href="#data" title="Permalink to this headline">¶</a></h2>
+<p>This tutorial utilises observations of N2H+ (1-0) towards the Infrared Dark
+Cloud G035.39-00.33. This data set was first published in <a class="reference external" href="http://adsabs.harvard.edu/abs/2013MNRAS.428.3425H">Henshaw et al. 2013.</a>.
+These observations were carried out with the IRAM 30m Telescope. IRAM is
+supported by INSU/CNRS (France), MPG (Germany) and IGN (Spain). The data file
+is in fits format and is called</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">n2h</span><span class="o">+</span><span class="mi">10</span><span class="n">_37</span><span class="o">.</span><span class="n">fits</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">scousepy</span></code> requires several key parameters that are worth setting as global
+parameters. These can be set in the following way</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">filename</span> <span class="o">=</span>  <span class="s1">&#39;n2h+10_37&#39;</span>
+<span class="n">datadirectory</span> <span class="o">=</span>  <span class="s1">&#39;./&#39;</span>
+<span class="n">wsaa</span> <span class="o">=</span>  <span class="p">[</span><span class="mf">8.0</span><span class="p">]</span>
+
+<span class="n">outputdir</span> <span class="o">=</span> <span class="s1">&#39;./myoutputdirectory/&#39;</span> <span class="c1"># optional</span>
+<span class="n">ppv_vol</span> <span class="o">=</span> <span class="p">[</span><span class="mf">32.0</span><span class="p">,</span><span class="mf">42.0</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">]</span> <span class="c1"># optional</span>
+<span class="n">mask_below</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="c1"># optional</span>
+</pre></div>
+</div>
+<p>Here <code class="docutils literal notranslate"><span class="pre">filename</span></code> is provided without the .fits extension. <code class="docutils literal notranslate"><span class="pre">datadirectory</span></code>
+points to the location of the data. By default <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will create a new
+directory in the same location as the input file. However, this can be changed
+with the optional keyword <code class="docutils literal notranslate"><span class="pre">outputdir</span></code>. <code class="docutils literal notranslate"><span class="pre">wsaa</span></code> is used during stage 1. It
+defines the maximum width of the region used to generate spatially averaged
+spectra (see below).</p>
+<p>The optional keywords listed above include <code class="docutils literal notranslate"><span class="pre">ppv_vol</span></code>, which allows the user to
+control the region of the datacube over which to perform the fitting, and
+<code class="docutils literal notranslate"><span class="pre">mask_below</span></code> which is used to mask the integrated intensity map produced
+during stage 1. <code class="docutils literal notranslate"><span class="pre">ppv_vol</span></code> is provided as a list and given in the format
+<code class="docutils literal notranslate"><span class="pre">ppv_vol</span> <span class="pre">=</span> <span class="pre">[min_vel,</span> <span class="pre">max_vel,</span> <span class="pre">min_y,</span> <span class="pre">max_y,</span> <span class="pre">min_x,</span> <span class="pre">max_x]</span></code>.
+These are the ranges over which the fitting will be performed. This tutorial
+is tuned to the n2h+ data, which has hyperfine structure. Here we implement the
+range 32-42 km/s since this allows us to focus on the isolated hyperfine
+component, which we model as a Gaussian.</p>
+</div>
+<div class="section" id="stage-1">
+<h2>Stage 1<a class="headerlink" href="#stage-1" title="Permalink to this headline">¶</a></h2>
+<p>As discussed in the <a class="reference internal" href="description.html#description"><span class="std std-ref">description</span></a> of the code, the purpose
+of stage 1 is to identify the spatial area over which to fit the data. Stage 1
+requires several key parameters. To run stage 1 you can use</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadirectory</span><span class="p">,</span> <span class="n">wsaa</span><span class="p">,</span>
+                   <span class="n">ppv_vol</span><span class="o">=</span><span class="n">ppv_vol</span><span class="p">,</span>
+                   <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">,</span>
+                   <span class="n">mask_below</span><span class="o">=</span><span class="n">mask_below</span><span class="p">,</span>
+                   <span class="n">fittype</span><span class="o">=</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span>
+                   <span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                   <span class="n">write_moments</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">save_fig</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here I’ve used the keywords <code class="docutils literal notranslate"><span class="pre">write_moments=True</span></code> and <code class="docutils literal notranslate"><span class="pre">save_fig=True</span></code>. The
+former will produce FITS files of the zeroth, first, and second order moments of
+the data. It will also create a FITS file containing the spectral coordinate of
+the maximum value of the spectrum. The latter keyword creates a simple plot of
+the coverage that will be used during the fitting procedure. The terminal output
+should look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage1.png"><img alt="_images/stage1.png" class="align-center" src="_images/stage1.png" style="width: 900px;" /></a>
+<p>Where it tells us that we will have to fit a total of 12 spatially averaged
+spectra and that the total number of spectra to fit is 126. The output coverage
+map for this particular tutorial is not much to look at, but here it is anyway…</p>
+<a class="reference internal image-reference" href="_images/n2h+10_37_coverage.png"><img alt="_images/n2h+10_37_coverage.png" class="align-center" src="_images/n2h+10_37_coverage.png" style="width: 200px;" /></a>
+<p>Below is a slightly more interesting example where the <code class="docutils literal notranslate"><span class="pre">refine_grid</span></code> keyword
+has been set. This outputs spectral averaging areas of different sizes. The
+basic idea is to reduce the size of the SAAs based on the spectral complexity
+in a given location. In this case we define spectral complexity by making a
+comparison between the moment 1 map (intensity-weighted average velocity) and
+the velocity at peak emission map. In theory, if the spectrum is simple, e.g.
+a single Gaussian, the difference between these two values should be close to 0.
+On the other hand, if the spectrum is complex then the difference between these
+two values is likely to be &gt; 0. Below is the coverage defined for the central
+molecular zone cloud G0.253+0.016, and presented in Henshaw et al. 2019. The
+SAA sizes decrease from blue - red - yellow, with the yellow regions exhibiting
+the most complex line-profiles.</p>
+<a class="reference internal image-reference" href="_images/brick_coverage.png"><img alt="_images/brick_coverage.png" class="align-center" src="_images/brick_coverage.png" style="width: 400px;" /></a>
+</div>
+<div class="section" id="stage-2">
+<h2>Stage 2<a class="headerlink" href="#stage-2" title="Permalink to this headline">¶</a></h2>
+<p>Stage 2 is where we will perform our manual fitting. It is simple to run using</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where the keyword <code class="docutils literal notranslate"><span class="pre">write_ascii</span></code> has been set to output the best-fitting
+solutions as an ascii file at the end of the fitting procedure. The fitting
+process is based on the interactive process of <a class="reference external" href="https://github.com/pyspeckit/pyspeckit">pyspeckit</a>. Initialising the fitter will look
+a bit like this..</p>
+<a class="reference internal image-reference" href="_images/stage2_1.png"><img alt="_images/stage2_1.png" class="align-center" src="_images/stage2_1.png" style="width: 900px;" /></a>
+<p>where we will have an indication of how many spectra we have to fit (and how
+many we have already fitted), as well as some important info for the <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>
+interactive fitter. Upon running stage 2, a window should have popped up where
+one of the spatially averaged spectra will be displayed. Interactive fitting
+can be performed using several commands. To indicate components you would like
+to fit select each component twice, once somewhere close to the peak emission
+and another click to indicate (roughly) the full-width at half-maximum. In my
+experience with this, you don’t need to be particularly accurate, <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>
+does an excellent job of picking up the components you have selected. Selection
+can be made either using the keyboard (<code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span></code>) or mouse. Once selected this will
+look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage2_2.png"><img alt="_images/stage2_2.png" class="align-center" src="_images/stage2_2.png" style="width: 400px;" /></a>
+<p>If you are happy with your fit, hitting <code class="xref py py-obj docutils literal notranslate"><span class="pre">d</span></code> will lock it in. The resulting
+fit will be plotted. At this point <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will output some useful information
+to the terminal…</p>
+<a class="reference internal image-reference" href="_images/stage2_3.png"><img alt="_images/stage2_3.png" class="align-center" src="_images/stage2_3.png" style="width: 900px;" /></a>
+<p>and will ask if you’re happy with the fit. If the fit looks good, press enter
+to continue. This will lock the fit in and overplot the individual components…</p>
+<a class="reference internal image-reference" href="_images/stage2_4.png"><img alt="_images/stage2_4.png" class="align-center" src="_images/stage2_4.png" style="width: 400px;" /></a>
+<p><code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will then move onto the next spectrum. If you’re not happy with the
+fit you can always re-enter the interactive fitter by typing <code class="xref py py-obj docutils literal notranslate"><span class="pre">f</span></code>. Repeat this
+process until the fitting is completed. Note that as a bit of a time-saver
+<code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will automatically try and fit the each spectrum with the previous
+spectrum’s best-fitting solution. Often this leads to good fits and its possible
+to simply press enter to cycle through a good chunk of the fits. However, this
+can also obviously lead to some terrible fits, particularly if there is a big
+jump in spatial location and therefore the spectrum changes considerably. If
+this happens simply type <code class="xref py py-obj docutils literal notranslate"><span class="pre">f</span></code> to re-enter the interactive fitter.</p>
+<p>For large datasets its worth noting that there are a couple of keywords here
+that might be useful, particularly <code class="docutils literal notranslate"><span class="pre">bitesize</span></code>. This enables the user to
+perform bitesize fitting where the process is broken down into sessions and the
+user fits a fixed number of spectra at any one time. The number of spectra to
+fit in any one session can be controlled using the <code class="docutils literal notranslate"><span class="pre">nspec</span></code> keyword.</p>
+</div>
+<div class="section" id="stage-3">
+<h2>Stage 3<a class="headerlink" href="#stage-3" title="Permalink to this headline">¶</a></h2>
+<p>Stage 3 represents the automated decomposition stage. <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will take you
+best-fitting solutions from stage 2 and pass these to the individual spectra
+located within each SAA. The fitting process is controlled by a number of
+tolerance levels which are passed to <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> in the form of a list or an
+array</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">njobs</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">tol</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">njobs</span><span class="o">=</span><span class="n">njobs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The tolerance levels are descibed more completely in
+<a class="reference external" href="http://adsabs.harvard.edu/abs/2016MNRAS.457.2675H">Henshaw et al. 2016</a>,
+however, in short, the first tolerance here is the S/N ratio each component
+must satisfy, the second is the minimum width of each component given as a
+multiple of the channel spacing, the third and fourth control how similar (in
+terms of velocity and width) a component must be to the closest matching component
+in the SAA fit, and the final tolerance governs the minimum separation between
+two components for them to be considered distinguishable (it is given as a
+multiple of the width of the narrowest component).</p>
+<p>Something else to consider is the <code class="docutils literal notranslate"><span class="pre">njobs</span></code> keyword. The automated fitting procedure
+is parallelised. Currently the parallelisation works by sending the fitting of
+each SAA to a different node (rather than individual spectra). Perhaps there is
+a better way to do this (<a class="reference external" href="https://github.com/jdhenshaw/scousepy/pulls">suggestions welcome</a>),
+but it does lead to a bump in speed. I would say however, that in general
+I’ve noticed a considerable reduction in speed in moving from IDL to Python.
+This is particularly true in the case of complex data. For the G0.253+0.016 data
+in Henshaw+ 2019, for example, 4, 5, 6 component fits are not uncommon. When
+the number of components is high, each attempt may take ~ a second. If the fit
+is unsatisfactory <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will try a new fit with a different number of
+components. When combined with the fact that SAAs are overlapped such that many
+of the spectra are fit more than once, it is easy to see how the time begins
+to ramp up. As a rule of thumb I’d advise against running this stage on a laptop
+in the case of complex data. For the G0.253+0.016 data, I set this running on
+~ 20 cores and it crunched away over night. In contrast, running stage 3 on a
+similarly sized dataset, but one which is dominated by 1-2 components on roughly
+the same number of cores completed in ~ half an hour. So it really depends on
+the dataset and the time taken for completion will vary. On a positive note you
+can just set it going and leave it to do its thing.</p>
+<p>Here is an example of the output to terminal for the tutorial data. In this
+case the fitting was not parallelised (<code class="docutils literal notranslate"><span class="pre">njobs=1</span></code>)…</p>
+<a class="reference internal image-reference" href="_images/stage3_1.png"><img alt="_images/stage3_1.png" class="align-center" src="_images/stage3_1.png" style="width: 900px;" /></a>
+</div>
+<div class="section" id="stage-4">
+<h2>Stage 4<a class="headerlink" href="#stage-4" title="Permalink to this headline">¶</a></h2>
+<p>Not much to say here - just set this stage running. Here the best-fitting
+solutions from stage 3 are compiled for each spectrum. Where the SAAs overlap
+there will be multiple fits for each spectrum. Duplicates are removed and the
+“best-fit” model solution is defined as that with the smallest AIC value.</p>
+<blockquote>
+<div>s = scouse.stage_4(s, verbose=True)</div></blockquote>
+</div>
+<div class="section" id="stage-5">
+<h2>Stage 5<a class="headerlink" href="#stage-5" title="Permalink to this headline">¶</a></h2>
+<p>Now we want to check our work. Stage 5 works interactively and is run in the
+following way</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_5</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">blocksize</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+                      <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">10</span><span class="p">],</span>
+                      <span class="n">plot_residuals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>First, a bunch of diagnostic plots will be created (these are all saved to the
+stage 5 directory). These include plots of the rms, residuals, reduced chi-squared,
+number of components, aic, and the chi-squared. An interactive pop up window
+will be displayed which will look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage5_1.png"><img alt="_images/stage5_1.png" class="align-center" src="_images/stage5_1.png" style="width: 600px;" /></a>
+<p>This is displaying the rms map. The displayed image can be changed by selecting
+a different number. For example, selecting 2 will display the reduced chi-squared…</p>
+<a class="reference internal image-reference" href="_images/stage5_2.png"><img alt="_images/stage5_2.png" class="align-center" src="_images/stage5_2.png" style="width: 600px;" /></a>
+<p>By selecting somewhere in the map a new pop up will be displayed. The number of
+spectra that will be shown can be defined with the <code class="docutils literal notranslate"><span class="pre">blocksize</span></code> keyword. The
+pop up window will look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage5_3.png"><img alt="_images/stage5_3.png" class="align-center" src="_images/stage5_3.png" style="width: 900px;" /></a>
+<p>The idea behind this stage is to select spectra you may want to take a closer
+look at, either because you want to see if an alternative fit is available or
+because the fit is bad and you want to re-fit manually. Clicking on a spectrum
+will save it for inspection in stage 6. In the below image, I have selected some
+of the spectra close to the edge of the map. Clearly here the noise is greater
+and the fits aren’t as good…</p>
+<a class="reference internal image-reference" href="_images/stage5_4.png"><img alt="_images/stage5_4.png" class="align-center" src="_images/stage5_4.png" style="width: 900px;" /></a>
+<p>Note that if you are not happy with any of the spectra in a region you can
+select all of them by pressing <code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code>. If you make a mistake, or would simply like
+to remove a spectrum from the selection, hover over the spectrum with the cursor
+and press <code class="xref py py-obj docutils literal notranslate"><span class="pre">r</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">d</span></code>. Pressing enter on the pop up window with the spectra will
+close it and allow you to select another region. A shaded region will show you
+where you have already checked…</p>
+<a class="reference internal image-reference" href="_images/stage5_5.png"><img alt="_images/stage5_5.png" class="align-center" src="_images/stage5_5.png" style="width: 600px;" /></a>
+<p>For a small dataset like that in the tutorial it is easy to check all spectra.
+However, you may want to stick to a representative sample for much bigger datasets.</p>
+<p>For my own personal work flow I tend to have a very quick run through stage 5
+without actually selecting any spectra. The idea is to have a quick glance at
+whether or not the fits are any good. If not, or if I feel I will have to do a
+lot of re-fitting (maybe &gt;5-10% of the data), I will stop at this stage and tweak
+the parameters of stage 3 and re-run from there. Once I’m happy that the majority
+of the fits are reasonable I will go through stage 5 in earnest.</p>
+</div>
+<div class="section" id="stage-6">
+<h2>Stage 6<a class="headerlink" href="#stage-6" title="Permalink to this headline">¶</a></h2>
+<p>Here we are going to look again at the spectra we selected during stage 5.
+Stage 6 is run using</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_6</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">plot_neighbours</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">radius_pix</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                      <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">10</span><span class="p">],</span>
+                      <span class="n">plot_residuals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">plot_neighbours</span></code> keyword here is optional. If set to True stage 6 will
+begin by reminding you of each spectrum and its surroundings. This isn’t
+particularly necessary for the tutorial data, but for large datasets, where it
+easy to forget perhaps why a spectrum was selected for reevaluation, it can be
+useful. If set to True, the first pop up window will look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage6_1.png"><img alt="_images/stage6_1.png" class="align-center" src="_images/stage6_1.png" style="width: 900px;" /></a>
+<p>Here, the central pixel is the first pixel we selected during stage 5 (see above).
+It is at the edge of the map (hence the pixels with X values). Pressing Enter
+will move <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> onto the next phase. At the next phase you will be
+presented with a choice. <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will show the current fit and any other
+alternative solutions to this spectrum. In the example below no alternatives are
+available. However, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will always provide a no-fit option. In my
+personal experience I have found that sometimes having no-fit is better than
+having a bad fit.</p>
+<a class="reference internal image-reference" href="_images/stage6_2.png"><img alt="_images/stage6_2.png" class="align-center" src="_images/stage6_2.png" style="width: 900px;" /></a>
+<p>At this point you can make a choice. Either select the current spectrum,
+select an alternative, or press Enter to enter the interactive fitter you will
+now be familiar with from stage 2. Let’s say we aren’t happy with this fit but
+we also don’t think we can do a better job - we can click on the no-fit option
+like so…</p>
+<a class="reference internal image-reference" href="_images/stage6_3.png"><img alt="_images/stage6_3.png" class="align-center" src="_images/stage6_3.png" style="width: 900px;" /></a>
+<p>This will select the no-fit option and move on to the next spectrum. Moving on,
+we see one we want to re-fit. Pressing Enter will enter the interactive fitter
+from <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>. Using the same commands as in stage 2 we can try to fit
+two components like so…</p>
+<a class="reference internal image-reference" href="_images/stage6_4.png"><img alt="_images/stage6_4.png" class="align-center" src="_images/stage6_4.png" style="width: 400px;" /></a>
+<p>and as before, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will give you a running commentary on what is
+happening in the terminal…</p>
+<a class="reference internal image-reference" href="_images/stage6_5.png"><img alt="_images/stage6_5.png" class="align-center" src="_images/stage6_5.png" style="width: 900px;" /></a>
+<p>Repeat this process until all of the spectra selected in stage 5 have been
+checked over. As with stage 2, stages 5 and 6 can be run in bitesize mode. This
+type of fitting is a little more fiddly and will be described in the
+<a class="reference internal" href="tips.html#tips"><span class="std std-ref">Tips &amp; Tricks</span></a> sections of this documentation.</p>
+</div>
+<div class="section" id="complete-example">
+<h2>Complete Example<a class="headerlink" href="#complete-example" title="Permalink to this headline">¶</a></h2>
+<p>In reality you might not want to run all of the stages back to back. To save
+memory each output file produced by <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> only contains essential
+information. An example code to run <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> may therefore look something
+like this…</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scousepy</span> <span class="k">import</span> <span class="n">scouse</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="k">import</span> <span class="n">fits</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">run_scousepy</span><span class="p">():</span>
+  <span class="n">datadirectory</span> <span class="o">=</span> <span class="s1">&#39;../data/&#39;</span>
+  <span class="n">outputdir</span>     <span class="o">=</span> <span class="s1">&#39;../output/simple_example_run/&#39;</span>
+  <span class="n">filename</span>      <span class="o">=</span> <span class="s1">&#39;n2h+10_37&#39;</span>
+  <span class="n">ppv_vol</span>       <span class="o">=</span> <span class="p">[</span><span class="mf">32.0</span><span class="p">,</span><span class="mf">42.0</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">]</span>
+  <span class="n">wsaa</span>          <span class="o">=</span> <span class="p">[</span><span class="mf">8.0</span><span class="p">]</span>
+  <span class="n">tol</span>           <span class="o">=</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+  <span class="n">verb</span>          <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">fittype</span>       <span class="o">=</span> <span class="s1">&#39;gaussian&#39;</span>
+  <span class="n">njobs</span>         <span class="o">=</span> <span class="mi">4</span>
+  <span class="n">mask</span>          <span class="o">=</span> <span class="mf">0.3</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 1</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_1/s1.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="p">(</span><span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">fittype</span><span class="o">=</span><span class="n">fittype</span><span class="p">,</span>
+                 <span class="n">datadirectory</span><span class="o">=</span><span class="n">datadirectory</span><span class="p">)</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_1</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_1/s1.scousepy&#39;</span><span class="p">)</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_cube</span><span class="p">(</span><span class="n">fitsfile</span><span class="o">=</span><span class="n">datadirectory</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot;.fits&quot;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadirectory</span><span class="p">,</span> <span class="n">wsaa</span><span class="p">,</span>
+                         <span class="n">ppv_vol</span><span class="o">=</span><span class="n">ppv_vol</span><span class="p">,</span>
+                         <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">,</span>
+                         <span class="n">mask_below</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+                         <span class="n">fittype</span><span class="o">=</span><span class="n">fittype</span><span class="p">,</span>
+                         <span class="n">verbose</span> <span class="o">=</span> <span class="n">verb</span><span class="p">,</span>
+                         <span class="n">write_moments</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">save_fig</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 2</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_2/s2.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_2</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_2/s2.scousepy&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 3</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_3/s3.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_3</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_3/s3.scousepy&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">njobs</span><span class="o">=</span><span class="n">njobs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 4</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_4/s4.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_4</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_4/s4.scousepy&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 5</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_5/s5.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_5</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_5/s5.scousepy&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_5</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">blocksize</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+                            <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">10</span><span class="p">],</span>
+                            <span class="n">plot_residuals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+
+  <span class="c1">#==========================================================================#</span>
+  <span class="c1"># Stage 6</span>
+  <span class="c1">#==========================================================================#</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_6/s6.scousepy&#39;</span><span class="p">):</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">load_stage_6</span><span class="p">(</span><span class="n">outputdir</span><span class="o">+</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;/stage_6/s6.scousepy&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_6</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">plot_neighbours</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">radius_pix</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                            <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">18</span><span class="p">,</span><span class="mi">10</span><span class="p">],</span>
+                            <span class="n">plot_residuals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">s</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="n">run_scousepy</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This format was largely introduced to prevent people from overwriting their
+hard work. In this way each stage can be run independently, without having to
+run the process from start to finish.</p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019, Jonathan D. Henshaw.<br/>
+      Last updated on 28 Apr 2019.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

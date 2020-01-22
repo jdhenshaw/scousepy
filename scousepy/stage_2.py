@@ -23,6 +23,7 @@ from astropy import log
 from .saa_description import add_model
 from .solution_description import fit, print_fit_information
 from .colors import *
+from .dspec import DSpec
 
 def get_spec(scouseobject, y, rms):
     """
@@ -351,7 +352,7 @@ class Stage2Fitter(object):
             if init_guess:
                 # if this is the first spectrum don't send any guesses
                 bf = self.preparefit(scouseobject, SAA, saa_dict, count,
-                                       training_set=True, init_guess=init_guess)
+                                     training_set=True, init_guess=init_guess)
             else:
                 # else look for a model
                 model = saa_dict[count].model
@@ -359,12 +360,13 @@ class Stage2Fitter(object):
                     # If there is no model available for the previous spectrum
                     # use manual fitting
                     bf = self.preparefit(scouseobject, SAA, saa_dict, count,
-                                             training_set=True, init_guess=True)
+                                         training_set=True, init_guess=True)
                 else:
                     # else send the fitter some guesses
                     guesses = saa_dict[count].model.params
                     bf = self.preparefit(scouseobject, SAA, saa_dict,count,
-                        guesses=guesses,training_set=True,init_guess=init_guess)
+                                         guesses=guesses,training_set=True,
+                                         init_guess=init_guess)
 
         return bf
 
@@ -387,3 +389,19 @@ def generate_saa_list(scouseobject):
                 saa_list.append([SAA.index, i])
 
     return saa_list
+
+def spectra_to_be_fit(scouseobject,saa_dict):
+    """
+    returns an array containing the spectra to be fit
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
+    """
+    spectratobefit = []
+    for j in range(len(saa_dict.keys())):
+        SAA = saa_dict[j]
+        if SAA.to_be_fit:
+            spectratobefit.append(SAA.index)
+    return np.asarray(spectratobefit)
