@@ -83,7 +83,8 @@ class scouse(object):
         self.saa_dict = None
         self.indiv_dict = None
         self.key_set = None
-        self.fitcount = 0
+        self.fitcount = None
+        self.modelstore = {}
         self.fitcounts6 = 0
         self.blockcount = 0
         self.blocksize = None
@@ -406,107 +407,132 @@ class scouse(object):
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
+        # Total number of spectra to be fit across all SAAs
+        speccount=np.size(saa_list[:,0])
+        spectratobefit=saa_list[:,0]
+        parent=saa_list[:,1]
+
+        # Record which spectra have been fit - first check to see if this has
+        # already been created
+        if self.fitcount is None:
+            # if it hasn't
+            self.fitcount=np.zeros(speccount, dtype='bool')
+
+        # load in the fitter
         from scousepy.scousefitter import ScouseFitter
-        for i in range(len(self.wsaa)):
-        # NOTE: insert something here about the fit range. default should be all.
-        # Can we include a check here to see which ones already have solutions?
-            saa_dict=self.saa_dict[i]
-            spectratobefit=spectra_to_be_fit(self,saa_dict)
-            myfitter=ScouseFitter(method='scouse', scouseobject=self,
-                                  spectra=spectratobefit, spectra_dict=saa_dict)
-            myfitter.show()
-            sys.exit()
-
-        sys.exit()
-
-
-
-        # bitesize fitting preparation
-        if bitesize:
-            if self.fitcount != 0.0:
-                lower = int(self.fitcount)
-                upper = int(lower+nspec)
-            else:
-                lower = 0
-                upper = int(lower+nspec)
 
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
         starttime = time.time()
 
-        # Set ranges for bitesize fitting
-        if not bitesize:
-            fitrange=np.arange(0,int(np.size(saa_list[:,0])))
-        else:
-            if upper>=np.size(saa_list[:,0]):
-                if lower >= np.size(saa_list[:,0]):
-                    fitrange=[]
-                else:
-                    fitrange=np.arange(int(lower),int(np.size(saa_list[:,0])))
-            else:
-                fitrange=np.arange(int(lower),int(upper))
-
-        # determine how many fits we will actually be performing
-        n_to_fit = sum([self.saa_dict[saa_list[ii,1]][saa_list[ii,0]].to_be_fit
-                        for ii in fitrange])
-
-        if n_to_fit <= 0:
-            raise ValueError(colors.fg._red_+"No spectra are selected to be fit."+
-                             "Fitting has completed."+colors._endc_)
-
-        # Loop through the SAAs
-        for i_,i in enumerate(fitrange):
-            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-            print(colors.fg._lightgrey_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
-            print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-            # Get the relevant SAA dictionary (if multiple wsaa values are
-            # supplied)
-            saa_dict = self.saa_dict[saa_list[i,1]]
-            # Get the first SAA to fit
-            SAA = saa_dict[saa_list[i,0]]
-
-            # Fitting process is different for the first SAA in a wsaa loop.
-            # For all subsequent SAAs scouse will try and apply the previous
-            # solution to the spectrum in an attempt to speed things up and
-            # reduce the interactivity
-            if SAA.index == 0.0:
-                SAAid=0
-                firstfit=True
-            elif i == np.min(fitrange):
-                SAAid=SAA.index
-                firstfit=True
-            elif training_set:
-                SAAid=SAA.index
-                firstfit=True
-
-            if SAA.to_be_fit:
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', category=DeprecationWarning)
-
-                    # enter the fitting process
-                    bf = fitting(self, SAA, saa_dict, SAAid,
-                                 training_set=self.training_set,
-                                 init_guess=firstfit, derivspec=derivspec)
-                SAAid = SAA.index
-                firstfit=False
-
-            self.fitcount+=1
-
-        # Output at the end of SAA fitting
-        if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
-            output_ascii_saa(self, s2dir)
-            self.completed_stages.append('s2')
+        myfitter=ScouseFitter(self.modelstore, method='scouse',
+                              spectra=spectratobefit,
+                              scouseobject=self,
+                              SAA_dict=self.saa_dict,
+                              parent=parent,
+                              fitcount=self.fitcount,
+                              )
+        myfitter.show()
 
         endtime = time.time()
         if verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
                                              t1=starttime, t2=endtime)
 
+
+        # loop through the saa sizes
+        # for i in range(len(self.wsaa)):
+        #     saa_dict=self.saa_dict[i]
+        #     spectratobefit=spectra_to_be_fit(self,saa_dict)
+        #
+        #     sys.exit()
+        #
+        # sys.exit()
+        #
+        #
+        #
+        # # bitesize fitting preparation
+        # if bitesize:
+        #     if self.fitcount != 0.0:
+        #         lower = int(self.fitcount)
+        #         upper = int(lower+nspec)
+        #     else:
+        #         lower = 0
+        #         upper = int(lower+nspec)
+        #
+
+        #
+        # # Set ranges for bitesize fitting
+        # if not bitesize:
+        #     fitrange=np.arange(0,int(np.size(saa_list[:,0])))
+        # else:
+        #     if upper>=np.size(saa_list[:,0]):
+        #         if lower >= np.size(saa_list[:,0]):
+        #             fitrange=[]
+        #         else:
+        #             fitrange=np.arange(int(lower),int(np.size(saa_list[:,0])))
+        #     else:
+        #         fitrange=np.arange(int(lower),int(upper))
+        #
+        # # determine how many fits we will actually be performing
+        # n_to_fit = sum([self.saa_dict[saa_list[ii,1]][saa_list[ii,0]].to_be_fit
+        #                 for ii in fitrange])
+        #
+        # if n_to_fit <= 0:
+        #     raise ValueError(colors.fg._red_+"No spectra are selected to be fit."+
+        #                      "Fitting has completed."+colors._endc_)
+        #
+        # # Loop through the SAAs
+        # for i_,i in enumerate(fitrange):
+        #     print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+        #     print(colors.fg._lightgrey_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
+        #     print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
+        #     # Get the relevant SAA dictionary (if multiple wsaa values are
+        #     # supplied)
+        #     saa_dict = self.saa_dict[saa_list[i,1]]
+        #     # Get the first SAA to fit
+        #     SAA = saa_dict[saa_list[i,0]]
+        #
+        #     # Fitting process is different for the first SAA in a wsaa loop.
+        #     # For all subsequent SAAs scouse will try and apply the previous
+        #     # solution to the spectrum in an attempt to speed things up and
+        #     # reduce the interactivity
+        #     if SAA.index == 0.0:
+        #         SAAid=0
+        #         firstfit=True
+        #     elif i == np.min(fitrange):
+        #         SAAid=SAA.index
+        #         firstfit=True
+        #     elif training_set:
+        #         SAAid=SAA.index
+        #         firstfit=True
+        #
+        #     if SAA.to_be_fit:
+        #         with warnings.catch_warnings():
+        #             warnings.simplefilter('ignore', category=DeprecationWarning)
+        #
+        #             # enter the fitting process
+        #             bf = fitting(self, SAA, saa_dict, SAAid,
+        #                          training_set=self.training_set,
+        #                          init_guess=firstfit, derivspec=derivspec)
+        #         SAAid = SAA.index
+        #         firstfit=False
+        #
+        #     self.fitcount+=1
+        #
+        # # Output at the end of SAA fitting
+        # if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
+        #     output_ascii_saa(self, s2dir)
+        #     self.completed_stages.append('s2')
+        #
+
+
         # Save the scouse object automatically
         if autosave:
             with open(self.outputdirectory+'/stage_2/s2.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.fitcount), fh)
+                pickle.dump((self.saa_dict, self.fitcount, self.modelstore), fh)
+
 
         # close all figures before moving on
         # (only needed for plt.ion() case)
@@ -516,7 +542,7 @@ class scouse(object):
 
     def load_stage_2(self, fn):
         with open(fn, 'rb') as fh:
-            self.saa_dict, self.fitcount = pickle.load(fh)
+            self.saa_dict, self.fitcount, self.modelstore = pickle.load(fh)
         self.completed_stages.append('s2')
 
     def stage_3(self, tol, njobs=1, verbose=False, spatial=False,

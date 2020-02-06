@@ -12,28 +12,110 @@ import numpy as np
 import warnings
 from astropy import log
 import sys
+from .colors import *
 
 class ScouseFitter(object):
 
-    def __init__(self, method='scouse', scouseobject=None, scouse_single=False,
-                 spectra=None, spectra_dict=None, fitrange=-1,
-                 x=None, y=None, rms=None):
+    def __init__(self, modelstore,
+                       method='scouse',
+                       spectra=None,
+                       scouseobject=None,
+                       SAA_dict=None,
+                       parent=None,
+                       scouse_single=False,
+                       fitcount=None,
+                       x=None,y=None,rms=None,
+                       SNR = 3, minSNR = 1, maxSNR = 30,
+                       kernelsize = 5, minkernel = 1, maxkernel = 30):
 
         """
-        """
 
+        Parameters
+        ----------
+
+        modelstore : dictionary
+            A dictionary within which the model solutions will be stored.
+
+        method : string
+            Options are scouse, cube, or single. Scousefitter is generalised so
+            that it can be used to fit individual spectra as well. Use
+            'individual' to fit either a single spectrum or an array of spectra.
+            Use 'cube' to fit a data cube.
+
+        spectra : ndarray
+            An array of indices relating to the spectra that are to be fitted.
+
+        scouse_object : scouse class object
+            For scouse framework only. Instance of the scouse object.
+
+        SAA_dict : dictionary
+            For scouse framework only. Dictionary of SAAs. Used to
+            retrieve spectra.
+
+        parent : ndarray
+            For scouse framework only. Array referencing the parent SAA. Used to
+            retrieve spectra.
+
+        scouse_single : bool
+            True or False. Used during stage 6 of scouse where individual
+            spectra are fitted rather that SAAs.
+
+        individual : ndarray
+            An array of spectra to be fit. Should be in the format n x [x,y].
+            Where x and y refer to the velocity or frequency axes and the
+            emission, respectively. This must be provided with
+            method='individual'.
+
+        cube : ndarray
+            A cube of data to be fit. Should be a 3D array. This must be
+            provided if method='cube'.
+
+        fitcount : boolean array
+            Used to keep tabs on the fitting. An array of equivalent length to
+            the number of spectra. Updated as each spectrum is fitted.
+
+        SNR : number
+            Initial signal-to-noise ratio (SNR) used for derivative spectroscopy
+            automated fitting.
+
+        minSNR : number
+            Minimum SNR. Used for plotting. Can be adjusted and will change the
+            slider values.
+
+        maxSNR : number
+            Maximum SNR. Used for plotting. Can be adjusted and will change the
+            slider values.
+
+        kernelsize : number
+            Initial kernel size used for derivative spectroscopy automated
+            fitting. Provided in integer number of channels over which to smooth.
+
+        minkernel : number
+            Minimum kernel size. Used for plotting. Can be adjusted and will
+            change the slider values.
+
+        maxkernel : number
+            Maximum kernel size. Used for plotting. Can be adjusted and will
+            change the slider values.
+
+        """
+        # set the global quantities
         self.method=method
-        self.scouseobject=scouseobject
-        self.scouse_single=scouse_single
         self.spectra=spectra
-        self.spectra_dict=spectra_dict
-        self.fitrange=fitrange
-        self.models={}
+        self.scouseobject=scouseobject
+        self.SAA_dict=SAA_dict
+        self.parent=parent
+        self.scouse_single=scouse_single
+        self.fitcount=fitcount
+        self.modelstore=modelstore
+        self.SNR = SNR
+        self.minSNR = minSNR
+        self.maxSNR = maxSNR
+        self.kernelsize = kernelsize
+        self.minkernel = minkernel
+        self.maxkernel = maxkernel
 
-        import matplotlib.pyplot as plt
-        plt.ioff()
-        from scousepy.dspec import DSpec
-
+        # Prepare the fitter according to method selection
         if method=='scouse':
             # set some defaults for pyspeckit
             import astropy.units as u
@@ -42,29 +124,52 @@ class ScouseFitter(object):
                              'velocity_convention': 'radio'}
             self.unit=self.scouseobject.cube.header['BUNIT']
 
+            # For scouse fitting
             if scouse_single:
+                # TODO: This is to be used during stage 6?
                 pass
             else:
                 if (scouseobject is None) or (spectra is None):
                     # make sure that the scouse object has been sent
-                    ValueError("Please include both the scousepy object and the spectra to be fit")
+                    ValueError(colors.fg._red_+"Please include both the scousepy object and the spectra to be fit."+colors._endc_)
                 else:
-                    # if it has then establish the fit range
-                    if fitrange==-1: # fit all
-                        # Create a list of indices so that we can find the relevant
-                        # spectra
-                        self.indexlist=np.arange(0,int(np.size(self.spectra)))
-                        # index of the first spectrum to be fit
-                        self.index=0
-                        # lets retrieve the spectrum
-                        self.my_spectrum=retrieve_spectrum(self,self.spectra[self.index])
-                        get_spectral_info(self)
-                        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
+                    # Create an array of indices for the spectra to be fitted.
+                    self.indexlist=np.arange(0,int(np.size(self.spectra)))
 
+                    # index of the first spectrum to be fit. First establish if
+                    # any of the spectra have been fitted aleady.
+                    if np.any(self.fitcount):
+                        # Check to see if all of the spectra have been fitted.
+                        if np.all(self.fitcount):
+                            print('')
+                            print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                            print('')
+                            # exit if fitting has been completed
+                            return
+                        else:
+                            # pick up from where you left off
+                            self.index=np.where(self.fitcount==False)[0][0]
+                    else:
+                        # start at the beginning
+                        self.index=0
+
+                    # retrieve the scouse spectrum from the scouse dictionary
+                    self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
+                    # get the x,y,rms values
+                    get_spectral_info(self)
+                    # generate a template pyspeckit spectrum
+                    self.spectrum=generate_pyspeckit_spectrum(self,xarrkwargs=self.xarrkwargs,unit=self.unit)
+
+        # Cube fitting
         elif method=='cube':
+            # TODO: one
+            # should be able to send a list of spectra. Need to work out what
+            # format this would need to be in
             self.xarrkwargs={}
             self.unit={}
-        elif method=='single':
+
+        # fitting individual spectra
+        elif method=='individual':
             self.xarrkwargs={}
             self.unit={}
             assert x is not None, "To create a spectrum provide the x axis"
@@ -72,21 +177,22 @@ class ScouseFitter(object):
             assert rms is not None, "To create a spectrum provide the rms"
             self.get_spectral_info(method=method,x=x,y=y,rms=rms)
             self.spectrum = generate_template_spectrum(self)
+
         else:
-            ValueError("Please use a valid method type: 'scouse', 'cube', 'single'")
+            # throw an error
+            ValueError("Please use a valid method type: 'scouse', 'cube', 'individual'")
 
-        # set the default values for the SNR and kernel size as well as ranges for the sliders
-        self.SNR = 3
-        self.minSNR = 1
-        self.maxSNR = 30
-        self.kernelsize = 5
-        self.minkernel = 1
-        self.maxkernel = 30
+        # imports
+        from scousepy.dspec import DSpec
+        import matplotlib.pyplot as plt
+        plt.ioff()
 
-        # compute derivative spec
+        # compute derivative spectroscopy for spectrum in memory
         self.dsp = compute_dsp(self)
 
-        # initiate the plot window
+        #================#
+        # initiate the GUI
+        #================#
         self.fig = plt.figure(figsize=(14, 8))
 
         #===============#
@@ -100,7 +206,7 @@ class ScouseFitter(object):
         self.spectrum_window.text(0.99, 0.05, 'select legend items to toggle',
                                   transform=self.spectrum_window.transAxes,
                                   fontsize=8, ha='right')
-        # plot the spectra
+        # plot the spectrum and the smoothed spectrum
         self.plot_spectrum,=plot_spectrum(self,self.specy,label='spec')
         self.plot_smooth,=plot_spectrum(self,self.ysmooth,label='smoothed spec',lw=1.5,ls=':',color='k')
         # plot the signal to noise threshold
@@ -130,7 +236,7 @@ class ScouseFitter(object):
         #==================#
         # information window
         #==================#
-        self.information_window_ax=[0.05, 0.08, 0.90, 0.35]
+        self.information_window_ax=[0.05, 0.08, 0.9, 0.35]
         setup_information_window(self)
         self.text_snr=print_information(self,0.01,0.84,'SNR: '+str(self.SNR), fontsize=10)
         self.text_kernel=print_information(self,0.01,0.76,'kernel size: '+str(self.kernelsize),fontsize=10)
@@ -143,6 +249,7 @@ class ScouseFitter(object):
         self.text_chisq=print_information(self,0.01,0.2,'', fontsize=10)
         self.text_redchisq=print_information(self,0.01,0.12,'', fontsize=10)
         self.text_aic=print_information(self,0.01,0.04,'', fontsize=10)
+
         #=======================#
         # Fitting and information
         #=======================#
@@ -150,20 +257,25 @@ class ScouseFitter(object):
         self.modelkwargs={'color':'limegreen','ls':'-','lw':1}
         self.totmodkwargs={'color':'magenta','ls':'-','lw':1}
 
+        # Fit the spectrum according to dspec guesses
         self.spectrum=fit_spectrum(self)
+        # Add the best-fitting solution and useful parameters to a dictionary
         self.modeldict=get_model_info(self)
+        # Recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
+        # Update the plot adding the model
         update_plot_model(self)
+        # Print the fit information to the information window
         print_fit_information(self)
 
         #=======#
         # buttons
         #=======#
         self.button_previous_ax=self.fig.add_axes([0.85, 0.85, 0.1, 0.05])
-        self.button_previous=make_button(self.button_previous_ax,"previous",lambda event: self.new_spectrum(event, type='previous'))
+        self.button_previous=make_button(self.button_previous_ax,"previous",lambda event: self.new_spectrum(event, _type='previous'))
 
         self.button_next_ax=self.fig.add_axes([0.85, 0.775, 0.1, 0.05])
-        self.button_next=make_button(self.button_next_ax,"next",lambda event: self.new_spectrum(event, type='next'))
+        self.button_next=make_button(self.button_next_ax,"next",lambda event: self.new_spectrum(event, _type='next'))
 
         self.button_fit_dspec_ax=self.fig.add_axes([0.85, 0.7, 0.1, 0.05])
         self.button_fit_dspec=make_button(self.button_fit_dspec_ax,"fit (dspec)",self.dspec_manual)
@@ -175,7 +287,26 @@ class ScouseFitter(object):
         self.button_applyall=make_button(self.button_applyall_ax,"apply dspec to all",self.dspec_apply_to_all)
 
         self.button_stop_ax=self.fig.add_axes([0.85, 0.475, 0.1, 0.05])
-        self.button_stop=make_button(self.button_stop_ax,"stop",self.toggle_residuals)
+        self.button_stop=make_button(self.button_stop_ax,"stop",self.stop)
+
+        # navigation buttons
+        inc=0.08
+
+        self.button_skiptostart=self.fig.add_axes([0.3+inc, 0.03, 0.025, 0.025])
+        self.button_skiptostart=make_button(self.button_skiptostart,"<<",lambda event: self.new_spectrum(event, _type='start'))
+
+        self.button_skipbackone=self.fig.add_axes([0.3275+inc, 0.03, 0.025, 0.025])
+        self.button_skipbackone=make_button(self.button_skipbackone,"<",lambda event: self.new_spectrum(event, _type='previous'))
+
+        self.textbox_index=self.fig.add_axes([0.365+inc, 0.03, 0.025, 0.025])
+        self.textbox_index=make_textbox(self.textbox_index,str(self.index+1),self.change_text)
+        self.text_totalspectra=self.fig.text(0.3925+inc,0.03725,'of '+str(len(self.spectra)))
+
+        self.button_skipforwardone=self.fig.add_axes([0.43+inc, 0.03, 0.025, 0.025])
+        self.button_skipforwardone=make_button(self.button_skipforwardone,">",lambda event: self.new_spectrum(event, _type='next'))
+
+        self.button_skiptoend=self.fig.add_axes([0.4575+inc, 0.03, 0.025, 0.025])
+        self.button_skiptoend=make_button(self.button_skiptoend,">>",lambda event: self.new_spectrum(event, _type='end'))
 
         #=======#
         # sliders
@@ -187,6 +318,9 @@ class ScouseFitter(object):
         self.slider_kernel=make_slider(self.slider_kernel_ax,"kernel",self.minkernel,self.maxkernel,self.update_kernelsize,valinit=self.kernelsize, valfmt="%i")
 
     def show(self):
+        """
+        Show the plot
+        """
         import matplotlib.pyplot as plt
         plt.show()
 
@@ -196,47 +330,161 @@ class ScouseFitter(object):
         with the derivative spectroscopy method
 
         """
+        # import the manual fitter
         from scousepy.scousefittermanual import ScouseFitterManual
         ManualFitter = ScouseFitterManual(self)
         fit = ManualFitter.manualfit()
         self.spectrum=fit.spectrum
-        # fit and plot
+        # add model to dictionary
         self.modeldict=get_model_info(self)
+        # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
+        # update the plot with the manually-fitted solution
         update_plot_model(self,update=True)
+        # update the information window
+        update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
+        print_fit_information(self)
+        # update plot
+        self.fig.canvas.draw()
+
+    def dspec_manual(self, event):
+        """
+        This controls the manual dspec fitter.
+
+        """
+        # update the spectrum
+        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
+        #compute new dsp
+        self.dsp = compute_dsp(self)
+        # update spectrum plot
+        self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
+        self.plot_peak_lines=plot_stems(self,update=True,color='k')
+        # fit the spectrum
+        self.spectrum=fit_spectrum(self)
+        # add model to dictionary
+        self.modeldict=get_model_info(self)
+        # recreate the model
+        self.mod,self.res,self.totmod=recreate_model(self)
+        # update the plot with the dspec-fitted solution
+        update_plot_model(self,update=True)
+        # update the information window
         update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
         print_fit_information(self)
 
         # update plot
         self.fig.canvas.draw()
 
-    def new_spectrum(self,event,type=None):
+    def dspec_apply_to_all(self,event):
         """
-        This descibes what happens when a new spectrum is selected using the
-        buttons "previous" and "next"
-
-        Parameters
-        ----------
-        event : button click event
-        type : describes what button has been pressed
+        controls what happens if the apply dspec to all button is pressed - will
+        save the current slider values apply these to all spectra which currently
+        do not have solutions.
 
         """
-        if self.modeldict is not None:
-            # always save the current model if we move on
-            self.models[self.index]=self.modeldict
+        # this feature will apply dspec settings to all spectra without
+        # solutions and exit the fitter - first we want to make sure we save
+        # the current solution.
+        self.modelstore[self.index]=self.modeldict
+        self.fitcount[self.index]=True
+        # identify all spectra that do not currently have best-fitting solutions
+        id = np.where(self.fitcount==False)[0]
+        # loop through and fit
+        for i in id:
+            # retrieve the new index
+            index=int(i)
+            # check against modelstore to see if there is a solution
+            if not index in self.modelstore.keys():
+                # get the relevant spectrum
+                self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
+                # get the spectral information
+                get_spectral_info(self)
+                # update the spectrum
+                self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
+                #compute new dspec
+                self.dsp = compute_dsp(self)
+                # fit
+                self.spectrum=fit_spectrum(self)
+                # add model to dictionary
+                self.modeldict=get_model_info(self)
+                # add model to model store
+                self.modelstore[index]=self.modeldict
+                # update fit status
+                self.fitcount[index]=True
+
+        # return model dict to none
+        self.modeldict=None
+        # close the fitter
+        self.close_window()
+        # print completion statement
+        print('')
+        print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+        print('')
+        return
+
+    def stop(self, event):
+        """
+        Controls what happens if stop button is pressed. Can stop/start fitter
+        whenever - replaces bitesize fitting in scousepy v1.
+        """
+        # always save the current solution before stopping the fitter
+        self.modelstore[self.index]=self.modeldict
+        self.fitcount[self.index]=True
+        # print completion statement. If fitting has not completed throw a
+        # warning to let the user know.
+        if np.all(self.fitcount):
+            print('')
+            print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+            print('')
         else:
-            self.modeldict=get_model_info(self)
-            print(self.modeldict)
+            print('')
+            print(colors.fg._yellow_+"Warning: Fitting stopped. Not all spectra have solutions.  "+colors._endc_)
+            print('')
+        # close the fitter
+        self.close_window()
+        return
 
-        # retrieve the new index
-        self.index=update_index(self,type)
+    def close_window(self):
+        """
+        Closes the plot window
+        """
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def change_text(self, text):
+        """
+        Controls the navigation through the fitter. Navigation controlled by the
+        buttons at the bottom of the fitter. User has the option to skip forward,
+        backward, to the end or back to the start. User can also input individual
+        indices.
+
+        """
+        # extract value from text input.
+        value = eval(text)
+        # correct the indexing from base 1 to base 0 (with the former making
+        # more sense for the navigator)
+        value = value-1
+        # Control what happens if you are at the start or end
+        if value < 0:
+            value=0
+        if value > len(self.indexlist)-1:
+            value=len(self.indexlist)-1
+        # always save the current model if we move on
+        if self.modeldict is not None:
+            self.modelstore[self.index]=self.modeldict
+            # update fit status
+            self.fitcount[self.index]=True
+        else:
+            # if modeldict is empty then create it
+            self.modeldict=get_model_info(self)
+        # set the index to the new one selected by the navigator
+        self.index=value
         # get the relevant spectrum
-        self.my_spectrum=retrieve_spectrum(self,self.spectra[self.index])
+        self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
         # get the spectral information
         get_spectral_info(self)
         # update the spectrum
         self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
-        #compute new dsp
+        #compute new dspec
         self.dsp = compute_dsp(self)
 
         # update spectrum plot
@@ -257,72 +505,52 @@ class ScouseFitter(object):
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
 
-        # check to see if there a model already exists
-        if self.index in self.models.keys():
+        # check to see if a model already exists
+        if self.index in self.modelstore.keys():
+            # Not actually going to fit here - we just want the spectral info
             self.spectrum=fit_spectrum(self)
-            self.modeldict=self.models[self.index]
+            # retrieve the current model
+            self.modeldict=self.modelstore[self.index]
+            # recreate the model
             self.mod,self.res,self.totmod=recreate_model(self)
+            # display the model
             update_plot_model(self,update=True)
+            # update the information window
             update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
             print_fit_information(self)
         else:
+            # Fit the spectrum according to dspec unless dspec cannot find any
+            # components - If this happens a zero component model will be
+            # displayed
             if self.dsp.ncomps!=0:
-                # fit and plot
                 self.spectrum=fit_spectrum(self)
+            # Get the model
             self.modeldict=get_model_info(self)
+            # recreate the model
             self.mod,self.res,self.totmod=recreate_model(self)
+            # display the model
             update_plot_model(self,update=True)
+            # update the information window
             update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
             print_fit_information(self)
 
         # update plot
         self.fig.canvas.draw()
 
-    def dspec_manual(self, event):
+    def new_spectrum(self,event,_type=None):
         """
-        This controls the manual dspec fitter.
+        This descibes what happens when a new spectrum is selected using the
+        buttons "previous" and "next"
+
+        Parameters
+        ----------
+        event : button click event
+        _type : describes what button has been pressed
 
         """
-        # update the spectrum
-        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
-        #compute new dsp
-        self.dsp = compute_dsp(self)
-        # update spectrum plot
-        self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
-        self.plot_peak_lines=plot_stems(self,update=True,color='k')
-        # fit and plot
-        self.spectrum=fit_spectrum(self)
-        self.modeldict=get_model_info(self)
-        self.mod,self.res,self.totmod=recreate_model(self)
-        update_plot_model(self,update=True)
-        update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
-        print_fit_information(self)
-
-        # update plot
-        self.fig.canvas.draw()
-
-    def dspec_apply_to_all(self,event):
-        """
-        controls what happens if the apply dspec to all button is pressed - will
-        save the current slider values apply these to all spectra and save
-        """
-        for i in self.indexlist:
-            # retrieve the new index
-            index=int(i)
-            if not index in self.models.keys():
-                # get the relevant spectrum
-                self.my_spectrum=retrieve_spectrum(self,self.spectra[index])
-                # get the spectral information
-                get_spectral_info(self)
-                # update the spectrum
-                self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
-                #compute new dsp
-                self.dsp = compute_dsp(self)
-                self.spectrum=fit_spectrum(self)
-                self.modeldict=get_model_info(self)
-                self.models[index]=self.modeldict
-
-        self.modeldict=None
+        value=update_index(self,_type)
+        value += 1
+        self.textbox_index.set_val(str(value))
 
     def update_SNR(self,pos=None):
         """
@@ -339,7 +567,6 @@ class ScouseFitter(object):
         self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
         #compute new dsp
         self.dsp = compute_dsp(self)
-
         # update spectrum plot
         ymax=np.max([self.SNR*self.specrms, np.max(self.specy)])+\
              0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
@@ -350,14 +577,17 @@ class ScouseFitter(object):
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
-
+        update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
+        # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
-            # fit and plot
             self.spectrum=fit_spectrum(self)
-
+        # get the model
         self.modeldict=get_model_info(self)
+        # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
+        # plot the model
         update_plot_model(self,update=True)
+        # update the information window
         update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
         print_fit_information(self)
 
@@ -377,7 +607,6 @@ class ScouseFitter(object):
         self.kernelsize=int(round(pos))
         #compute new dsp
         self.dsp = compute_dsp(self)
-
         # update spectrum plot
         self.plot_smooth=plot_spectrum(self,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
@@ -389,14 +618,17 @@ class ScouseFitter(object):
         plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
-
+        update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
+        # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
-            # fit and plot
             self.spectrum=fit_spectrum(self)
-
+        # get the model
         self.modeldict=get_model_info(self)
+        # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
+        # plot the model
         update_plot_model(self,update=True)
+        # update the information window
         update_text(self.text_ncomp, 'number of components: '+str(self.modeldict['ncomps']))
         print_fit_information(self)
 
@@ -433,7 +665,6 @@ class ScouseFitter(object):
         handles = legend.legendHandles
         label2handle = dict(zip(labels, handles))
         handle2text = dict(zip(handles, legend.texts))
-
         lookup_artist = {}
         lookup_handle = {}
         for artist in legend.axes.get_children():
@@ -442,7 +673,6 @@ class ScouseFitter(object):
                 lookup_handle[artist] = handle
                 lookup_artist[handle] = artist
                 lookup_artist[handle2text[handle]] = artist
-
         lookup_handle.update(zip(handles, handles))
         lookup_handle.update(zip(legend.texts, handles))
 
@@ -476,14 +706,12 @@ class ScouseFitter(object):
         lookup_handle : matplotlib legend handles
 
         """
-
         if event.button == 3:
             visible = False
         elif event.button == 2:
             visible = True
         else:
             return
-
         for artist in lookup_artist.values():
             artist.set_visible(visible)
         self.update_legend(lookup_artist,lookup_handle)
@@ -507,14 +735,23 @@ class ScouseFitter(object):
         self.fig.canvas.draw()
 
     def toggle_residuals(self,event):
+        """
+        Toggles the residuals on and off
+        """
         self.plot_res.set_visible(not self.plot_res.get_visible())
         self.fig.canvas.draw()
 
     def toggle_smooth(self,event):
+        """
+        Toggles the smoothed spectrum on and off
+        """
         self.plot_smooth.set_visible(not self.plot_smooth.get_visible())
         self.fig.canvas.draw()
 
     def toggle_total(self,event):
+        """
+        Toggles the summed model (over all components) on and off
+        """
         if np.size(self.plot_model)!=0:
             for i in range(len(self.plot_model)):
                 plot=self.plot_model[i][0]
@@ -523,13 +760,19 @@ class ScouseFitter(object):
         self.plot_tot.set_visible(not self.plot_tot.get_visible())
         self.fig.canvas.draw()
 
-def retrieve_spectrum(self,index):
+def retrieve_spectrum(self,spectrum_index,index):
+    """
+    Retrieves the spectrum
+    """
     if self.method=='scouse':
-        return self.spectra_dict[index]
+        return self.SAA_dict[self.parent[index]][self.spectra[index]]
     else:
         pass
 
 def get_spectral_info(self,x=None,y=None,rms=None):
+    """
+    Return the channel values
+    """
     if self.method=='scouse':
         self.specx=self.scouseobject.xtrim
         self.specy=self.my_spectrum.ytrim
@@ -537,10 +780,14 @@ def get_spectral_info(self,x=None,y=None,rms=None):
     else:
         self.specx = x
         self.specy = y
+        # TODO: automated rms calculator
         self.specrms = rms
 
 def generate_pyspeckit_spectrum(self,plotkwargs={},xarrkwargs={},
                                 unit=None,doplot=False):
+    """
+    Generates a generic pyspeckit template spectrum
+    """
     import pyspeckit
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -557,39 +804,9 @@ def generate_pyspeckit_spectrum(self,plotkwargs={},xarrkwargs={},
     log.setLevel(old_log)
     return spectrum
 
-def update_index(self,type):
-    if type=='next':
-        if self.index==len(self.spectra)-1:
-            pass
-        else:
-            self.index+=1
-    elif type=='previous':
-        if self.index==0:
-            pass
-        else:
-            self.index-=1
-    else:
-        pass
-    return self.index
-
-def compute_dsp(self):
-    from scousepy.dspec import DSpec
-    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,kernelsize=self.kernelsize)
-    self.ysmooth = dsp.ysmooth
-    self.d1 = dsp.d1
-    self.d2 = dsp.d2
-    self.d3 = dsp.d3
-    self.d4 = dsp.d4
-    self.ncomps = dsp.ncomps
-    self.peaks = dsp.peaks
-    self.centroids = dsp.centroids
-    self.widths = dsp.widths
-    self.guesses =dsp.guesses
-    return dsp
-
 def generate_template_spectrum(self):
     """
-    Generate a template spectrum to be passed to the fitter.
+    Generate a template spectrum to be passed to the manual fitter.
 
     """
     import pyspeckit
@@ -607,7 +824,50 @@ def generate_template_spectrum(self):
         log.setLevel(old_log)
     return template_spectrum
 
+def update_index(self,_type):
+    """
+    Updates the index for the navigator
+    """
+    if _type=='next':
+        if self.index==len(self.spectra)-1:
+            value = len(self.spectra)-1
+        else:
+            value = self.index+1
+    elif _type=='previous':
+        if self.index==0:
+            value = 0
+        else:
+            value = self.index-1
+    elif _type=='start':
+        value = 0
+    elif _type=='end':
+        value = len(self.spectra)-1
+    else:
+        pass
+    return value
+
+def compute_dsp(self):
+    """
+    Computes derivative spectroscopy and sets some global values
+    """
+    from scousepy.dspec import DSpec
+    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,kernelsize=self.kernelsize)
+    self.ysmooth = dsp.ysmooth
+    self.d1 = dsp.d1
+    self.d2 = dsp.d2
+    self.d3 = dsp.d3
+    self.d4 = dsp.d4
+    self.ncomps = dsp.ncomps
+    self.peaks = dsp.peaks
+    self.centroids = dsp.centroids
+    self.widths = dsp.widths
+    self.guesses =dsp.guesses
+    return dsp
+
 def fit_spectrum(self):
+    """
+    Non-interactice pyspeckit fitting of the spectrum
+    """
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         old_log = log.level
@@ -640,7 +900,7 @@ def fit_spectrum(self):
 
 def recreate_model(self):
     """
-    Recreates model from parameters
+    Recreates model from parameters in modeldict
 
     """
     import pyspeckit
@@ -665,118 +925,10 @@ def recreate_model(self):
 
     return mod, res, totmod
 
-def setup_plot_window(self,ax,ymin=None,ymax=None):
-    window=self.fig.add_axes(ax)
-    window.tick_params(axis='x', which='major', length=5, direction='in',pad=5)
-    window.tick_params(axis='x', which='minor', length=3, direction='in')
-    window.tick_params(axis='y', which='major', length=5, direction='in',pad=5, rotation=90)
-    window.tick_params(axis='y', which='minor', length=3, direction='in')
-    window.grid(color='grey', alpha=0.4, linestyle=':', which='major')
-    window.grid(color='grey', alpha=0.1, linestyle=':', which='minor')
-    window.set_facecolor('whitesmoke')
-    # set the axis limits
-    window.set_ylim([ymin,ymax])
-    return window
-
-def setup_information_window(self):
-    self.information_window=self.fig.add_axes(self.information_window_ax)
-    self.information_window.set_xticklabels([])
-    self.information_window.set_yticklabels([])
-    self.information_window.set_xticks([])
-    self.information_window.set_yticks([])
-    self.information_window.text(0.01, 0.92, 'derivative spectroscopy information:',
-                                 transform=self.information_window.transAxes,
-                                 fontsize=10, fontweight='bold')
-
-def plot_spectrum(self,y,update=False,plottoupdate=None,**kwargs):
-    if update:
-        plottoupdate.set_ydata(y)
-        return plottoupdate
-    else:
-        return self.spectrum_window.plot(self.specx,y,drawstyle='steps',**kwargs)
-
-def plot_snr(self,**kwargs):
-    return self.spectrum_window.plot([np.min(self.specx),np.max(self.specx)],[self.SNR*self.specrms,self.SNR*self.specrms],**kwargs)
-
-def plot_peak_locations(self,update=False,plottoupdate=None,**kwargs):
-    if update:
-        plottoupdate.set_xdata(self.centroids)
-        plottoupdate.set_ydata(self.peaks)
-        return plottoupdate
-    else:
-        return self.spectrum_window.plot(self.centroids,self.peaks,**kwargs, label='dspec prediction')
-
-def plot_stems(self,update=False,**kwargs):
-
-    if update:
-        for i in range(len(self.plot_peak_lines)):
-            self.plot_peak_lines[i].pop(0).remove()
-
-    self.plot_peak_lines=[]
-    for i in range(self.ncomps):
-        self.plot_peak_lines_indiv = self.spectrum_window.plot([self.centroids[i], self.centroids[i]],[0,self.peaks[i]],**kwargs)
-        self.plot_peak_lines.append(self.plot_peak_lines_indiv)
-    return self.plot_peak_lines
-
-def plot_derivatives(self,update=False,ymin=None,ymax=None):
-    import numpy as np
-
-    d1=self.d1/np.max(self.d1)
-    d2=self.d2/np.max(self.d2)
-    d3=self.d3/np.max(self.d3)
-    d4=self.d4/np.max(self.d4)
-    # plot the data
-    if update:
-        self.deriv_window.set_ylim([ymin,ymax])
-        self.plot_d1.set_ydata(d1)
-        self.plot_d2.set_ydata(d2)
-        self.plot_d3.set_ydata(d3)
-        self.plot_d4.set_ydata(d4)
-    else:
-        self.plot_d1,=self.deriv_window.plot(self.specx,d1,lw=0.5,label='f$^{\prime}$(x)')
-        self.plot_d2,=self.deriv_window.plot(self.specx,d2,lw=2.0,label='f$^{\prime\prime}$(x)')
-        self.plot_d3,=self.deriv_window.plot(self.specx,d3,lw=0.5,label='f$^{\prime\prime\prime}$(x)')
-        self.plot_d4,=self.deriv_window.plot(self.specx,d4,lw=0.5,label='f$^{\prime\prime\prime\prime}$(x)')
-
-def plot_residuals(self,y,residkwargs):
-    return self.spectrum_window.plot(self.specx,y,drawstyle='steps',label='residual',**residkwargs)
-
-def plot_model(self,y,label,modelkwargs):
-    return self.spectrum_window.plot(self.specx,y,label=label,**modelkwargs)
-
-def update_plot_model(self,update=False):
-    if self.dsp.ncomps < 10:
-        update_text(self.text_fitinformation,'pyspeckit fit information: ')
-
-        if update:
-            self.plot_res.remove()
-            self.plot_tot.remove()
-            if np.size(self.plot_model)!=0:
-                for i in range(len(self.plot_model)):
-                    self.plot_model[i].pop(0).remove()
-
-        if self.dsp.ncomps == 0:
-            self.plot_res,=plot_residuals(self,self.specy,self.residkwargs)
-            self.plot_tot,=plot_model(self,np.zeros_like(self.specy),'total model',self.totmodkwargs)
-        else:
-            #plot residuals
-            self.plot_res,=plot_residuals(self,self.res,self.residkwargs)
-            self.plot_tot,=plot_model(self,self.totmod,'total model',self.totmodkwargs)
-            # now overplot the model
-            self.plot_model=[]
-            for k in range(int(self.modeldict['ncomps'])):
-                self.plot_model_indiv=plot_model(self,self.mod[:,k],'comp '+str(k),self.modelkwargs)
-                self.plot_model.append(self.plot_model_indiv)
-    else:
-        update_text(self.text_fitinformation,'pyspeckit fit information: >10 components detected, autofitting may be slow. Use "fit (dspec)" button to fit')
-
-    # plot a legend
-    self.spectrum_legend = self.spectrum_window.legend(loc=2,frameon=False,fontsize=8)
-    self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle = self.build_legend_lookups(self.spectrum_legend)
-    self.setup_legend_connections(self.spectrum_legend, self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle)
-    self.update_legend(self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle)
-
 def get_model_info(self):
+    """
+    Framework for model solution dictionary
+    """
     modeldict={}
     if self.ncomps==0:
         modeldict['fittype']=None
@@ -814,14 +966,163 @@ def get_model_info(self):
     return modeldict
 
 def get_aic(self):
+    """
+    Computes the AIC value
+    """
     from astropy.stats import akaike_info_criterion as aic
     logl = self.spectrum.specfit.fitter.logp(self.spectrum.xarr, self.spectrum.data, self.spectrum.error)
     return aic(logl, int(self.spectrum.specfit.npeaks)+(int(self.spectrum.specfit.npeaks)*3.), len(self.spectrum.xarr))
 
+def setup_plot_window(self,ax,ymin=None,ymax=None):
+    """
+    GUI setup
+    """
+    window=self.fig.add_axes(ax)
+    window.tick_params(axis='x', which='major', length=5, direction='in',pad=5)
+    window.tick_params(axis='x', which='minor', length=3, direction='in')
+    window.tick_params(axis='y', which='major', length=5, direction='in',pad=5, rotation=90)
+    window.tick_params(axis='y', which='minor', length=3, direction='in')
+    window.grid(color='grey', alpha=0.4, linestyle=':', which='major')
+    window.grid(color='grey', alpha=0.1, linestyle=':', which='minor')
+    window.set_facecolor('whitesmoke')
+    # set the axis limits
+    window.set_ylim([ymin,ymax])
+    return window
+
+def setup_information_window(self):
+    """
+    GUI setup
+    """
+    self.information_window=self.fig.add_axes(self.information_window_ax)
+    self.information_window.set_xticklabels([])
+    self.information_window.set_yticklabels([])
+    self.information_window.set_xticks([])
+    self.information_window.set_yticks([])
+    self.information_window.text(0.01, 0.92, 'derivative spectroscopy information:',
+                                 transform=self.information_window.transAxes,
+                                 fontsize=10, fontweight='bold')
+
+def plot_spectrum(self,y,update=False,plottoupdate=None,**kwargs):
+    """
+    GUI setup
+    """
+    if update:
+        plottoupdate.set_ydata(y)
+        return plottoupdate
+    else:
+        return self.spectrum_window.plot(self.specx,y,drawstyle='steps',**kwargs)
+
+def plot_snr(self,**kwargs):
+    """
+    GUI setup
+    """
+    return self.spectrum_window.plot([np.min(self.specx),np.max(self.specx)],[self.SNR*self.specrms,self.SNR*self.specrms],**kwargs)
+
+def plot_peak_locations(self,update=False,plottoupdate=None,**kwargs):
+    """
+    GUI setup
+    """
+    if update:
+        plottoupdate.set_xdata(self.centroids)
+        plottoupdate.set_ydata(self.peaks)
+        return plottoupdate
+    else:
+        return self.spectrum_window.plot(self.centroids,self.peaks,**kwargs, label='dspec prediction')
+
+def plot_stems(self,update=False,**kwargs):
+    """
+    GUI setup
+    """
+    if update:
+        for i in range(len(self.plot_peak_lines)):
+            self.plot_peak_lines[i].pop(0).remove()
+
+    self.plot_peak_lines=[]
+    for i in range(self.ncomps):
+        self.plot_peak_lines_indiv = self.spectrum_window.plot([self.centroids[i], self.centroids[i]],[0,self.peaks[i]],**kwargs)
+        self.plot_peak_lines.append(self.plot_peak_lines_indiv)
+    return self.plot_peak_lines
+
+def plot_derivatives(self,update=False,ymin=None,ymax=None):
+    """
+    GUI setup
+    """
+    import numpy as np
+
+    d1=self.d1/np.max(self.d1)
+    d2=self.d2/np.max(self.d2)
+    d3=self.d3/np.max(self.d3)
+    d4=self.d4/np.max(self.d4)
+    # plot the data
+    if update:
+        self.deriv_window.set_ylim([ymin,ymax])
+        self.plot_d1.set_ydata(d1)
+        self.plot_d2.set_ydata(d2)
+        self.plot_d3.set_ydata(d3)
+        self.plot_d4.set_ydata(d4)
+    else:
+        self.plot_d1,=self.deriv_window.plot(self.specx,d1,lw=0.5,label='f$^{\prime}$(x)')
+        self.plot_d2,=self.deriv_window.plot(self.specx,d2,lw=2.0,label='f$^{\prime\prime}$(x)')
+        self.plot_d3,=self.deriv_window.plot(self.specx,d3,lw=0.5,label='f$^{\prime\prime\prime}$(x)')
+        self.plot_d4,=self.deriv_window.plot(self.specx,d4,lw=0.5,label='f$^{\prime\prime\prime\prime}$(x)')
+
+def plot_residuals(self,y,residkwargs):
+    """
+    GUI setup
+    """
+    return self.spectrum_window.plot(self.specx,y,drawstyle='steps',label='residual',**residkwargs)
+
+def plot_model(self,y,label,modelkwargs):
+    """
+    GUI setup
+    """
+    return self.spectrum_window.plot(self.specx,y,label=label,**modelkwargs)
+
+def update_plot_model(self,update=False):
+    """
+    GUI setup
+    """
+    if self.dsp.ncomps < 10:
+        update_text(self.text_fitinformation,'pyspeckit fit information: ')
+
+        if update:
+            self.plot_res.remove()
+            self.plot_tot.remove()
+            if np.size(self.plot_model)!=0:
+                for i in range(len(self.plot_model)):
+                    self.plot_model[i].pop(0).remove()
+
+        if self.dsp.ncomps == 0:
+            self.plot_res,=plot_residuals(self,self.specy,self.residkwargs)
+            self.plot_tot,=plot_model(self,np.zeros_like(self.specy),'total model',self.totmodkwargs)
+        else:
+            #plot residuals
+            self.plot_res,=plot_residuals(self,self.res,self.residkwargs)
+            self.plot_tot,=plot_model(self,self.totmod,'total model',self.totmodkwargs)
+            # now overplot the model
+            self.plot_model=[]
+            for k in range(int(self.modeldict['ncomps'])):
+                self.plot_model_indiv=plot_model(self,self.mod[:,k],'comp '+str(k),self.modelkwargs)
+                self.plot_model.append(self.plot_model_indiv)
+    else:
+        update_text(self.text_fitinformation,'pyspeckit fit information: >10 components detected, autofitting may be slow. Use "fit (dspec)" button to fit')
+
+    # plot a legend
+    self.spectrum_legend = self.spectrum_window.legend(loc=2,frameon=False,fontsize=8)
+    self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle = self.build_legend_lookups(self.spectrum_legend)
+    self.setup_legend_connections(self.spectrum_legend, self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle)
+    self.update_legend(self.spectrum_window_lookup_artist, self.spectrum_window_lookup_handle)
+
 def print_information(self,xloc,yloc,str,**kwargs):
+    """
+    GUI setup
+    """
     return self.information_window.text(xloc,yloc,str,transform=self.information_window.transAxes, **kwargs)
 
 def print_fit_information(self):
+    """
+    GUI setup
+    """
     strchisq=str(("chisq: {0}").format(np.around(self.modeldict['chisq'],decimals=2)))
     strredchisq=str(("red chisq: {0}").format(np.around(self.modeldict['redchisq'],decimals=2)))
     straic=str(("AIC: {0}").format(np.around(self.modeldict['AIC'],decimals=2)))
@@ -856,9 +1157,15 @@ def print_fit_information(self):
             update_text(textobjects[i],mystring)
 
 def update_text(textobject,textstring):
+    """
+    GUI setup
+    """
     textobject.set_text(textstring)
 
 def make_slider(ax,name,min,max,function,**kwargs):
+    """
+    GUI setup
+    """
     from matplotlib.widgets import Slider
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -869,7 +1176,19 @@ def make_slider(ax,name,min,max,function,**kwargs):
     return myslider
 
 def make_button(ax,name,function,**kwargs):
+    """
+    GUI setup
+    """
     from matplotlib.widgets import Button
     mybutton=Button(ax,name)
     mybutton.on_clicked(function)
     return mybutton
+
+def make_textbox(ax,text,function,**kwargs):
+    """
+    GUI setup
+    """
+    from matplotlib.widgets import TextBox
+    mytextbox=TextBox(ax,'',initial=text, color='1')
+    mytextbox.on_submit(function)
+    return mytextbox
