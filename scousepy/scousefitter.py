@@ -23,10 +23,14 @@ class ScouseFitter(object):
                        SAA_dict=None,
                        parent=None,
                        scouse_single=False,
+                       individual=None,
+                       cube=None,
                        fitcount=None,
                        x=None,y=None,rms=None,
-                       SNR = 3, minSNR = 1, maxSNR = 30,
-                       kernelsize = 5, minkernel = 1, maxkernel = 30):
+                       SNR=3,minSNR=1,maxSNR=30,
+                       kernelsize=5,minkernel=1,maxkernel=30,
+                       outputfile=None,
+                       xarrkwargs={},unit={}):
 
         """
 
@@ -61,10 +65,10 @@ class ScouseFitter(object):
             spectra are fitted rather that SAAs.
 
         individual : ndarray
-            An array of spectra to be fit. Should be in the format n x [x,y].
-            Where x and y refer to the velocity or frequency axes and the
-            emission, respectively. This must be provided with
-            method='individual'.
+            An array of spectra to be fit. Should be in the format [n,2,m].
+            Where n is the number of spectra, 2 corresponds to the
+            velocity/frequency and intensity axes, each of which have length m.
+            This must be provided with method='individual'.
 
         cube : ndarray
             A cube of data to be fit. Should be a 3D array. This must be
@@ -106,14 +110,17 @@ class ScouseFitter(object):
         self.SAA_dict=SAA_dict
         self.parent=parent
         self.scouse_single=scouse_single
+        self.individual=individual
+        self.cube=cube
         self.fitcount=fitcount
         self.modelstore=modelstore
-        self.SNR = SNR
-        self.minSNR = minSNR
-        self.maxSNR = maxSNR
-        self.kernelsize = kernelsize
-        self.minkernel = minkernel
-        self.maxkernel = maxkernel
+        self.SNR=SNR
+        self.minSNR=minSNR
+        self.maxSNR=maxSNR
+        self.kernelsize=kernelsize
+        self.minkernel=minkernel
+        self.maxkernel=maxkernel
+        self.outputfile=outputfile
 
         # Prepare the fitter according to method selection
         if method=='scouse':
@@ -162,20 +169,35 @@ class ScouseFitter(object):
 
         # Cube fitting
         elif method=='cube':
-            # TODO: one
-            # should be able to send a list of spectra. Need to work out what
-            # format this would need to be in
-            self.xarrkwargs={}
-            self.unit={}
+
+            # TODO: Implement cube fitting
+
+            # pyspeckit kwargs
+            self.xarrkwargs=xarrkwargs
+            self.unit=unit
+            # assert that the user has provided the individual spectra
+            assert cube is not None, colors.fg._red_+"Please include the data cube to be fit."+colors._endc_
+
 
         # fitting individual spectra
         elif method=='individual':
-            self.xarrkwargs={}
-            self.unit={}
-            assert x is not None, "To create a spectrum provide the x axis"
-            assert y is not None, "To create a spectrum provide the y axis"
-            assert rms is not None, "To create a spectrum provide the rms"
-            self.get_spectral_info(method=method,x=x,y=y,rms=rms)
+            # pyspeckit kwargs
+            self.xarrkwargs=xarrkwargs
+            self.unit=unit
+            # assert that the user has provided the individual spectra
+            assert individual is not None, colors.fg._red_+"Please include an array of spectra to be fit."+colors._endc_
+            # get the shape of the input array
+            shape=np.shape(individual)
+            # create a boolean array to be updated as the spectra are fitted
+            self.fitcount=np.zeros(shape[0], dtype='bool')
+            # Create an array of indices for the spectra to be fitted.
+            self.indexlist=np.arange(0,int(shape[0]))
+            self.spectra=self.indexlist
+            # start at the beginning
+            self.index=0
+            # get the x,y,rms values
+            get_spectral_info(self)
+            # generate a template pyspeckit spectrum
             self.spectrum = generate_template_spectrum(self)
 
         else:
@@ -336,7 +358,7 @@ class ScouseFitter(object):
         fit = ManualFitter.manualfit()
         self.spectrum=fit.spectrum
         # add model to dictionary
-        self.modeldict=get_model_info(self)
+        self.modeldict=get_model_info(self,manual=True)
         # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
         # update the plot with the manually-fitted solution
@@ -441,6 +463,10 @@ class ScouseFitter(object):
             print('')
         # close the fitter
         self.close_window()
+        # output fits for individual spectra
+        if self.method=='individual':
+            if self.outputfile is not None:
+                print_to_file(self)
         return
 
     def close_window(self):
@@ -769,7 +795,7 @@ def retrieve_spectrum(self,spectrum_index,index):
     else:
         pass
 
-def get_spectral_info(self,x=None,y=None,rms=None):
+def get_spectral_info(self):
     """
     Return the channel values
     """
@@ -778,10 +804,9 @@ def get_spectral_info(self,x=None,y=None,rms=None):
         self.specy=self.my_spectrum.ytrim
         self.specrms=self.my_spectrum.rms
     else:
-        self.specx = x
-        self.specy = y
-        # TODO: automated rms calculator
-        self.specrms = rms
+        self.specx = self.individual[self.index,0,:]
+        self.specy = self.individual[self.index,1,:]
+        self.specrms = calc_rms(self.individual[self.index,1,:])
 
 def generate_pyspeckit_spectrum(self,plotkwargs={},xarrkwargs={},
                                 unit=None,doplot=False):
@@ -823,6 +848,35 @@ def generate_template_spectrum(self):
                                                )
         log.setLevel(old_log)
     return template_spectrum
+
+def calc_rms(spectrum):
+    """
+    Returns the spectral rms
+
+    Parameters
+    ----------
+    Spectrum : ndarray
+        An individual spectrum
+
+    """
+    from astropy.stats import median_absolute_deviation
+    # Find all negative values
+    negative_indices = (spectrum < 0.0)
+    spectrum_negative_values = spectrum[negative_indices]
+    reflected_noise = np.concatenate((spectrum[negative_indices],
+                                               abs(spectrum[negative_indices])))
+    # Compute the median absolute deviation
+    MAD = median_absolute_deviation(reflected_noise)
+    # For pure noise you should have roughly half the spectrum negative. If
+    # it isn't then you need to be a bit more conservative
+    if len(spectrum_negative_values) < 0.47*len(spectrum):
+        maximum_value = 3.5*MAD
+    else:
+        maximum_value = 4.0*MAD
+    noise = spectrum[spectrum < abs(maximum_value)]
+    rms = np.sqrt(np.sum(noise**2) / np.size(noise))
+
+    return rms
 
 def update_index(self,_type):
     """
@@ -925,7 +979,7 @@ def recreate_model(self):
 
     return mod, res, totmod
 
-def get_model_info(self):
+def get_model_info(self, manual=False):
     """
     Framework for model solution dictionary
     """
@@ -942,7 +996,10 @@ def get_model_info(self):
         modeldict['dof']=0.0
         modeldict['redchisq']=0.0
         modeldict['AIC']=0.0
-        modeldict['fitconverge'] = False
+        modeldict['fitconverge']=False
+        modeldict['SNR']=self.SNR
+        modeldict['kernelsize']=self.kernelsize
+        modeldict['manual']=manual
 
     else:
         modeldict['fittype']=self.spectrum.specfit.fittype
@@ -956,12 +1013,14 @@ def get_model_info(self):
         modeldict['dof']=self.spectrum.specfit.dof
         modeldict['redchisq']=self.spectrum.specfit.chi2/self.spectrum.specfit.dof
         modeldict['AIC']=get_aic(self)
-
         if None in self.spectrum.specfit.modelerrs:
             modeldict['fitconverge'] = False
             self.spectrum.specfit.modelerrs = np.zeros(len(self.spectrum.specfit.modelerrs))
         else:
             modeldict['fitconverge'] = True
+        modeldict['SNR']=self.SNR
+        modeldict['kernelsize']=self.kernelsize
+        modeldict['manual']=manual
 
     return modeldict
 
@@ -1155,6 +1214,89 @@ def print_fit_information(self):
                 else:
                     mystring+=str((";   {0} +/- {1}").format(np.around(self.modeldict['params'][_parrange[j]], decimals=2),np.around(self.modeldict['errors'][_parrange[j]],decimals=2)))
             update_text(textobjects[i],mystring)
+
+def print_to_file(self):
+    """
+    Prints best-fitting solutions to file 
+    """
+    # imports
+    from astropy.io import ascii
+    from astropy.table import Table
+    from astropy.table import Column
+    # create a table
+    table = Table(meta={'name': 'best-fitting model solutions'})
+
+    solnlist = []
+    for key in self.modelstore.keys():
+        headings=get_headings(self, self.modelstore[key])
+        for i in range(self.modelstore[key]['ncomps']):
+            solution=get_soln_desc(key,i,self.modelstore[key])
+            solnlist.append(solution)
+
+    solnarr = np.asarray(solnlist).T
+
+    for j in range(len(solnarr[:,0])):
+        table[headings[j]] = Column(solnarr[j,:])
+
+    table.write(self.outputfile, format='ascii', overwrite=True, delimiter='\t')
+
+def get_headings(self, dict):
+    """
+    Table headings for output
+
+    Notes:
+
+    This is awful but it works.
+    """
+
+    cont = True
+    keys = list(dict.keys())
+    count = 0
+    headings = []
+    # find the first spectral averaging area where there is a fit
+    # and get the parameter names
+    headings_non_specific = ['index', 'ncomps', 'rms', 'residstd',
+                             'chisq','dof', 'redchisq', 'AIC',
+                             'fitconverge','SNR', 'kernelsize',
+                             'manual' ]
+    #These ones depend on the model used by pyspeckit
+    headings_params = dict['parnames']
+    headings_errs = [str('err {0}').format(dict['parnames'][k]) for k in range(len(dict['parnames']))]
+
+    # This is messy
+    headings_pars = [[headings_params[k], headings_errs[k]] for k in range(len(dict['parnames']))]
+    headings_pars = [par for pars in headings_pars for par in pars]
+    headings = headings_non_specific[0:2]+headings_pars+headings_non_specific[2::]
+
+    return headings
+
+def get_soln_desc(key,idx,dict):
+    """
+    Returns the solution in the format:
+
+    ncomps, param1, err1, .... paramn, errn, rms, residstd, chi2, dof, chi2red,
+    aic, fitconverge, snr, kernelsize, manual
+    """
+    params_non_specific = [key, dict['ncomps'], dict['rms'],
+                           dict['residstd'],dict['chisq'],dict['dof'],
+                           dict['redchisq'], dict['AIC'], dict['fitconverge'],
+                           dict['SNR'], dict['kernelsize'],dict['manual'] ]
+
+    parlow = int((idx*len(dict['parnames'])))
+    parhigh = int((idx*len(dict['parnames']))+len(dict['parnames']))
+    parrange = np.arange(parlow,parhigh)
+
+    paramarr = np.array(dict['params'])
+    errarr = np.array(dict['errors'])
+    params = paramarr[parrange]
+    errors = errarr[parrange]
+    # This is messy
+    parameters = [[params[j], errors[j]] for j in range(len(dict['parnames']))]
+    parameters = [par for pars in parameters for par in pars]
+
+    solution_desc = params_non_specific[0:2]+parameters+params_non_specific[2::]
+
+    return solution_desc
 
 def update_text(textobject,textstring):
     """
