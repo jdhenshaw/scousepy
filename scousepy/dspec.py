@@ -20,11 +20,17 @@ class DSpec(object):
         self.d3 = compute_gradient(self.d2, self.x[1]-self.x[0])
         self.d4 = compute_gradient(self.d3, self.x[1]-self.x[0])
 
-        self.conditionmask,self.ncomps = get_ncomps(self)
+        self.conditionmask,self.ncomps = get_components(self)
         self.peaks = get_peaks(self)
         self.centroids = get_centroids(self)
         self.widths = get_widths(self)
         self.guesses = get_guesses(self)
+
+        self.conditionmask_n,self.ncomps_n = get_components(self, positives=False)
+        self.peaks_n = get_peaks(self, positives=False)
+        self.centroids_n = get_centroids(self, positives=False)
+        self.widths_n = get_widths(self, positives=False)
+        self.guesses_n = get_guesses(self, positives=False)
 
 def get_kernel(self, method='gauss'):
     if method=='gauss':
@@ -43,16 +49,22 @@ def compute_gradient(y,inc):
     """
     return np.gradient(y)/inc
 
-def get_ncomps(self):
+def get_components(self, positives=True):
     """
 
     """
     # value must be greater than SNR*rms
     condition1=np.array(self.y>(self.SNR*self.noise), dtype='int')[1:]
-    # second derivative must be negative
-    condition2=np.array(self.d2[1:]<0, dtype='int')
-    # fourth derivative must be positive
-    condition3=np.array(self.d4[1:]>0, dtype='int')
+    if positives:
+        # second derivative must be negative
+        condition2=np.array(self.d2[1:]<0, dtype='int')
+    else:
+        condition2=np.array(self.d2[1:]>0, dtype='int')
+    if positives:
+        # fourth derivative must be positive
+        condition3=np.array(self.d4[1:]>0, dtype='int')
+    else:
+        condition3=np.array(self.d4[1:]<0, dtype='int')
     # third derivative must be close to zero
     condition4=np.array(np.abs(np.diff(np.sign(self.d3)))!=0, dtype='int')
 
@@ -64,25 +76,40 @@ def get_ncomps(self):
 
     return conditionmask, ncomps
 
-def get_peaks(self):
-    id = np.array(np.where(self.conditionmask)).ravel()
+def get_peaks(self, positives=True):
+    if positives:
+        id = np.array(np.where(self.conditionmask)).ravel()
+    else:
+        id = np.array(np.where(self.conditionmask_n)).ravel()
     return self.y[id]
 
-def get_centroids(self):
-    id = np.array(np.where(self.conditionmask)).ravel()
+def get_centroids(self, positives=True):
+    if positives:
+        id = np.array(np.where(self.conditionmask)).ravel()
+    else:
+        id = np.array(np.where(self.conditionmask_n)).ravel()
     return self.x[id]
 
-def get_widths(self):
-    id = np.array(np.where(self.conditionmask)).ravel()
+def get_widths(self, positives=True):
+    if positives:
+        id = np.array(np.where(self.conditionmask)).ravel()
+    else:
+        id = np.array(np.where(self.conditionmask_n)).ravel()
     inflection = np.abs(np.diff(np.sign(self.d2)))
     widths = np.sqrt(np.abs(self.y/self.d2)[id])
     return widths
 
-def get_guesses(self):
+def get_guesses(self, positives=True):
     guesses=[]
-    for i in range(self.ncomps):
-        guesses.append(self.peaks[i])
-        guesses.append(self.centroids[i])
-        guesses.append(self.widths[i])
+    if positives:
+        for i in range(self.ncomps):
+            guesses.append(self.peaks[i])
+            guesses.append(self.centroids[i])
+            guesses.append(self.widths[i])
+    else:
+        for i in range(self.ncomps_n):
+            guesses.append(self.peaks_n[i])
+            guesses.append(self.centroids_n[i])
+            guesses.append(self.widths_n[i])
 
     return guesses

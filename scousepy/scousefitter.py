@@ -1217,7 +1217,7 @@ def print_fit_information(self):
 
 def print_to_file(self):
     """
-    Prints best-fitting solutions to file 
+    Prints best-fitting solutions to file
     """
     # imports
     from astropy.io import ascii
@@ -1262,7 +1262,6 @@ def get_headings(self, dict):
     #These ones depend on the model used by pyspeckit
     headings_params = dict['parnames']
     headings_errs = [str('err {0}').format(dict['parnames'][k]) for k in range(len(dict['parnames']))]
-
     # This is messy
     headings_pars = [[headings_params[k], headings_errs[k]] for k in range(len(dict['parnames']))]
     headings_pars = [par for pars in headings_pars for par in pars]
@@ -1293,7 +1292,6 @@ def get_soln_desc(key,idx,dict):
     # This is messy
     parameters = [[params[j], errors[j]] for j in range(len(dict['parnames']))]
     parameters = [par for pars in parameters for par in pars]
-
     solution_desc = params_non_specific[0:2]+parameters+params_non_specific[2::]
 
     return solution_desc
