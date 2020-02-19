@@ -32,8 +32,9 @@ from .stage_4 import *
 from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
 from .io import *
-from .saa_description import saa, add_ids
-from .solution_description import fit
+#from .saa_description import saa, add_ids
+#from .solution_description import fit
+from .model_housing import *
 from .colors import *
 
 import matplotlib as mpl
@@ -207,6 +208,7 @@ class scouse(object):
 
         self = scouse(fittype=fittype, filename=filename, outputdir=outputdir,
                       datadirectory=datadirectory)
+
         self.wsaa = wsaa
         self.ppv_vol = ppv_vol
         self.nrefine = nrefine
@@ -232,6 +234,20 @@ class scouse(object):
 
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='start')
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+
+            self.load_cube(fitsfile=fitsfile)
+            # load in the fitter
+            from scousepy.scousecoverage import ScouseCoverage
+            myfitter=ScouseCoverage(scouseobject=self)
+            myfitter.show()
+
+        sys.exit()
+
 
         # Stop spectral cube from being noisy
         with warnings.catch_warnings():

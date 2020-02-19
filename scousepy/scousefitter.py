@@ -15,6 +15,9 @@ import sys
 from .colors import *
 
 class ScouseFitter(object):
+    """
+    Interactive fitting window for scouse
+    """
 
     def __init__(self, modelstore,
                        method='scouse',

@@ -9,7 +9,7 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
-from .indiv_spec_description import *
+#from .indiv_spec_description import *
 
 def select_best_model(scouseobject):
     """
@@ -19,7 +19,7 @@ def select_best_model(scouseobject):
     Parameters
     ----------
     scouseobject : Instance of the scousepy class
-    
+
     """
 
     for key in scouseobject.indiv_dict.keys():

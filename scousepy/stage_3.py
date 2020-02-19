@@ -20,10 +20,10 @@ from astropy import log
 from astropy import units as u
 from astropy.utils.console import ProgressBar
 
-from .indiv_spec_description import *
+#from .indiv_spec_description import *
 from .parallel_map import *
-from .saa_description import add_indiv_spectra, clean_up, merge_models
-from .solution_description import fit, print_fit_information
+#from .saa_description import add_indiv_spectra, clean_up, merge_models
+#from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
 
 def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):

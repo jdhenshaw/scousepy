@@ -22,10 +22,10 @@ from .stage_5 import *
 Fitter = Stage2Fitter()
 fitting = Fitter.preparefit
 
-from .saa_description import *
+#from .saa_description import *
 from .interactiveplot import showplot
-from .solution_description import fit, print_fit_information
-from .indiv_spec_description import *
+#from .solution_description import fit, print_fit_information
+#from .indiv_spec_description import *
 
 def event_loop():
     fig = plt.gcf()
