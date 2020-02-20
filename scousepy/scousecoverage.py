@@ -45,7 +45,7 @@ class ScouseCoverage(object):
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
         from matplotlib import rcParams
-        self.cmap=plt.cm.gray
+        self.cmap=plt.cm.binary_r
         rcParams['font.family']= 'Arial'
         rcParams['font.size']= 9
         rcParams['lines.linewidth']= 1.     ## line width in points
@@ -154,7 +154,7 @@ class ScouseCoverage(object):
         cmaptop=vlimbottom-space
         self.text_cmap=self.fig.text(mid,cmaptop,'colour map',ha='center',va='center')
         self.radiobutton_cmap_ax=self.fig.add_axes([mid-textboxwidth/2., cmaptop-7*smallspace, textboxwidth, textboxheight*3.])
-        self.radiobutton_cmap=make_radiobuttons(self.radiobutton_cmap_ax, ('greys','viridis','bwr'),self.change_cmap,activecolor='black')
+        self.radiobutton_cmap=make_radiobuttons(self.radiobutton_cmap_ax, ('binary','viridis','bwr'),self.change_cmap,activecolor='black')
         cmapbottom=cmaptop-7.*smallspace
 
         # Compute moments button
@@ -397,14 +397,14 @@ class ScouseCoverage(object):
         Controls what happens if coverage method radio button is clicked
         """
         import matplotlib.pyplot as plt
-        if label=='greys':
-            self.cmap=plt.cm.grey
+        if label=='binary':
+            self.cmap=plt.cm.binary_r
         elif label=='viridis':
             self.cmap=plt.cm.viridis
         elif label=='bwr':
             self.cmap=plt.cm.bwr
         else:
-            self.cmap=plt.cm.grey
+            self.cmap=plt.cm.binary_r
 
         self.map.set_cmap(self.cmap)
         self.fig.canvas.draw()
