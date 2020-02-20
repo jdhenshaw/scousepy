@@ -1,0 +1,16 @@
+font.family          : Arial
+figure.figsize       : 10, 7  ## figure size in inches\
+lines.linewidth      : 1.     ## line width in points
+axes.labelsize       : 18  ## fontsize of the x any y labels
+xtick.labelsize      : 16 ## fontsize of the tick labels
+ytick.labelsize      : 16 ## fontsize of the tick labels
+xtick.major.pad      : 8   ## distance to major tick label in points
+ytick.major.pad      : 8    ## distance to major tick label in points
+xtick.major.size      : 4    ## major tick size in points
+xtick.minor.size      : 2     ## minor tick size in points
+xtick.major.width     : 1.    ## major tick width in points
+xtick.minor.width     : 1.    ## minor tick width in points
+ytick.major.size      : 4    ## major tick size in points
+ytick.minor.size      : 2      ## minor tick size in points
+ytick.major.width     : 1.    ## major tick width in points
+ytick.minor.width     : 1.    ## minor tick width in points

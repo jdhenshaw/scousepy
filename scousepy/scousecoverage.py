@@ -23,7 +23,7 @@ class ScouseCoverage(object):
 
         #
         self.scouseobject=scouseobject
-        self.mask_below=1.0
+        self.mask_below=0.0
         self.cube=scouseobject.cube
         self.xmin = 0
         self.xmax = self.cube.shape[2]
@@ -35,6 +35,8 @@ class ScouseCoverage(object):
         # imports
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
+        plt.style.use('/Users/henshaw/Dropbox/Work/Code/matplotlib_preamble/paper_smallfig.mplstyle')
+
         # compute moments
         self.moments = compute_moments(self)
 
@@ -55,63 +57,96 @@ class ScouseCoverage(object):
         # self.logo = plt.imshow(logo,interpolation='nearest')
 
         # Set up the plot defaults
-        self.blank_window_ax=[0.1,0.2,0.375,0.625]
+        self.blank_window_ax=[0.1,0.2,0.375,0.6]
         self.blank_window=setup_plot_window(self,self.blank_window_ax)
         self.map_window=setup_map_window(self)
         self.moment = 0
         self.vmin = np.nanmin(self.moments[0].value)
         self.vmax = np.nanmax(self.moments[0].value)
+        # plot the moment map
         self.map = plot_map(self, self.moments[0])
-
-        #=======#
-        # buttons
-        #=======#
-        self.mom_ax=self.fig.add_axes([0.2375, 0.9, 0.1, 0.05])
-        self.mom=make_button(self.mom_ax,"run moments",self.run_moments)
-
-        self.mom0_ax=self.fig.add_axes([0.1, 0.08, 0.075, 0.05])
-        self.mom0=make_button(self.mom0_ax,"moment 0",lambda event: self.update_map(event, map=0))
-
-        self.mom1_ax=self.fig.add_axes([0.2, 0.08, 0.075, 0.05])
-        self.mom1=make_button(self.mom1_ax,"moment 1",lambda event: self.update_map(event, map=1))
-
-        self.mom2_ax=self.fig.add_axes([0.3, 0.08, 0.075, 0.05])
-        self.mom2=make_button(self.mom2_ax,"moment 2",lambda event: self.update_map(event, map=2))
-
-        self.mom9_ax=self.fig.add_axes([0.4, 0.08, 0.075, 0.05])
-        self.mom9=make_button(self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=3))
 
         #=======#
         # sliders
         #=======#
-        self.slider_vmin_ax=self.fig.add_axes([0.1, 0.17, 0.375, 0.02])
-        self.slider_vmin=make_slider(self.slider_vmin_ax,"vmin",self.vmin,self.vmax,self.update_vmin,valinit=self.vmin,valfmt="%1.2f")
-        self.slider_vmax_ax=self.fig.add_axes([0.1, 0.14, 0.375, 0.02])
-        self.slider_vmax=make_slider(self.slider_vmax_ax,"vmax",self.vmin,self.vmax,self.update_vmax,valinit=self.vmax,valfmt="%1.2f")
 
-        #=======#
-        # ppv vol
-        #=======#
-        self.text_xrange=self.fig.text(0.12,0.87,'set x range')
-        self.textbox_xmin_ax=self.fig.add_axes([0.1, 0.835, 0.0475, 0.025])
+        # create sliders for controlling the imshow limits
+        self.slider_vmin_ax=self.fig.add_axes([0.1, 0.84, 0.375, 0.015])
+        self.slider_vmin=make_slider(self.slider_vmin_ax,"vmin",self.vmin,self.vmax,self.update_vmin,valinit=self.vmin,valfmt="%1.2f", facecolor='0.75')
+        self.slider_vmax_ax=self.fig.add_axes([0.1, 0.8125, 0.375, 0.015])
+        self.slider_vmax=make_slider(self.slider_vmax_ax,"vmax",self.vmin,self.vmax,self.update_vmax,valinit=self.vmax,valfmt="%1.2f", facecolor='0.75')
+
+        #====================#
+        # compute moments menu
+        #====================#
+
+        # Create a menu bar for moment computation
+        self.menu_ax=[0.025,0.2,0.07,0.6]
+        self.menu=setup_plot_window(self,self.menu_ax,color='0.75')
+
+        textboxheight=0.025
+        textboxwidth=0.05
+        top=0.73
+        mid=0.06
+        space=0.025
+        smallspace=space/2.
+
+        # Controls for masking
+        masktop=top
+        self.text_mask=self.fig.text(mid,top,'mask below',ha='center',va='center')
+        self.textbox_maskbelow_ax=self.fig.add_axes([mid-textboxwidth/2., masktop-3*smallspace, textboxwidth, textboxheight])
+        self.textbox_maskbelow=make_textbox(self.textbox_maskbelow_ax,'',str(self.xmin),lambda text: self.change_text(text,_type='mask'))
+        maskbottom=masktop-4*smallspace
+
+        # Controls for setting xlimits
+        xlimtop=maskbottom-space
+        self.text_xlim=self.fig.text(mid,xlimtop,'x limits',ha='center',va='center')
+        self.textbox_xmin_ax=self.fig.add_axes([mid-textboxwidth/2., xlimtop-3*smallspace, textboxwidth, textboxheight])
         self.textbox_xmin=make_textbox(self.textbox_xmin_ax,'',str(self.xmin),lambda text: self.change_text(text,_type='xmin'))
-
-        self.textbox_xmax_ax=self.fig.add_axes([0.1525, 0.835, 0.0475, 0.025])
+        self.textbox_xmax_ax=self.fig.add_axes([mid-textboxwidth/2., xlimtop-6*smallspace, textboxwidth, textboxheight])
         self.textbox_xmax=make_textbox(self.textbox_xmax_ax,'',str(self.xmax),lambda text: self.change_text(text,_type='xmax'))
+        xlimbottom=xlimtop-7*smallspace
 
-        self.text_xrange=self.fig.text(0.2575,0.87,'set y range')
-        self.textbox_ymin_ax=self.fig.add_axes([0.2375, 0.835, 0.0475, 0.025])
+        # Controls for setting ylimits
+        ylimtop=xlimbottom-space
+        self.text_ylim=self.fig.text(mid,ylimtop,'y limits',ha='center')
+        self.textbox_ymin_ax=self.fig.add_axes([mid-textboxwidth/2., ylimtop-3*smallspace, textboxwidth, textboxheight])
         self.textbox_ymin=make_textbox(self.textbox_ymin_ax,'',str(self.ymin),lambda text: self.change_text(text,_type='ymin'))
-
-        self.textbox_ymax_ax=self.fig.add_axes([0.29, 0.835, 0.0475, 0.025])
+        self.textbox_ymax_ax=self.fig.add_axes([mid-textboxwidth/2., ylimtop-6*smallspace, textboxwidth, textboxheight])
         self.textbox_ymax=make_textbox(self.textbox_ymax_ax,'',str(self.ymax),lambda text: self.change_text(text,_type='ymax'))
+        ylimbottom=ylimtop-7*smallspace
 
-        self.text_xrange=self.fig.text(0.39,0.87,'set vel range')
-        self.textbox_velmin_ax=self.fig.add_axes([0.375, 0.835, 0.0475, 0.025])
-        self.textbox_velmin=make_textbox(self.textbox_velmin_ax,'',str(self.velmin),lambda text: self.change_text(text,_type='velmin'))
+        # Controls for setting vlimits
+        vlimtop=ylimbottom-space
+        self.text_vlim=self.fig.text(mid,vlimtop,'v limits',ha='center')
+        self.textbox_vmin_ax=self.fig.add_axes([mid-textboxwidth/2., vlimtop-3*smallspace, textboxwidth, textboxheight])
+        self.textbox_vmin=make_textbox(self.textbox_vmin_ax,'',str(self.velmin),lambda text: self.change_text(text,_type='velmin'))
+        self.textbox_vmax_ax=self.fig.add_axes([mid-textboxwidth/2., vlimtop-6*smallspace, textboxwidth, textboxheight])
+        self.textbox_vmax=make_textbox(self.textbox_vmax_ax,'',str(self.velmax),lambda text: self.change_text(text,_type='velmax'))
+        vlimbottom=vlimtop-7*smallspace
 
-        self.textbox_velmax_ax=self.fig.add_axes([0.4275, 0.835, 0.0475, 0.025])
-        self.textbox_velmax=make_textbox(self.textbox_velmax_ax,'',str(self.velmax),lambda text: self.change_text(text,_type='velmax'))
+        # Compute moments button
+        mombuttontop=vlimbottom-space*3
+        self.mom_ax=self.fig.add_axes([0.035, mombuttontop, 0.05, 2*space])
+        self.mom=make_button(self,self.mom_ax,"compute",self.run_moments, color='palegreen',hovercolor='springgreen')
+        mombuttonbottom=mombuttontop-3*space
+
+        #====================#
+        # plot moments menu
+        #====================#
+
+        # Controls which moment map gets plotted
+        self.mom0_ax=self.fig.add_axes([0.1375, 0.14, 0.0625, 0.05])
+        self.mom0=make_button(self,self.mom0_ax,"moment 0",lambda event: self.update_map(event, map=0),color='0.75',hovercolor='0.95')
+
+        self.mom1_ax=self.fig.add_axes([0.2125, 0.14, 0.0625, 0.05])
+        self.mom1=make_button(self,self.mom1_ax,"moment 1",lambda event: self.update_map(event, map=1),color='0.75',hovercolor='0.95')
+
+        self.mom2_ax=self.fig.add_axes([0.2875, 0.14, 0.0625, 0.05])
+        self.mom2=make_button(self,self.mom2_ax,"moment 2",lambda event: self.update_map(event, map=2),color='0.75',hovercolor='0.95')
+
+        self.mom9_ax=self.fig.add_axes([0.3625, 0.14, 0.0625, 0.05])
+        self.mom9=make_button(self,self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
 
     def show(self):
         """
@@ -122,56 +157,67 @@ class ScouseCoverage(object):
 
     def update_map(self,event,map=None):
         """
-
+        Controls what happens when one of the map buttons is pressed
         """
+        # Get the map
         self.moment=map
+        # update the limits
         self.vmin = np.nanmin(self.moments[self.moment].value)
         self.vmax = np.nanmax(self.moments[self.moment].value)
-
+        # update the sliders
         update_sliders(self)
-
+        # plot the map
         self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
         # update plot
         self.fig.canvas.draw()
 
     def run_moments(self,event):
         """
-
+        Controls what happens when the compute moments button is pressed
         """
-        print(self.xmin,self.xmax,self.ymin,self.ymax,self.velmin,self.velmax)
+        # compute moments
         self.moments = compute_moments(self)
+        # update the limits
+        self.vmin = np.nanmin(self.moments[self.moment].value)
+        self.vmax = np.nanmax(self.moments[self.moment].value)
+        # update the sliders
+        update_sliders(self)
+        # plot the map
         self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
         # update plot
         self.fig.canvas.draw()
 
     def update_vmin(self,pos=None):
         """
-
+        Controls what happens when the vmin slider is updated
         """
+        # set the upper limits otherwise it'll go a bit weird
         if pos > self.vmax:
             self.vmin=self.vmax
         else:
             self.vmin = pos
-        self.map=plot_map(self,self.moments[self.moment])
+        # plot the map with the new slider values
+        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
         # update plot
         self.fig.canvas.draw()
 
     def update_vmax(self,pos=None):
         """
-
+        Controls what happens when the vmax slider is updated
         """
+        # set the upper limits otherwise it'll go a bit weird
         if pos < self.vmin:
             self.vmax=self.vmin
         else:
             self.vmax=pos
-
-        self.map=plot_map(self,self.moments[self.moment])
+        # plot the map with the new slider values
+        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
         # update plot
         self.fig.canvas.draw()
 
     def change_text(self, text, _type=None):
         """
-
+        Controls what happens if the text boxes are updated
         """
         # extract value from text input.
         value = eval(text)
@@ -200,6 +246,8 @@ class ScouseCoverage(object):
             self.velmin=value
         elif _type=='velmax':
             self.velmax=value
+        elif _type=='mask':
+            self.mask_below=value
         else:
             pass
 
@@ -224,7 +272,7 @@ def setup_plot_window(self,ax,color='white'):
 
 def setup_map_window(self):
     """
-
+    Setup the map window for plotting
     """
     try:
         from wcsaxes import WCSAxes
@@ -249,29 +297,15 @@ def setup_map_window(self):
 
 def compute_moments(self):
     """
-    Create moment maps
-
-    Parameters
-    ----------
-    scouseobject : Instance of the scousepy class
-    write_moments : bool
-        if True scouse will output the moments as fits files
-    dir : string
-        Output directory for moment files
-    filename : string
-        output file name for moment files (scousepy will add suffix relating to
-        the different moments)
-    verbose : bool
-        verbose output
-
+    Create moment maps using spectral cube
     """
     from astropy import units as u
     cube=trim_cube(self)
-    momzero = cube.with_mask(cube > u.Quantity(self.scouseobject.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment0(axis=0)
-    momone = cube.with_mask(cube > u.Quantity(self.scouseobject.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment1(axis=0)
-    momtwo = cube.with_mask(cube > u.Quantity(self.scouseobject.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).linewidth_sigma()
+    momzero = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment0(axis=0)
+    momone = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment1(axis=0)
+    momtwo = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).linewidth_sigma()
     slab = cube.spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
-    maskslab = cube.with_mask(cube > u.Quantity(self.scouseobject.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
+    maskslab = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
 
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
@@ -291,29 +325,32 @@ def compute_moments(self):
 
 def trim_cube(self):
     """
-
+    Trims the x,y values of the cube, returns a trimmed cube
     """
     cube = self.scouseobject.cube[:,self.ymin:self.ymax,self.xmin:self.xmax]
     return cube
 
 def plot_map(self, map, update=False, plottoupdate=None):
     """
-
+    map plotting
     """
     import matplotlib.pyplot as plt
     if update:
-        #self.map_window.clear()
-        #self.map_window=setup_map_window(self)
+        empty=np.empty(np.shape(map.value))
+        empty[:]=np.nan
+        self.map.set_data(empty)
+
         return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=plt.cm.gray, vmin=self.vmin, vmax=self.vmax)
     else:
         return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=plt.cm.gray, vmin=self.vmin, vmax=self.vmax)
 
-def make_button(ax,name,function,**kwargs):
+def make_button(self,ax,name,function,**kwargs):
     """
     GUI setup
     """
     from matplotlib.widgets import Button
-    mybutton=Button(ax,name)
+    import matplotlib.patches as mpatches
+    mybutton=Button(ax,name,**kwargs)
     mybutton.on_clicked(function)
     return mybutton
 
@@ -343,9 +380,9 @@ def update_sliders(self):
     self.slider_vmax.valinit = self.vmax
 
     self.slider_vmin_ax.clear()
-    self.slider_vmin=make_slider(self.slider_vmin_ax,"vmin",self.vmin,self.vmax,self.update_vmin,valinit=self.vmin,valfmt="%1.2f")
+    self.slider_vmin=make_slider(self.slider_vmin_ax,"vmin",self.vmin,self.vmax,self.update_vmin,valinit=self.vmin,valfmt="%1.2f",color='0.75')
     self.slider_vmax_ax.clear()
-    self.slider_vmax=make_slider(self.slider_vmax_ax,"vmax",self.vmin,self.vmax,self.update_vmax,valinit=self.vmax,valfmt="%1.2f")
+    self.slider_vmax=make_slider(self.slider_vmax_ax,"vmax",self.vmin,self.vmax,self.update_vmax,valinit=self.vmax,valfmt="%1.2f",color='0.75')
 
 def make_textbox(ax,heading,text,function,**kwargs):
     """
