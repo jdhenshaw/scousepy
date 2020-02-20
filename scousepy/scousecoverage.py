@@ -13,6 +13,7 @@ import warnings
 from astropy import log
 import sys
 from .colors import *
+import os
 
 class ScouseCoverage(object):
     """
@@ -21,7 +22,7 @@ class ScouseCoverage(object):
     def __init__(self,
                  scouseobject=None):
 
-        #
+        # For moments
         self.scouseobject=scouseobject
         self.mask_below=0.0
         self.cube=scouseobject.cube
@@ -32,10 +33,34 @@ class ScouseCoverage(object):
         self.velmin = np.around(np.nanmin(self.scouseobject.x),decimals=2)
         self.velmax = np.around(np.nanmax(self.scouseobject.x),decimals=2)
 
+        # For coverage
+        self.wsaa=[3]
+        self.fillfactor=[0.5]
+        self.covmethod='regular'
+        self.samplesize=10
+        self.spacing='nyquist'
+        self.speccomplexity='momdiff'
+
         # imports
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
-        plt.style.use('/Users/henshaw/Dropbox/Work/Code/matplotlib_preamble/paper_smallfig.mplstyle')
+        from matplotlib import rcParams
+        rcParams['font.family']= 'Arial'
+        rcParams['font.size']= 9
+        rcParams['lines.linewidth']= 1.     ## line width in points
+        rcParams['axes.labelsize'] =18  ## fontsize of the x any y labels
+        rcParams['xtick.labelsize']=16 ## fontsize of the tick labels
+        rcParams['ytick.labelsize'] =16 ## fontsize of the tick labels
+        rcParams['xtick.major.pad']=8   ## distance to major tick label in points
+        rcParams['ytick.major.pad']=8    ## distance to major tick label in points
+        rcParams['xtick.major.size'] =4    ## major tick size in points
+        rcParams['xtick.minor.size' ]=2     ## minor tick size in points
+        rcParams['xtick.major.width'] =1.    ## major tick width in points
+        rcParams['xtick.minor.width']=1.    ## minor tick width in points
+        rcParams['ytick.major.size']= 4    ## major tick size in points
+        rcParams['ytick.minor.size' ]=2      ## minor tick size in points
+        rcParams['ytick.major.width']=1.    ## major tick width in points
+        rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # compute moments
         self.moments = compute_moments(self)
@@ -69,7 +94,6 @@ class ScouseCoverage(object):
         #=======#
         # sliders
         #=======#
-
         # create sliders for controlling the imshow limits
         self.slider_vmin_ax=self.fig.add_axes([0.1, 0.84, 0.375, 0.015])
         self.slider_vmin=make_slider(self.slider_vmin_ax,"vmin",self.vmin,self.vmax,self.update_vmin,valinit=self.vmin,valfmt="%1.2f", facecolor='0.75')
@@ -79,17 +103,17 @@ class ScouseCoverage(object):
         #====================#
         # compute moments menu
         #====================#
+        textboxheight=0.025
+        textboxwidth=0.05
+        top=0.78
+        mid=0.06
+        space=0.025
+        smallspace=space/2.
 
         # Create a menu bar for moment computation
         self.menu_ax=[0.025,0.2,0.07,0.6]
         self.menu=setup_plot_window(self,self.menu_ax,color='0.75')
-
-        textboxheight=0.025
-        textboxwidth=0.05
-        top=0.73
-        mid=0.06
-        space=0.025
-        smallspace=space/2.
+        #elf.text_mom=self.fig.text(mid,0.78,'moments',ha='center',va='center')
 
         # Controls for masking
         masktop=top
@@ -126,15 +150,14 @@ class ScouseCoverage(object):
         vlimbottom=vlimtop-7*smallspace
 
         # Compute moments button
-        mombuttontop=vlimbottom-space*3
+        mombuttontop=vlimbottom-space*7
         self.mom_ax=self.fig.add_axes([0.035, mombuttontop, 0.05, 2*space])
-        self.mom=make_button(self,self.mom_ax,"compute",self.run_moments, color='palegreen',hovercolor='springgreen')
+        self.mom=make_button(self,self.mom_ax,"run\nmoments",self.run_moments, color='palegreen',hovercolor='springgreen')
         mombuttonbottom=mombuttontop-3*space
 
         #====================#
         # plot moments menu
         #====================#
-
         # Controls which moment map gets plotted
         self.mom0_ax=self.fig.add_axes([0.1375, 0.14, 0.0625, 0.05])
         self.mom0=make_button(self,self.mom0_ax,"moment 0",lambda event: self.update_map(event, map=0),color='0.75',hovercolor='0.95')
@@ -147,6 +170,68 @@ class ScouseCoverage(object):
 
         self.mom9_ax=self.fig.add_axes([0.3625, 0.14, 0.0625, 0.05])
         self.mom9=make_button(self,self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
+
+        #==================#
+        # coverage controls
+        #==================#
+        # Create a menu bar for moment computation
+        mid = 0.515
+        self.menu_ax=[0.48,0.2,0.07,0.6]
+        self.menu=setup_plot_window(self,self.menu_ax,color='0.75')
+        #self.text_cov=self.fig.text(mid,0.78,'coverage',ha='center',va='center')
+
+        # Controls for saa size
+        saatop=top
+        self.text_saa_size=self.fig.text(mid,saatop,'SAA size',ha='center',va='center')
+        self.textbox_saa_ax=self.fig.add_axes([mid-textboxwidth/2., saatop-3*smallspace, textboxwidth, textboxheight])
+        self.textbox_saa=make_textbox(self.textbox_saa_ax,'',str(self.wsaa),lambda text: self.change_text(text,_type='saa'))
+        saabottom=saatop-3.*smallspace
+
+        # Controls for setting filling factor
+        filltop=saabottom-space
+        self.text_fill=self.fig.text(mid,filltop,'filling factor',ha='center',va='center')
+        self.textbox_fill_ax=self.fig.add_axes([mid-textboxwidth/2.,filltop-3*smallspace, textboxwidth, textboxheight])
+        self.textbox_fill=make_textbox(self.textbox_fill_ax,'',str(self.fillfactor),lambda text: self.change_text(text,_type='fill'))
+        fillbottom=filltop-3.*smallspace
+
+        # Controls for setting spacing
+        methodtop=fillbottom-space
+        self.text_method=self.fig.text(mid,methodtop,'method',ha='center',va='center')
+        self.radiobutton_method_ax=self.fig.add_axes([mid-textboxwidth/2., methodtop-7*smallspace, textboxwidth, textboxheight*3.])
+        self.radiobutton_method=make_radiobuttons(self.radiobutton_method_ax, ('regular','random'),self.change_covmethod,activecolor='red')
+        methodbottom=methodtop-7.*smallspace
+
+        # Controls for setting filling factor
+        sampletop=methodbottom-space
+        self.text_sample=self.fig.text(mid,sampletop,'sample size',ha='center',va='center')
+        self.textbox_sample_ax=self.fig.add_axes([mid-textboxwidth/2.,sampletop-3*smallspace, textboxwidth, textboxheight])
+        self.textbox_sample=make_textbox(self.textbox_sample_ax,'',str(self.samplesize),lambda text: self.change_text(text,_type='sample'))
+        samplebottom=sampletop-3.*smallspace
+
+        # Controls for setting spacing
+        spacetop=samplebottom-space
+        self.text_spacing=self.fig.text(mid,spacetop,'spacing',ha='center',va='center')
+        self.radiobutton_space_ax=self.fig.add_axes([mid-textboxwidth/2., spacetop-7*smallspace, textboxwidth, textboxheight*3.])
+        self.radiobutton_space=make_radiobuttons(self.radiobutton_space_ax, ('nyquist','regular'),self.change_spacing,activecolor='red')
+        spacebottom=spacetop-7.*smallspace
+
+        # Controls for spectral complexity measure
+        complextop=spacebottom-space
+        self.text_complex=self.fig.text(mid,complextop,'complexity',ha='center',va='center')
+        self.radiobutton_complex_ax=self.fig.add_axes([mid-textboxwidth/2., complextop-7*smallspace, textboxwidth, textboxheight*3.])
+        self.radiobutton_complex=make_radiobuttons(self.radiobutton_complex_ax, ('$|m_1$-$v_p|$','kurtosis'),self.change_speccomplexity,activecolor='red')
+        complexbottom=complextop-7.*smallspace
+
+        # Compute coverage button
+        covbuttontop=mombuttontop
+        self.cov_ax=self.fig.add_axes([0.49, covbuttontop, 0.05, 2*space])
+        self.cov=make_button(self,self.cov_ax,"run\ncoverage",self.run_coverage, color='palegreen',hovercolor='springgreen')
+        covbuttonbottom=covbuttontop-3*space
+        #==================#
+        # information window
+        #==================#
+        #self.information_window_ax=[0.5,0.2,0.475,0.3]
+        #self.information_window=setup_plot_window(self,self.information_window_ax)
 
     def show(self):
         """
@@ -221,35 +306,104 @@ class ScouseCoverage(object):
         """
         # extract value from text input.
         value = eval(text)
+
         # update value
         if _type=='xmin':
             value=int(value)
+            # make sure index can't be less than 0
             if value < 0:
                 value=0
             self.xmin=value
         elif _type=='xmax':
+            # or greater than the length of the x axis
             if value > self.scouseobject.cube.shape[2]:
                 value=self.scouseobject.cube.shape[2]
             value=int(value)
             self.xmax=value
+
         elif _type=='ymin':
+            # make sure index can't be less than 0
             if value < 0:
                 value=0
             value=int(value)
             self.ymin=value
         elif _type=='ymax':
+            # or greater than the length of the y axis
             if value > self.scouseobject.cube.shape[1]:
                 value=self.scouseobject.cube.shape[1]
             value=int(value)
             self.ymax=value
+
         elif _type=='velmin':
-            self.velmin=value
+            # make sure index can't be less than the minimum of the vel axis
+            if value < self.scouseobject.x[0]:
+                value=self.scouseobject.x[0]
+            else:
+                self.velmin=value
         elif _type=='velmax':
-            self.velmax=value
+            # or greater than the length of the vel axis
+            if value > self.scouseobject.x[-1]:
+                value = self.scouseobject.x[-1]
+            else:
+                self.velmax=value
+
         elif _type=='mask':
             self.mask_below=value
+
+        elif _type=='saa':
+            # check to see if multiple wsaa values are given
+            if np.size(value)>1:
+                # Create a list of wsaa values
+                self.wsaa=list(value)
+                # check if they are descending
+                check_descending=all(earlier >= later for earlier, later in zip(self.wsaa, self.wsaa[1:]))
+                # if not then sort them so that they are
+                if not check_descending:
+                    self.wsaa.sort(reverse=True)
+            else:
+                self.wsaa=value
+
+        elif _type=='fill':
+            # check to see if multiple wsaa values are given
+            if np.size(self.wsaa)>1:
+                # compare the size of the fillfactor list to the wsaa list
+                if np.size(value)==np.size(self.wsaa):
+                    # if they are the same create the fillfactor list accordingly
+                    self.fillfactor=[value[i] for i in range(np.size(self.wsaa))]
+                else:
+                    # if not then just use the first value in the fillfactor list
+                    self.fillfactor=[value[0] for i in range(np.size(self.wsaa))]
+            else:
+                # if only a single wsaa value is given always take the first value
+                # of the fillfactor list
+                self.fillfactor=[value[0] for i in range(np.size(self.wsaa))]
+
+        elif _type=='sample':
+            self.samplesize=int(value)
+
         else:
             pass
+
+    def change_covmethod(self,label):
+        """
+        Controls what happens if coverage method radio button is clicked
+        """
+        self.covmethod=label
+
+    def change_spacing(self,label):
+        """
+        Controls what happens if spacing radio button is clicked
+        """
+        self.spacing=label
+
+    def change_speccomplexity(self,label):
+        """
+        Controls what happens if spectral complexity radio button is clicked
+        """
+        self.speccomplexity=label
+
+    def run_coverage(self):
+        pass
 
 def setup_plot_window(self,ax,color='white'):
     """
@@ -392,3 +546,14 @@ def make_textbox(ax,heading,text,function,**kwargs):
     mytextbox=TextBox(ax,heading,initial=text, color='1')
     mytextbox.on_submit(function)
     return mytextbox
+
+def make_radiobuttons(ax,options,function,**kwargs):
+    """
+    GUI setup
+    """
+    from matplotlib.widgets import RadioButtons
+    myradiobuttons=RadioButtons(ax,options,**kwargs)
+    for circle in myradiobuttons.circles: # adjust radius here. The default is 0.05
+        circle.set_radius(0.05)
+    myradiobuttons.on_clicked(function)
+    return myradiobuttons
