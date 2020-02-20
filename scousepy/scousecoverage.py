@@ -45,6 +45,7 @@ class ScouseCoverage(object):
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
         from matplotlib import rcParams
+        self.cmap=plt.cm.gray
         rcParams['font.family']= 'Arial'
         rcParams['font.size']= 9
         rcParams['lines.linewidth']= 1.     ## line width in points
@@ -149,8 +150,15 @@ class ScouseCoverage(object):
         self.textbox_vmax=make_textbox(self.textbox_vmax_ax,'',str(self.velmax),lambda text: self.change_text(text,_type='velmax'))
         vlimbottom=vlimtop-7*smallspace
 
+        # Controls for spectral complexity measure
+        cmaptop=vlimbottom-space
+        self.text_cmap=self.fig.text(mid,cmaptop,'colour map',ha='center',va='center')
+        self.radiobutton_cmap_ax=self.fig.add_axes([mid-textboxwidth/2., cmaptop-7*smallspace, textboxwidth, textboxheight*3.])
+        self.radiobutton_cmap=make_radiobuttons(self.radiobutton_cmap_ax, ('greys','viridis','bwr'),self.change_cmap,activecolor='black')
+        cmapbottom=cmaptop-7.*smallspace
+
         # Compute moments button
-        mombuttontop=vlimbottom-space*7
+        mombuttontop=cmapbottom-space*3
         self.mom_ax=self.fig.add_axes([0.035, mombuttontop, 0.05, 2*space])
         self.mom=make_button(self,self.mom_ax,"run\nmoments",self.run_moments, color='palegreen',hovercolor='springgreen')
         mombuttonbottom=mombuttontop-3*space
@@ -198,7 +206,7 @@ class ScouseCoverage(object):
         methodtop=fillbottom-space
         self.text_method=self.fig.text(mid,methodtop,'method',ha='center',va='center')
         self.radiobutton_method_ax=self.fig.add_axes([mid-textboxwidth/2., methodtop-7*smallspace, textboxwidth, textboxheight*3.])
-        self.radiobutton_method=make_radiobuttons(self.radiobutton_method_ax, ('regular','random'),self.change_covmethod,activecolor='red')
+        self.radiobutton_method=make_radiobuttons(self.radiobutton_method_ax, ('regular','random'),self.change_covmethod,activecolor='black')
         methodbottom=methodtop-7.*smallspace
 
         # Controls for setting filling factor
@@ -212,14 +220,14 @@ class ScouseCoverage(object):
         spacetop=samplebottom-space
         self.text_spacing=self.fig.text(mid,spacetop,'spacing',ha='center',va='center')
         self.radiobutton_space_ax=self.fig.add_axes([mid-textboxwidth/2., spacetop-7*smallspace, textboxwidth, textboxheight*3.])
-        self.radiobutton_space=make_radiobuttons(self.radiobutton_space_ax, ('nyquist','regular'),self.change_spacing,activecolor='red')
+        self.radiobutton_space=make_radiobuttons(self.radiobutton_space_ax, ('nyquist','regular'),self.change_spacing,activecolor='black')
         spacebottom=spacetop-7.*smallspace
 
         # Controls for spectral complexity measure
         complextop=spacebottom-space
         self.text_complex=self.fig.text(mid,complextop,'complexity',ha='center',va='center')
         self.radiobutton_complex_ax=self.fig.add_axes([mid-textboxwidth/2., complextop-7*smallspace, textboxwidth, textboxheight*3.])
-        self.radiobutton_complex=make_radiobuttons(self.radiobutton_complex_ax, ('$|m_1$-$v_p|$','kurtosis'),self.change_speccomplexity,activecolor='red')
+        self.radiobutton_complex=make_radiobuttons(self.radiobutton_complex_ax, ('$|m_1$-$v_p|$','kurtosis'),self.change_speccomplexity,activecolor='black')
         complexbottom=complextop-7.*smallspace
 
         # Compute coverage button
@@ -252,7 +260,7 @@ class ScouseCoverage(object):
         # update the sliders
         update_sliders(self)
         # plot the map
-        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
+        self.map=plot_map(self,self.moments[self.moment],update=True)
         # update plot
         self.fig.canvas.draw()
 
@@ -268,7 +276,7 @@ class ScouseCoverage(object):
         # update the sliders
         update_sliders(self)
         # plot the map
-        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
+        self.map=plot_map(self,self.moments[self.moment],update=True)
         # update plot
         self.fig.canvas.draw()
 
@@ -282,7 +290,7 @@ class ScouseCoverage(object):
         else:
             self.vmin = pos
         # plot the map with the new slider values
-        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
+        self.map=plot_map(self,self.moments[self.moment],update=True)
         # update plot
         self.fig.canvas.draw()
 
@@ -296,7 +304,7 @@ class ScouseCoverage(object):
         else:
             self.vmax=pos
         # plot the map with the new slider values
-        self.map=plot_map(self,self.moments[self.moment],update=True,plottoupdate=self.map)
+        self.map=plot_map(self,self.moments[self.moment],update=True)
         # update plot
         self.fig.canvas.draw()
 
@@ -383,6 +391,23 @@ class ScouseCoverage(object):
 
         else:
             pass
+
+    def change_cmap(self,label):
+        """
+        Controls what happens if coverage method radio button is clicked
+        """
+        import matplotlib.pyplot as plt
+        if label=='greys':
+            self.cmap=plt.cm.grey
+        elif label=='viridis':
+            self.cmap=plt.cm.viridis
+        elif label=='bwr':
+            self.cmap=plt.cm.bwr
+        else:
+            self.cmap=plt.cm.grey
+
+        self.map.set_cmap(self.cmap)
+        self.fig.canvas.draw()
 
     def change_covmethod(self,label):
         """
@@ -490,13 +515,15 @@ def plot_map(self, map, update=False, plottoupdate=None):
     """
     import matplotlib.pyplot as plt
     if update:
-        empty=np.empty(np.shape(map.value))
+        empty=np.empty(np.shape(self.moments[self.moment]))
         empty[:]=np.nan
         self.map.set_data(empty)
-
-        return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=plt.cm.gray, vmin=self.vmin, vmax=self.vmax)
+        self.map.set_data(map.value)
+        self.map.set_clim(self.vmin, self.vmax)
+        self.map.set_cmap(self.cmap)
+        return self.map
     else:
-        return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=plt.cm.gray, vmin=self.vmin, vmax=self.vmax)
+        return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
 
 def make_button(self,ax,name,function,**kwargs):
     """
