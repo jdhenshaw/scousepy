@@ -18,9 +18,14 @@ import os
 class ScouseCoverage(object):
     """
     Interactive coverage selector for scouse
+
+    Parameters
+    ----------
+    scouseobject : scouse class object
+        Instance of the scouse object.
+
     """
-    def __init__(self,
-                 scouseobject=None):
+    def __init__(self, scouseobject=None):
 
         # For moments
         self.scouseobject=scouseobject
@@ -39,7 +44,13 @@ class ScouseCoverage(object):
         self.covmethod='regular'
         self.samplesize=10
         self.spacing='nyquist'
+        self.spacingvalue=None
         self.speccomplexity='momdiff'
+        self.refine_grid=False
+        self.coverage=[]
+        self.coverage_map=None
+        self.totalsaas=None
+        self.totalspec=None
 
         # imports
         import matplotlib.pyplot as plt
@@ -65,6 +76,8 @@ class ScouseCoverage(object):
 
         # compute moments
         self.moments = compute_moments(self)
+        # compute measures of spectral complexity
+        self.complexity_maps = compute_spectral_complexity(self)
 
         plt.ioff()
         #================#
@@ -75,22 +88,16 @@ class ScouseCoverage(object):
         #===============#
         # plot window
         #===============#
-        # logo
-        # self.logo_window_ax=[0.8,0.90,0.2,0.1]
-        # self.logo_window=setup_plot_window(self,self.logo_window_ax)
-        # self.logo_window.axis('off')
-        # logo = mpimg.imread('/Users/henshaw/Dropbox/Work/Documents/Logo/SCOUSE_LOGO_FINAL-01.jpg')
-        # self.logo = plt.imshow(logo,interpolation='nearest')
 
         # Set up the plot defaults
         self.blank_window_ax=[0.1,0.2,0.375,0.6]
         self.blank_window=setup_plot_window(self,self.blank_window_ax)
         self.map_window=setup_map_window(self)
         self.moment = 0
-        self.vmin = np.nanmin(self.moments[0].value)
-        self.vmax = np.nanmax(self.moments[0].value)
+        self.vmin = np.nanmin(self.moments[0].value)-0.05*np.nanmin(self.moments[0].value)
+        self.vmax = np.nanmax(self.moments[0].value)+0.05*np.nanmax(self.moments[0].value)
         # plot the moment map
-        self.map = plot_map(self, self.moments[0])
+        self.map = plot_map(self, self.moments[0].value)
 
         #=======#
         # sliders
@@ -166,22 +173,44 @@ class ScouseCoverage(object):
         #====================#
         # plot moments menu
         #====================#
+        space=0.015
+        size=0.05
+
         # Controls which moment map gets plotted
-        self.mom0_ax=self.fig.add_axes([0.1375, 0.14, 0.0625, 0.05])
+        start=0.1
+        self.mom0_ax=self.fig.add_axes([start, 0.14, size, 0.05])
         self.mom0=make_button(self,self.mom0_ax,"moment 0",lambda event: self.update_map(event, map=0),color='0.75',hovercolor='0.95')
+        end=start+size+space
 
-        self.mom1_ax=self.fig.add_axes([0.2125, 0.14, 0.0625, 0.05])
+        start=end
+        self.mom1_ax=self.fig.add_axes([start, 0.14, size, 0.05])
         self.mom1=make_button(self,self.mom1_ax,"moment 1",lambda event: self.update_map(event, map=1),color='0.75',hovercolor='0.95')
+        end=start+size+space
 
-        self.mom2_ax=self.fig.add_axes([0.2875, 0.14, 0.0625, 0.05])
+        start=end
+        self.mom2_ax=self.fig.add_axes([start, 0.14, size, 0.05])
         self.mom2=make_button(self,self.mom2_ax,"moment 2",lambda event: self.update_map(event, map=2),color='0.75',hovercolor='0.95')
+        end=start+size+space
 
-        self.mom9_ax=self.fig.add_axes([0.3625, 0.14, 0.0625, 0.05])
-        self.mom9=make_button(self,self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
+        start=end
+        self.mom3_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        self.mom3=make_button(self,self.mom3_ax,"moment 3",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
+        end=start+size+space
+
+        start=end
+        self.mom4_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        self.mom4=make_button(self,self.mom4_ax,"moment 4",lambda event: self.update_map(event, map=4),color='0.75',hovercolor='0.95')
+        end=start+size+space
+
+        start=end
+        self.mom9_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        self.mom9=make_button(self,self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=5),color='0.75',hovercolor='0.95')
+        end=start+size+space
 
         #==================#
         # coverage controls
         #==================#
+        space=0.025
         # Create a menu bar for moment computation
         mid = 0.515
         self.menu_ax=[0.48,0.2,0.07,0.6]
@@ -235,11 +264,39 @@ class ScouseCoverage(object):
         self.cov_ax=self.fig.add_axes([0.49, covbuttontop, 0.05, 2*space])
         self.cov=make_button(self,self.cov_ax,"run\ncoverage",self.run_coverage, color='palegreen',hovercolor='springgreen')
         covbuttonbottom=covbuttontop-3*space
+
         #==================#
         # information window
         #==================#
-        #self.information_window_ax=[0.5,0.2,0.475,0.3]
-        #self.information_window=setup_plot_window(self,self.information_window_ax)
+        self.information_window_ax=[0.575,0.3,0.35,0.4]
+        self.information_window=setup_plot_window(self,self.information_window_ax)
+        # print information relating to moment analysis
+        self.information_window.text(0.02, 0.94, 'moment information:',transform=self.information_window.transAxes,fontsize=10, fontweight='bold')
+        self.text_mask = print_information(self,0.02,0.88,'data masked below: '+str(self.mask_below), fontsize=10)
+        self.text_ppv = print_information(self,0.02,0.82,'PPV volume ([x,y,v]): [['+str(self.xmin)+', '+str(self.xmax)+'], ['+str(self.ymin)+', '+str(self.ymax)+'], ['+str(self.velmin)+', '+str(self.velmax)+']]', fontsize=10)
+        # print information relating to coverage analysis
+        self.information_window.text(0.02, 0.7, 'coverage information:',transform=self.information_window.transAxes,fontsize=10, fontweight='bold')
+        self.text_saa = print_information(self,0.02,0.64,'SAA size(s): '+str(self.wsaa), fontsize=10)
+        self.text_fillingfactor = print_information(self,0.02,0.58,'filling factor(s): '+str(self.fillfactor), fontsize=10)
+        self.text_method = print_information(self,0.02,0.52,'method: '+str(self.covmethod), fontsize=10)
+        self.text_spacing = print_information(self,0.02,0.46,'spacing: '+str(self.spacing), fontsize=10)
+        self.text_complexity = print_information(self,0.02,0.4,'', fontsize=10)
+        if self.refine_grid:
+            if self.speccomplexity=='momdiff':
+                update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
+            elif self.speccomplexity=='kurtosis':
+                update_text(self.text_complexity, 'complexity measure: kurtosis')
+            else:
+                update_text(self.text_complexity, 'complexity measure: '+str(self.speccomplexity))
+        else:
+            update_text(self.text_complexity,'')
+        # prepare summary information
+        self.information_window.text(0.02, 0.28, 'summary:',transform=self.information_window.transAxes,fontsize=10, fontweight='bold')
+        if np.size(self.coverage)==0:
+            self.text_runcoverage = print_information(self,0.17,0.28,'run coverage', fontsize=10, color='green',ha='left')
+        self.text_totalindivsaas = print_information(self,0.02,0.22,'', fontsize=10)
+        self.text_totalindivspec = print_information(self,0.02,0.16,'', fontsize=10)
+        self.text_summary = print_information(self,0.02,0.04,'', fontsize=10,fontweight='bold')
 
     def show(self):
         """
@@ -251,66 +308,122 @@ class ScouseCoverage(object):
     def update_map(self,event,map=None):
         """
         Controls what happens when one of the map buttons is pressed
+
+        Parameters
+        ----------
+        event : button press event
+        map : number
+            Index for the self.moments list - indicates which map to plot
         """
         # Get the map
         self.moment=map
+        if (map==3) or (map==4):
+            maptoplot=self.moments[self.moment]
+        else:
+            maptoplot=self.moments[self.moment].value
         # update the limits
-        self.vmin = np.nanmin(self.moments[self.moment].value)
-        self.vmax = np.nanmax(self.moments[self.moment].value)
+        self.vmin = np.nanmin(maptoplot)-0.05*np.nanmin(maptoplot)
+        self.vmax = np.nanmax(maptoplot)+0.05*np.nanmax(maptoplot)
         # update the sliders
         update_sliders(self)
         # plot the map
-        self.map=plot_map(self,self.moments[self.moment],update=True)
+        self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
 
     def run_moments(self,event):
         """
         Controls what happens when the compute moments button is pressed
+
+        Parameters
+        ----------
+        event : button press event
         """
         # compute moments
         self.moments = compute_moments(self)
+        if (self.moment==3) or (self.moment==4):
+            maptoplot=self.moments[self.moment]
+        else:
+            maptoplot=self.moments[self.moment].value
+        # compute measures of spectral complexity
+        self.complexity_maps = compute_spectral_complexity(self)
         # update the limits
-        self.vmin = np.nanmin(self.moments[self.moment].value)
-        self.vmax = np.nanmax(self.moments[self.moment].value)
+        self.vmin = np.nanmin(maptoplot)-0.05*np.nanmin(maptoplot)
+        self.vmax = np.nanmax(maptoplot)+0.05*np.nanmax(maptoplot)
         # update the sliders
         update_sliders(self)
         # plot the map
-        self.map=plot_map(self,self.moments[self.moment],update=True)
+        self.map=plot_map(self,maptoplot,update=True)
+        # update the information window
+        update_text(self.text_mask, 'data masked below: '+str(self.mask_below))
+        update_text(self.text_ppv, 'PPV volume ([x,y,v]): [['+str(self.xmin)+', '+str(self.xmax)+'], ['+ str(self.ymin)+', '+str(self.ymax)+'], ['+str(self.velmin)+', '+str(self.velmax)+']]')
+        update_text(self.text_runcoverage, 'run coverage')
+        update_text(self.text_totalindivsaas, '')
+        update_text(self.text_totalindivspec, '')
+        update_text(self.text_summary, '')
+
         # update plot
         self.fig.canvas.draw()
 
     def update_vmin(self,pos=None):
         """
         Controls what happens when the vmin slider is updated
+
+        Parameters
+        ----------
+        pos : slider position
         """
         # set the upper limits otherwise it'll go a bit weird
         if pos > self.vmax:
             self.vmin=self.vmax
         else:
             self.vmin = pos
+
+        if (self.moment==3) or (self.moment==4):
+            maptoplot=self.moments[self.moment]
+        else:
+            maptoplot=self.moments[self.moment].value
+
         # plot the map with the new slider values
-        self.map=plot_map(self,self.moments[self.moment],update=True)
+        self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
 
     def update_vmax(self,pos=None):
         """
         Controls what happens when the vmax slider is updated
+
+        Parameters
+        ----------
+        pos : slider position
         """
         # set the upper limits otherwise it'll go a bit weird
         if pos < self.vmin:
             self.vmax=self.vmin
         else:
             self.vmax=pos
+
+        if (self.moment==3) or (self.moment==4):
+            maptoplot=self.moments[self.moment]
+        else:
+            maptoplot=self.moments[self.moment].value
+
         # plot the map with the new slider values
-        self.map=plot_map(self,self.moments[self.moment],update=True)
+        self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
 
     def change_text(self, text, _type=None):
         """
         Controls what happens if the text boxes are updated
+
+        Parameters
+        ----------
+        text : string
+            the text within the text box
+        _type : string
+            indicates which textbox has been updated
+
         """
         # extract value from text input.
         value = eval(text)
@@ -359,6 +472,10 @@ class ScouseCoverage(object):
             self.mask_below=value
 
         elif _type=='saa':
+            # Always make sure it is a list
+            if isinstance(value, int):
+                value=[value]
+
             # check to see if multiple wsaa values are given
             if np.size(value)>1:
                 # Create a list of wsaa values
@@ -368,10 +485,26 @@ class ScouseCoverage(object):
                 # if not then sort them so that they are
                 if not check_descending:
                     self.wsaa.sort(reverse=True)
+
+                # compare the size of the fillfactor list to the wsaa list
+                if np.size(self.wsaa)==np.size(self.fillfactor):
+                    # if they are the same create the fillfactor list accordingly
+                    self.fillfactor=[self.fillfactor[i] for i in range(np.size(self.wsaa))]
+                else:
+                    # if not then just use the first value in the fillfactor list
+                    self.fillfactor=[self.fillfactor[0] for i in range(np.size(self.wsaa))]
+
             else:
                 self.wsaa=value
 
+            if np.size(self.wsaa)>1:
+                self.refine_grid=True
+            else:
+                self.refine_grid=False
+
         elif _type=='fill':
+            if isinstance(value, int) or isinstance(value, float):
+                value=[value]
             # check to see if multiple wsaa values are given
             if np.size(self.wsaa)>1:
                 # compare the size of the fillfactor list to the wsaa list
@@ -395,6 +528,10 @@ class ScouseCoverage(object):
     def change_cmap(self,label):
         """
         Controls what happens if coverage method radio button is clicked
+
+        Parameters
+        ----------
+        label : radio button label
         """
         import matplotlib.pyplot as plt
         if label=='binary':
@@ -412,23 +549,356 @@ class ScouseCoverage(object):
     def change_covmethod(self,label):
         """
         Controls what happens if coverage method radio button is clicked
+
+        Parameters
+        ----------
+        label : radio button label
         """
         self.covmethod=label
 
     def change_spacing(self,label):
         """
         Controls what happens if spacing radio button is clicked
+
+        Parameters
+        ----------
+        label : radio button label
         """
         self.spacing=label
 
     def change_speccomplexity(self,label):
         """
         Controls what happens if spectral complexity radio button is clicked
+
+        Parameters
+        ----------
+        label : radio button label
         """
         self.speccomplexity=label
 
-    def run_coverage(self):
-        pass
+    def run_coverage(self, event):
+        """
+        Controls what happens when the run coverage button is clicked
+
+        Parameters
+        ----------
+        event : button press event
+        """
+
+        # First if there is already a coverage map displayed - remove this
+        if self.coverage_map is not None:
+            for i in range(np.size(self.coverage_map)):
+                self.coverage_map[i].remove()
+            self.coverage_map=None
+
+        # calculate the coverage
+        self.coverage=compute_coverage(self)
+        # plot the coverage
+        self.coverage_map=plot_coverage(self)
+        # determine the total number of SAAs and spectra contained within the coverage
+        self.totalsaas=get_total_saas(self)
+        self.totalspec=get_total_spec(self)
+
+        # update information window
+        update_text(self.text_runcoverage, '')
+        update_text(self.text_saa,'SAA size(s): '+str(self.wsaa))
+        update_text(self.text_fillingfactor,'filling factor(s): '+str(self.fillfactor))
+        update_text(self.text_method,'method: '+str(self.covmethod))
+        update_text(self.text_spacing,'spacing: '+str(self.spacing))
+        if self.refine_grid:
+            if self.speccomplexity=='momdiff':
+                update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
+            elif self.speccomplexity=='kurtosis':
+                update_text(self.text_complexity, 'complexity measure: kurtosis')
+            else:
+                update_text(self.text_complexity, 'complexity measure: '+str(self.speccomplexity))
+        else:
+            update_text(self.text_complexity,'')
+        update_text(self.text_totalindivsaas, 'number of SAAs to fit: '+str(self.totalsaas))
+        update_text(self.text_totalindivspec, 'number of spectra to fit: '+str(self.totalspec))
+        update_text(self.text_summary, 'scousepy will fit a total of '+str(str(np.sum(self.totalspec)))+' spectra.')
+
+        # update plot
+        self.fig.canvas.draw()
+
+def compute_coverage(self):
+    """
+    Calculate the coverage. Sets up a grid of SAAs whose spacing is defined by
+    the self.spacing parameter. The routine then checks each SAA against a mask.
+
+    If the SAAs are chosen to have only one size, then each SAA is checked
+    against the moment 0 mask.
+
+    If multiple sizes are selected then we use a measure of spectral complexity
+    in order to perform grid refinement. The mask checked against SAA is then a
+    combination of the moment 0 mask and the chosen measure of spectral
+    complexity.
+
+    """
+    # Get the spacing values - depends on the method and if nyquist sampled
+    # or not
+    if self.spacing=='nyquist':
+        self.spacingvalue=[value/2. for value in self.wsaa]
+    else:
+        self.spacingvalue=[value for value in self.wsaa]
+
+    # Get the locations of the SAAs
+    coverage=[]
+    for spacing in self.spacingvalue:
+        _coverage = get_coverage(self.moments[6].shape, spacing, self.xmin, self.ymin)
+        coverage.append(_coverage)
+
+    # Now we check these locations against a mask
+    if not self.refine_grid:
+        # Use the moment 0 mask
+        mask=self.moments[6]
+        for i in range(len(self.wsaa)):
+            # Remove coverage coordinates according to mask
+            check_against_mask(self,coverage[i],mask,self.wsaa[i],self.fillfactor[i])
+    else:
+        # Get the correct measure of spectral complexity
+        if self.speccomplexity=='momdiff':
+            complexity_map=self.complexity_maps[0]
+        elif self.speccomplexity=='kurtosis':
+            complexity_map=self.complexity_maps[1]
+        else:
+            pass
+
+        # get the steps
+        step_values=generate_steps(complexity_map, len(self.wsaa))
+        # start with the mask for the mom0
+        mask=self.moments[6]
+        # now modify this based on the spectral complexity
+        masks=create_masks(mask, complexity_map, len(self.wsaa), step_values)
+
+        # Now create the coverage for each mask
+        for i in range(len(self.wsaa)):
+            mask = masks[i]
+            # Remove coverage coordinates according to mask
+            all_false=check_against_mask(self,coverage[i],mask,self.wsaa[i],self.fillfactor[i])
+            # if all false combine the current mask with the next one
+            if (all_false) and (i != np.max(range(len(self.wsaa)))):
+                masks=combine_masks(i, masks)
+
+    return coverage
+
+def get_coverage(shape, spacing, xmin, ymin):
+    """
+    Returns the central locations of SAAs
+
+    Parameters
+    ----------
+    shape : ndarray
+        shape of the map
+    spacing : float
+        spacing between the centres of SAAs
+
+    """
+
+    # Get the indices of the cols and rows in the momzero map where there is
+    # data
+    y, x = np.arange(0,shape[0]),np.arange(0,shape[1])
+
+    # This sets the maximum extent of the coverage
+    rangex = [np.min(x), np.max(x)]
+    sizex = np.abs(np.min(x)-np.max(x))
+    rangey = [np.min(y), np.max(y)]
+    sizey = np.abs(np.min(y)-np.max(y))
+
+    # Here we define the total number of positions in x and y for the coverage
+    nposx = int((sizex/(spacing))+1.0)
+    nposy = int((sizey/(spacing))+1.0)
+
+    # This defines the coverage coordinates
+    cov_x = (np.max(rangex)-(spacing)*np.arange(nposx))
+    cov_y = (np.min(rangey)+(spacing)*np.arange(nposy))
+
+    # create a grid
+    cov_xx,cov_yy=np.meshgrid(cov_x,cov_y)
+    # include a boolean array to be modified according to conditions
+    coverage_include=np.zeros(len(cov_xx.ravel()), dtype='bool')
+    # bundle everything together
+    coverage=np.vstack((cov_xx.ravel(), cov_yy.ravel(),coverage_include)).T
+
+    return coverage
+
+def check_against_mask(self, coverage, mask, wsaa, fillfactor):
+    """
+    Check an SAA against a mask - used to establish which SAAs should be
+    retained and which should be discarded
+
+    Parameters
+    ----------
+    coverage : ndarray
+        the coverage array
+    mask : ndarray
+        a boolean mask array
+    wsaa : number
+        the width of the SAAs
+    fillfactor : number
+        The filling fraction of the SAA. Refers to the ratio between the maximum
+        number of pixels in an SAA and the number of unmasked pixels contained
+        within the SAA. If this ratio is higher than the provided fillfactor the
+        SAA will be retained
+
+    """
+    for i in range(len(coverage[:,0])):
+        # create a local mask centred on the coverage coordinate
+        localmask=mask_img(mask, centre=(coverage[i,1],coverage[i,0]), width=(wsaa,wsaa))
+
+        # This is the maximum number of pixels contained within the area
+        # defined by wsaa
+        maxpix=np.sum(localmask)
+        # combine the two masks
+        combinedmask=localmask*mask
+        # this is the total number of significant pixels within the area
+        sigpix=np.sum(combinedmask)
+
+        if maxpix == 0:
+            frac=0.0
+        else:
+            # get the fraction
+            frac=float(sigpix)/float(maxpix)
+
+        if frac >= fillfactor:
+            coverage[i,2]=True
+
+    if not any(coverage[:,2]):
+        all_false = True
+    else:
+        all_false = False
+
+    return all_false
+
+def mask_img(map, centre=None, width=None):
+    """
+    Accepts an image to be masked. Additionally accepts a centre location and a
+    width to produce the mask. Returns a masked image
+
+    Parameters
+    ----------
+    map : numpy array
+        image to be masked
+    centre : numpy array (optional)
+        numpy array containing centre coordinates in pixel units.
+    width : float (optional)
+        width of the square mask
+
+    """
+    maptomask=np.ones_like(map)
+    y = int(np.shape(maptomask)[0])
+    x = int(np.shape(maptomask)[1])
+
+    if centre is None: # use the middle of the image
+        centre = [y//2, x//2]
+    if width is None:
+        width = min(centre[0], centre[1], x-centre[1], y-centre[0])
+
+    Y, X = np.ogrid[:y, :x]
+    dist_from_centre = np.zeros([y,x])
+
+    if np.size(width)==2:
+        xp=int(centre[1]+width[1]//2); xn=int(centre[1]-width[1]//2)
+        yp=int(centre[0]+width[0]//2); yn=int(centre[0]-width[0]//2)
+    else:
+        xp=int(centre[1]+width//2); xn=int(centre[1]-width//2)
+        yp=int(centre[0]+width//2); yn=int(centre[0]-width//2)
+
+    if xn < 0:
+        xn = 0
+    if xp > x:
+        xp = x
+    if yn < 0:
+        yn = 0
+    if yp > y:
+        yp = y
+
+    dist_from_centre[yn:yp+1,xn:xp+1]=1.0
+    mask = (dist_from_centre == 1)
+    newimg = np.where(mask==1, maptomask, 0)
+
+    return newimg
+
+def plot_coverage(self):
+    """
+    Plot the coverage. Here we create patches for each of the SAAs, then to
+    speed things up a bit, create a compound path from the individual SAAs for
+    plotting.
+
+    """
+    import matplotlib.pylab as pl
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import matplotlib.path as path
+
+    # There are potentially multiple coverages if more than one wsaa has been
+    # selected, so we will store  the patches in a list
+    _coverage_map=[]
+
+    # define the colours of the coverage patches
+    n = np.size(self.wsaa)
+    _colors = ['dodgerblue','indianred','springgreen','yellow','magenta','cyan']
+
+    # Cycle through each coverage
+    for i in range(len(self.wsaa)):
+        saas=[]
+        coverage=self.coverage[i]
+        c=_colors[i]
+        w=self.wsaa[i]
+
+        # identify if any of the SAAs are to be plotted
+        if any(coverage[:,2]):
+            for j in range(len(coverage[:,0])):
+                if coverage[j,2]:
+                    # if the SAA is to be plotted - identify the bottom left
+                    # hand corner for the rectangular patch
+                    bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
+                    _patch=patches.Rectangle(bl,w,w)
+                    verts=_patch.get_verts()
+                    saas.append(_patch)
+
+            # get all the vertices and create a compound path - this will be
+            # plotted rather than the individual SAAs as it speeds things up a
+            # bit
+            all_verts = np.asarray([saa.get_verts() for saa in saas])
+            mypath = path.Path.make_compound_path_from_polys(all_verts)
+            # create the patch
+            saapatch = patches.PathPatch(mypath,alpha=0.4, facecolor=c, edgecolor='black')
+            # add this to the list and plot it
+            _coverage_map.append(self.map_window.add_patch(saapatch))
+
+    return _coverage_map
+
+def get_total_saas(self):
+    """
+    Method used to identify the total number of SAAs that need to be fitted
+    """
+    total=[]
+    for i in range(len(self.wsaa)):
+        coverage=self.coverage[i]
+        total.append(np.sum(coverage[:,2]))
+    return total
+
+def get_total_spec(self):
+    """
+    Method used to identify the total number of spectra contained within each
+    coverage selection
+    """
+    total=[]
+    # get the mask
+    mask=self.moments[6]
+    idy,idx=np.where(mask)
+    # identify all the unmasked points
+    points=np.vstack((idx,idy)).T
+
+    # Now work out which of these points are located within the coverage map
+    for i in range(len(self.wsaa)):
+        coverage_map=self.coverage_map[i]
+        mypath=coverage_map.get_path()
+        includedspectra=mypath.contains_points(points)
+        total.append(np.sum(includedspectra))
+    return total
+
 
 def setup_plot_window(self,ax,color='white'):
     """
@@ -479,27 +949,48 @@ def compute_moments(self):
     Create moment maps using spectral cube
     """
     from astropy import units as u
+    from scipy.stats import skew
+    from scipy.stats import kurtosis
+
+    if self.coverage_map is not None:
+        for i in range(np.size(self.coverage_map)):
+            self.coverage_map[i].remove()
+        self.coverage_map=None
+    # Trim the cube
     cube=trim_cube(self)
-    momzero = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment0(axis=0)
-    momone = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).moment1(axis=0)
-    momtwo = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s).linewidth_sigma()
-    slab = cube.spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
-    maskslab = cube.with_mask(cube > u.Quantity(self.mask_below,cube.unit)).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
+    # Mask the cube
+    cubemask = (cube > u.Quantity(self.mask_below,cube.unit))
+    # slab
+    spectral_slab = cube.with_mask(cubemask).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
+    # moments
+    momzero = spectral_slab.moment0(axis=0)
+    momone = spectral_slab.moment1(axis=0)
+    momtwo = spectral_slab.linewidth_sigma()
+    momthree = spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False)
+    momfour = spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False)
+    # convert to normal numpy arrays from masked arrays
+    momthree=momthree.filled(fill_value=np.nan)
+    momfour=momfour.filled(fill_value=np.nan)
 
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
-    slabarr = np.copy(slab.unmasked_data[:].value)
+
+    slabarr = np.copy(spectral_slab.unmasked_data[:].value)
     idnan = (~np.isfinite(slabarr))
     negative_inf = -1e10
     slabarr[idnan] = negative_inf
+
     idxmax = np.nanargmax(slabarr, axis=0)
-    momnine = slab.spectral_axis[idxmax].value
-    momnine[~maskslab.mask.include().any(axis=0)] = np.nan
+    momnine = spectral_slab.spectral_axis[idxmax].value
+    momnine[~spectral_slab.mask.include().any(axis=0)] = np.nan
     idnan = (np.isfinite(momtwo.value)==0)
     momnine[idnan] = np.nan
     momnine = momnine * u.km/u.s
 
-    moments=[momzero, momone, momtwo, momnine]
+    mask=np.zeros_like(momzero.value, dtype='bool')
+    mask[~np.isnan(momzero.value)]=1
+
+    moments=[momzero, momone, momtwo, momthree, momfour, momnine, mask]
     return moments
 
 def trim_cube(self):
@@ -509,21 +1000,136 @@ def trim_cube(self):
     cube = self.scouseobject.cube[:,self.ymin:self.ymax,self.xmin:self.xmax]
     return cube
 
-def plot_map(self, map, update=False, plottoupdate=None):
+def compute_spectral_complexity(self):
+    """
+    This method computes different measures of spectral intensity. This can be
+    updated with more functions.
+    """
+    momdiff_map=compute_momdiff(self.moments[1],self.moments[5])
+    kurtosis_map=self.moments[4]
+    return [momdiff_map, kurtosis_map]
+
+def compute_momdiff(mom1,vcent):
+    """
+    Calculate the difference between the moment one and the velocity of the
+    channel containing the peak flux
+
+    Parameters
+    ----------
+    momone : ndarray
+        moment one (intensity-weighted average velocity) map
+    vcent : ndarray
+        map containing the velocities of channels containing the peak flux at
+        each location
+
+    """
+    # Generate an empty array
+    momdiff_map = np.empty(np.shape(mom1.value))
+    momdiff_map.fill(np.nan)
+    momdiff_map = np.abs(mom1.value-vcent.value)
+
+    return momdiff_map
+
+def generate_steps(map, nsteps):
+    """
+    Creates logarithmically spaced values
+
+    Parameters
+    ----------
+    map : ndarray
+        map of the spectral complexity measure
+    nsteps : number
+        number of steps of refinement
+    """
+    median = np.nanmedian(map)
+    step_values = np.logspace(np.log10(median), \
+                              np.log10(np.nanmax(map)), \
+                              nsteps )
+
+    step_values = list(step_values)
+    step_values.insert(0, 0.0)
+    return step_values
+
+def create_masks(mommask, map, nmasks, step_values):
+    """
+    modifies the moment 0 mask according to the spectral complexity measure and
+    returns a list of masks
+
+    Parameters
+    ----------
+    mommask : ndarray
+        moment 0 mask
+    map : ndarray
+        map of the spectral complexity measure
+    nmasks : number
+        this is the number of masks that will be created
+    step_values : ndarray
+        an array containing the step values
+    """
+    masks = []
+    import matplotlib.pyplot as plt
+    for i in range(nmasks):
+        # create an empty mask
+        mask=np.zeros_like(mommask, dtype='bool')
+        # identify where map sits between the ranges in step values
+        minval = step_values[i]
+        maxval = step_values[i+1]
+        mask[(map>=minval)&(map<=maxval)]=1
+        # Now modify the moment mask
+        mask=mommask*mask
+        # add the mask to the list
+        masks.append(mask)
+    return masks
+
+def combine_masks(idx, masks):
+    """
+    Combine multiple masks. This routine is used if all of the SAAs in one
+    coverage map are discarded - otherwise there can be significant holes in the
+    map
+
+    Parameters
+    ----------
+    idx : number
+        index of the current mask
+    masks : ndarray
+        an array containing the masks
+    """
+    masks[idx+1]=masks[idx+1]+masks[idx]
+    masks[idx+1][np.where(masks[idx+1]!=0)]=1
+    return masks
+
+def plot_map(self, map, update=False):
     """
     map plotting
+
+    Parameters
+    ----------
+    map : ndarray
+        map to plot
+    update : Bool
+        updating the map or plotting from scratch
+
     """
     import matplotlib.pyplot as plt
     if update:
         empty=np.empty(np.shape(self.moments[self.moment]))
         empty[:]=np.nan
         self.map.set_data(empty)
-        self.map.set_data(map.value)
-        self.map.set_clim(self.vmin, self.vmax)
-        self.map.set_cmap(self.cmap)
-        return self.map
+        return self.map_window.imshow(map, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
     else:
-        return self.map_window.imshow(map.value, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
+        return self.map_window.imshow(map, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
+
+def print_information(self,xloc,yloc,str,**kwargs):
+    """
+    GUI setup
+    """
+    return self.information_window.text(xloc,yloc,str,transform=self.information_window.transAxes, **kwargs)
+
+def update_text(textobject,textstring):
+    """
+    GUI setup
+    """
+    textobject.set_text(textstring)
 
 def make_button(self,ax,name,function,**kwargs):
     """

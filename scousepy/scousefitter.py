@@ -52,7 +52,7 @@ class ScouseFitter(object):
         spectra : ndarray
             An array of indices relating to the spectra that are to be fitted.
 
-        scouse_object : scouse class object
+        scouseobject : scouse class object
             For scouse framework only. Instance of the scouse object.
 
         SAA_dict : dictionary
