@@ -23,14 +23,17 @@ class ScouseCoverage(object):
     ----------
     scouseobject : scouse class object
         Instance of the scouse object.
+    create_config_table : Bool
+        Creates an astropy table containing the coverage information
 
     """
-    def __init__(self, scouseobject=None):
+    def __init__(self, scouseobject=None, create_config_table=True):
 
         # For moments
         self.scouseobject=scouseobject
-        self.mask_below=0.0
+        self.mask_below=1.0
         self.cube=scouseobject.cube
+        self.masked_cube=None
         self.xmin = 0
         self.xmax = self.cube.shape[2]
         self.ymin = 0
@@ -51,6 +54,8 @@ class ScouseCoverage(object):
         self.coverage_map=None
         self.totalsaas=None
         self.totalspec=None
+        self.create_config_table=create_config_table
+        self.config_table=None
 
         # imports
         import matplotlib.pyplot as plt
@@ -75,7 +80,7 @@ class ScouseCoverage(object):
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # compute moments
-        self.moments = compute_moments(self)
+        self.masked_cube, self.moments = compute_moments(self)
         # compute measures of spectral complexity
         self.complexity_maps = compute_spectral_complexity(self)
 
@@ -293,10 +298,16 @@ class ScouseCoverage(object):
         # prepare summary information
         self.information_window.text(0.02, 0.28, 'summary:',transform=self.information_window.transAxes,fontsize=10, fontweight='bold')
         if np.size(self.coverage)==0:
-            self.text_runcoverage = print_information(self,0.17,0.28,'run coverage', fontsize=10, color='green',ha='left')
+            self.text_runcoverage = print_information(self,0.17,0.28,'select run coverage', fontsize=10, color='green',ha='left')
         self.text_totalindivsaas = print_information(self,0.02,0.22,'', fontsize=10)
         self.text_totalindivspec = print_information(self,0.02,0.16,'', fontsize=10)
         self.text_summary = print_information(self,0.02,0.04,'', fontsize=10,fontweight='bold')
+
+        #================
+        # Continue button
+        #================
+        self.continue_ax=self.fig.add_axes([0.875, 0.24, 0.05, 0.05])
+        self.continue_button=make_button(self,self.continue_ax,"continue",self.coverage_complete, color='lightblue',hovercolor='aliceblue')
 
     def show(self):
         """
@@ -304,6 +315,38 @@ class ScouseCoverage(object):
         """
         import matplotlib.pyplot as plt
         plt.show()
+
+    def close_window(self):
+        """
+        Closes the plot window
+        """
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+    def coverage_complete(self, event):
+        """
+        Controls what happens if continue button is pressed.
+
+        Parameters
+        ----------
+        event : button press event
+
+        """
+        if self.coverage_map is None:
+            self.run_coverage(event)
+            print('')
+            print(colors.fg._yellow_+"Warning: Running coverage with default settings.  "+colors._endc_)
+            print('')
+        else:
+            print('')
+            print(colors.fg._green_+"Coverage complete. "+colors._endc_)
+            print('')
+
+        if self.create_config_table:
+            self.config_table=make_config_table(self)
+
+        # close the window
+        self.close_window()
 
     def update_map(self,event,map=None):
         """
@@ -340,7 +383,7 @@ class ScouseCoverage(object):
         event : button press event
         """
         # compute moments
-        self.moments = compute_moments(self)
+        self.masked_cube,self.moments = compute_moments(self)
         if (self.moment==3) or (self.moment==4):
             maptoplot=self.moments[self.moment]
         else:
@@ -593,6 +636,10 @@ class ScouseCoverage(object):
 
         # calculate the coverage
         self.coverage=compute_coverage(self)
+        # if covmethod is random we are going to select a random sample of
+        # SAAs to retain
+        if self.covmethod=='random':
+            select_random_sample(self)
         # plot the coverage
         self.coverage_map=plot_coverage(self)
         # determine the total number of SAAs and spectra contained within the coverage
@@ -715,6 +762,7 @@ def get_coverage(shape, spacing, xmin, ymin):
 
     # create a grid
     cov_xx,cov_yy=np.meshgrid(cov_x,cov_y)
+    cov_xx=np.flip(cov_xx,axis=1)
     # include a boolean array to be modified according to conditions
     coverage_include=np.zeros(len(cov_xx.ravel()), dtype='bool')
     # bundle everything together
@@ -899,6 +947,33 @@ def get_total_spec(self):
         total.append(np.sum(includedspectra))
     return total
 
+def select_random_sample(self):
+    """
+    Method used to select a random sample of spectral averaging areas from the
+    coverage. This method can be used to generate training sets.
+    """
+    import random
+    # first get the total number of SAAs to be fit
+    totalsaas=get_total_saas(self)
+    for i in range(len(self.wsaa)):
+        coverage=self.coverage[i]
+        # identify which SAAs are to be fit
+        idcov=np.where(coverage[:,2]!=0)[0]
+        # get the number of SAAs to be fit
+        numsaas=np.size(idcov)
+        # convert this to a fraction of the total SAAs to be fit
+        fractionalsample=numsaas/np.sum(totalsaas)
+        # now get the number of SAAs of this size that will be included in the
+        # sample
+        numsample=int((fractionalsample*self.samplesize)+0.5)
+        # identify which SAAs to keep and which to remove from the coverage
+        _id=np.sort(random.sample(range(0,numsaas), numsample))
+        idcovkeep=idcov[_id]
+        idcovremove=[val for j, val in enumerate(idcov) if val not in idcovkeep]
+        # remove the ones that are no longer needed
+        for j in range(len(coverage[:,2])):
+            if j in idcovremove:
+                coverage[j,2]=0.0
 
 def setup_plot_window(self,ax,color='white'):
     """
@@ -991,7 +1066,7 @@ def compute_moments(self):
     mask[~np.isnan(momzero.value)]=1
 
     moments=[momzero, momone, momtwo, momthree, momfour, momnine, mask]
-    return moments
+    return cube.spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s),moments
 
 def trim_cube(self):
     """
@@ -1118,6 +1193,37 @@ def plot_map(self, map, update=False):
         return self.map_window.imshow(map, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
     else:
         return self.map_window.imshow(map, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
+
+def make_config_table(self):
+    """
+    Creates an astropy table containing important coverage information
+    """
+    from astropy.table import Table
+
+    arr = {'Parameter':('mask_below',
+                        'ppv_vol',
+                        'wsaa',
+                        'filling factor',
+                        'sample size',
+                        'method',
+                        'spacing',
+                        'complexity',
+                        'total saas',
+                        'total spec'),
+           'Value': (self.mask_below,
+                     [self.xmin, self.xmax, self.ymin, self.ymax, self.velmin, self.velmax],
+                     self.wsaa,
+                     self.fillfactor,
+                     self.samplesize,
+                     self.covmethod,
+                     self.spacing,
+                     self.speccomplexity,
+                     self.totalsaas,
+                     self.totalspec,
+                     )}
+
+    config_table=Table(arr, names=('Parameter','Value'))
+    return config_table
 
 def print_information(self,xloc,yloc,str,**kwargs):
     """

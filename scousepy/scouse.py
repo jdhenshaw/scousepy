@@ -243,8 +243,89 @@ class scouse(object):
             self.load_cube(fitsfile=fitsfile)
             # load in the fitter
             from scousepy.scousecoverage import ScouseCoverage
-            myfitter=ScouseCoverage(scouseobject=self)
-            myfitter.show()
+            coverageobject=ScouseCoverage(scouseobject=self)
+            coverageobject.show()
+
+        print(coverageobject.coverage)
+
+        # create a dictionary to store the SAAs
+        self.saa_dict = {}
+
+        # get the locations of all the unmasked data
+        mask=coverageobject.moments[6]
+        idy,idx=np.where(mask.T)
+        points=np.vstack((idx,idy)).T
+        unmaskedpositions=np.vstack((idx,idy)).T
+
+        # get the locations of all pixels in the map
+        _yy,_xx=np.meshgrid(np.arange(np.shape(mask)[0]),np.arange(np.shape(mask)[1]))
+        allpositions=np.array([np.ravel(_yy),np.ravel(_xx)]).T
+
+        # use matplotlib to identify which pixels reside within each SAA
+        import matplotlib.patches as patches
+        import matplotlib.path as path
+        for i, w in enumerate(coverageobject.wsaa, start=0):
+            # Create individual dictionaries for each wsaa
+            self.saa_dict[i] = {}
+            coverage=coverageobject.coverage[i]
+
+            for j in range(len(coverage[:,0])):
+                # Identify the bottom left corner of the SAA.
+                bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
+                # create a patch and obtain the path
+                saapatch=patches.Rectangle(bl,w,w)
+                # get the edge points
+                verts = saapatch.get_verts()
+                # create a path
+                saapath = path.Path(verts,closed=True)
+
+                # identify which points are located within that path. Note that
+                # we must flip the array since the coverage coords are in x,y
+                # not y, x like the positions
+                saaspectramask=saapath.contains_points(np.flip(allpositions, axis=1))
+                saaspectramaskT=saaspectramask.T
+                saamask_reshaped=np.reshape(saaspectramaskT,mask.shape)
+                # Now we have the location of the SAA - need to check this
+                # against the masked moment map
+                saamask=saamask_reshaped*mask
+
+                masked_saacube=self.cube.with_mask(saamask)
+                saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2))
+
+                if coverageobject.covmethod=='random':
+                    sample=True
+                else:
+                    sample=False
+
+                # generate the SAA
+                SAA = saa(np.array([coverage[j,0],coverage[j,1]]), saaspectrum, idx=j, sample=sample, scouse=self)
+                # Add the SAA to the dictionary
+                self.saa_dict[i][j] = SAA
+
+                # get the unmasked positions
+                unmaskedpositionsmask=saapath.contains_points(np.flip(unmaskedpositions, axis=1))
+                saaspectra=unmaskedpositions[(unmaskedpositionsmask==True)]
+
+
+                #add_ids(SAA, indices)
+
+                print(saaspectra)
+                #sys.exit()
+
+                #print(allpositions)
+                print(np.flip(saaspectra, axis=1))
+                print(np.ravel_multi_index(saaspectra.T, self.cube.shape[1:]))
+
+                print(SAA)
+                # print(mask)
+                # print(saamask)
+                sys.exit()
+                #
+
+
+
+            #for j in range(len)
+        #print(self.saa_dict)
 
         sys.exit()
 
