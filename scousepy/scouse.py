@@ -305,29 +305,8 @@ class scouse(object):
                 # get the unmasked positions
                 unmaskedpositionsmask=saapath.contains_points(np.flip(unmaskedpositions, axis=1))
                 saaspectra=unmaskedpositions[(unmaskedpositionsmask==True)]
-
-
-                #add_ids(SAA, indices)
-
-                print(saaspectra)
-                #sys.exit()
-
-                #print(allpositions)
-                print(np.flip(saaspectra, axis=1))
-                print(np.ravel_multi_index(saaspectra.T, self.cube.shape[1:]))
-
-                print(SAA)
-                # print(mask)
-                # print(saamask)
-                sys.exit()
-                #
-
-
-
-            #for j in range(len)
-        #print(self.saa_dict)
-
-        sys.exit()
+                # add these to the SAAs
+                add_ids(SAA, saaspectra)
 
 
         # Stop spectral cube from being noisy
