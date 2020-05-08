@@ -246,20 +246,17 @@ class scouse(object):
             coverageobject=ScouseCoverage(scouseobject=self)
             coverageobject.show()
 
-        print(coverageobject.coverage)
-
         # create a dictionary to store the SAAs
         self.saa_dict = {}
 
         # get the locations of all the unmasked data
         mask=coverageobject.moments[6]
-        idy,idx=np.where(mask.T)
-        points=np.vstack((idx,idy)).T
+        idx,idy=np.where(mask.T)
         unmaskedpositions=np.vstack((idx,idy)).T
 
         # get the locations of all pixels in the map
         _yy,_xx=np.meshgrid(np.arange(np.shape(mask)[0]),np.arange(np.shape(mask)[1]))
-        allpositions=np.array([np.ravel(_yy),np.ravel(_xx)]).T
+        allpositions=np.array([np.ravel(_xx),np.ravel(_yy)]).T
 
         # use matplotlib to identify which pixels reside within each SAA
         import matplotlib.patches as patches
@@ -268,7 +265,7 @@ class scouse(object):
             # Create individual dictionaries for each wsaa
             self.saa_dict[i] = {}
             coverage=coverageobject.coverage[i]
-
+            totfit=len(coverage[:,0])
             for j in range(len(coverage[:,0])):
                 # Identify the bottom left corner of the SAA.
                 bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
@@ -279,12 +276,10 @@ class scouse(object):
                 # create a path
                 saapath = path.Path(verts,closed=True)
 
-                # identify which points are located within that path. Note that
-                # we must flip the array since the coverage coords are in x,y
-                # not y, x like the positions
-                saaspectramask=saapath.contains_points(np.flip(allpositions, axis=1))
-                saaspectramaskT=saaspectramask.T
-                saamask_reshaped=np.reshape(saaspectramaskT,mask.shape)
+                # identify which points are located within that path.
+                saaspectramask=saapath.contains_points(allpositions)
+                saaspectra=allpositions[(saaspectramask==True)]
+                saamask_reshaped=np.reshape(saaspectramask,np.flip(mask.shape)).T
                 # Now we have the location of the SAA - need to check this
                 # against the masked moment map
                 saamask=saamask_reshaped*mask
@@ -303,118 +298,123 @@ class scouse(object):
                 self.saa_dict[i][j] = SAA
 
                 # get the unmasked positions
-                unmaskedpositionsmask=saapath.contains_points(np.flip(unmaskedpositions, axis=1))
-                saaspectra=unmaskedpositions[(unmaskedpositionsmask==True)]
+                unmaskedpositionsmask=saapath.contains_points(unmaskedpositions)
+                saaspectra=np.flip(unmaskedpositions[(unmaskedpositionsmask==True)],axis=1)
+
                 # add these to the SAAs
                 add_ids(SAA, saaspectra)
-
-
-        # Stop spectral cube from being noisy
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            old_log = log.level
-            log.setLevel('ERROR')
-
-            self.load_cube(fitsfile=fitsfile)
-
-            # Generate moment maps
-            momzero, momone, momtwo, momnine = get_moments(self, write_moments,
-                                                           s1dir, filename,
-                                                           verbose)
-
-            # get the coverage / average the subcube spectra
-            self.saa_dict = {}
-
-            # If the user has chosen to refine the grid
-            if refine_grid:
-                self.wsaa = get_wsaa(self)
-                if verbose:
-                    if np.size(self.wsaa) != self.nrefine:
-                        raise ValueError(colors.fg._red_+"wsaa < 1 pixel. "+
-                                         "Either increase wsaa or decrease"+
-                                         " nrefine."+colors.fg._endc_)
-
-                delta_v = calculate_delta_v(self, momone, momnine)
-                # generate logarithmically spaced refinement steps
-                step_values = generate_steps(self, delta_v)
-                step_values.insert(0, 0.0)
-            else:
-                mom_zero = momzero.value
-
-            nref = self.nrefine
-            for i, w in enumerate(self.wsaa, start=0):
-                # Create a dictionary to house the SAAs
-                self.saa_dict[i] = {}
-
-                # Make a first pass at defining the coverage.
-                cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
-                                                    momzero.value, w, nrefine,
-                                                    verbose,
-                                                    refine_grid=refine_grid,
-                                                    redefine=False)
-                if refine_grid:
-                    # When refining the coverage - we have to recompute the
-                    # momzero map according to which regions have more complex
-                    # line profiles. As such we need to recompute _cc, _ids, and
-                    # _frac. _ss will be the same (the spectra don't change)
-                    # and so these are not recomputed (see line 264 in stage_1).
-                    # However, we do want to know which coverage boxes to retain
-
-                    mom_zero = refine_momzero(self, momzero.value, delta_v,
-                                              step_values[i], step_values[i+1])
-                    _cc, _ss, _ids, _frac = define_coverage(self.cube,
-                                                            momzero.value,
-                                                            mom_zero, w, nref,
-                                                            verbose,
-                                                            refine_grid=refine_grid,
-                                                            redefine=True)
-                else:
-                    _cc, _ss, _ids, _frac = cc, ss, ids, frac
-                nref -= 1.0
-
-                if self.training_set:
-                    # Randomly select saas to be fit
-                    self.sample = get_random_saa(cc, samplesize, w,
-                                                 verbose=verbose)
-                    totfit = len(self.sample)
-                else:
-                    if not refine_grid:
-                        # Define the sample of spectra to fit - i.e. where cc
-                        # is finite
-                        self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
-                        totfit = len(cc[(np.isfinite(cc[:,0])),0])
-                    else:
-                        # If refining the grid use _cc as well - i.e. the
-                        # recomputed positions based on the refined momzero map
-                        self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
-                        totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
 
                 if verbose:
                     progress_bar = print_to_terminal(stage='s1',
                                                      step='coverage',
                                                      var=totfit)
 
-                speccount=0
-                # Now cycle through the spatially-averaged spectra
-                for xind in range(np.shape(ss)[2]):
-                    for yind in range(np.shape(ss)[1]):
-                        # Every SAA gets a spectrum even if it is not to be
-                        # fitted - this is probably a bit wasteful. If the
-                        # spectrum is contained within the sample (see above)
-                        # it will be fitted during stage 2.
-                        sample = speccount in self.sample
-                        # generate the SAA
-                        SAA = saa(cc[speccount,:], ss[:, yind, xind],
-                                  idx=speccount, sample=sample, scouse=self)
-                        # Add the SAA to the dictionary
-                        self.saa_dict[i][speccount] = SAA
-                        # Add the indices of the individual spectra contained
-                        # within the SAA box to the SAA.
-                        indices = ids[SAA.index,
-                                            (np.isfinite(ids[SAA.index,:,0])),:]
-                        add_ids(SAA, indices)
-                        speccount+=1
-            log.setLevel(old_log)
+                sys.exit()
+
+
+        # # Stop spectral cube from being noisy
+        # with warnings.catch_warnings():
+        #     warnings.simplefilter('ignore')
+        #     old_log = log.level
+        #     log.setLevel('ERROR')
+        #
+        #     self.load_cube(fitsfile=fitsfile)
+        #
+        #     # Generate moment maps
+        #     momzero, momone, momtwo, momnine = get_moments(self, write_moments,
+        #                                                    s1dir, filename,
+        #                                                    verbose)
+        #
+        #     # get the coverage / average the subcube spectra
+        #     self.saa_dict = {}
+        #
+        #     # If the user has chosen to refine the grid
+        #     if refine_grid:
+        #         self.wsaa = get_wsaa(self)
+        #         if verbose:
+        #             if np.size(self.wsaa) != self.nrefine:
+        #                 raise ValueError(colors.fg._red_+"wsaa < 1 pixel. "+
+        #                                  "Either increase wsaa or decrease"+
+        #                                  " nrefine."+colors.fg._endc_)
+        #
+        #         delta_v = calculate_delta_v(self, momone, momnine)
+        #         # generate logarithmically spaced refinement steps
+        #         step_values = generate_steps(self, delta_v)
+        #         step_values.insert(0, 0.0)
+        #     else:
+        #         mom_zero = momzero.value
+        #
+        #     nref = self.nrefine
+        #     for i, w in enumerate(self.wsaa, start=0):
+        #         # Create a dictionary to house the SAAs
+        #         self.saa_dict[i] = {}
+        #
+        #         # Make a first pass at defining the coverage.
+        #         cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
+        #                                             momzero.value, w, nrefine,
+        #                                             verbose,
+        #                                             refine_grid=refine_grid,
+        #                                             redefine=False)
+        #         if refine_grid:
+        #             # When refining the coverage - we have to recompute the
+        #             # momzero map according to which regions have more complex
+        #             # line profiles. As such we need to recompute _cc, _ids, and
+        #             # _frac. _ss will be the same (the spectra don't change)
+        #             # and so these are not recomputed (see line 264 in stage_1).
+        #             # However, we do want to know which coverage boxes to retain
+        #
+        #             mom_zero = refine_momzero(self, momzero.value, delta_v,
+        #                                       step_values[i], step_values[i+1])
+        #             _cc, _ss, _ids, _frac = define_coverage(self.cube,
+        #                                                     momzero.value,
+        #                                                     mom_zero, w, nref,
+        #                                                     verbose,
+        #                                                     refine_grid=refine_grid,
+        #                                                     redefine=True)
+        #         else:
+        #             _cc, _ss, _ids, _frac = cc, ss, ids, frac
+        #         nref -= 1.0
+        #
+        #         if self.training_set:
+        #             # Randomly select saas to be fit
+        #             self.sample = get_random_saa(cc, samplesize, w,
+        #                                          verbose=verbose)
+        #             totfit = len(self.sample)
+        #         else:
+        #             if not refine_grid:
+        #                 # Define the sample of spectra to fit - i.e. where cc
+        #                 # is finite
+        #                 self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
+        #                 totfit = len(cc[(np.isfinite(cc[:,0])),0])
+        #             else:
+        #                 # If refining the grid use _cc as well - i.e. the
+        #                 # recomputed positions based on the refined momzero map
+        #                 self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
+        #                 totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
+        #
+        #
+        #
+        #         speccount=0
+        #         # Now cycle through the spatially-averaged spectra
+        #         for xind in range(np.shape(ss)[2]):
+        #             for yind in range(np.shape(ss)[1]):
+        #                 # Every SAA gets a spectrum even if it is not to be
+        #                 # fitted - this is probably a bit wasteful. If the
+        #                 # spectrum is contained within the sample (see above)
+        #                 # it will be fitted during stage 2.
+        #                 sample = speccount in self.sample
+        #                 # generate the SAA
+        #                 SAA = saa(cc[speccount,:], ss[:, yind, xind],
+        #                           idx=speccount, sample=sample, scouse=self)
+        #                 # Add the SAA to the dictionary
+        #                 self.saa_dict[i][speccount] = SAA
+        #                 # Add the indices of the individual spectra contained
+        #                 # within the SAA box to the SAA.
+        #                 indices = ids[SAA.index,
+        #                                     (np.isfinite(ids[SAA.index,:,0])),:]
+        #                 add_ids(SAA, indices)
+        #                 speccount+=1
+        #     log.setLevel(old_log)
 
         if save_fig:
             # plot multiple coverage areas
