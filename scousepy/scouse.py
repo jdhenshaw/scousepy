@@ -265,7 +265,7 @@ class scouse(object):
             # Create individual dictionaries for each wsaa
             self.saa_dict[i] = {}
             coverage=coverageobject.coverage[i]
-            totfit=len(coverage[:,0])
+
             for j in range(len(coverage[:,0])):
                 # Identify the bottom left corner of the SAA.
                 bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
@@ -287,7 +287,7 @@ class scouse(object):
                 masked_saacube=self.cube.with_mask(saamask)
                 saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2))
 
-                if coverageobject.covmethod=='random':
+                if coverage[j,2]==1:
                     sample=True
                 else:
                     sample=False
@@ -303,11 +303,6 @@ class scouse(object):
 
                 # add these to the SAAs
                 add_ids(SAA, saaspectra)
-
-                if verbose:
-                    progress_bar = print_to_terminal(stage='s1',
-                                                     step='coverage',
-                                                     var=totfit)
 
                 sys.exit()
 
