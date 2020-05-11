@@ -27,19 +27,19 @@ class ScouseCoverage(object):
         Creates an astropy table containing the coverage information
 
     """
-    def __init__(self, scouseobject=None, create_config_table=True):
+    def __init__(self, scouseobject=None, create_config_table=True, verbose=True):
 
         # For moments
         self.scouseobject=scouseobject
+        self.verbose=verbose
         self.mask_below=1.0
         self.cube=scouseobject.cube
-        self.masked_cube=None
         self.xmin = 0
         self.xmax = self.cube.shape[2]
         self.ymin = 0
         self.ymax = self.cube.shape[1]
-        self.velmin = np.around(np.nanmin(self.scouseobject.x),decimals=2)
-        self.velmax = np.around(np.nanmax(self.scouseobject.x),decimals=2)
+        self.velmin = np.around(np.nanmin(self.cube.spectral_axis.value),decimals=2)
+        self.velmax = np.around(np.nanmax(self.cube.spectral_axis.value),decimals=2)
 
         # For coverage
         self.wsaa=[3]
@@ -51,6 +51,7 @@ class ScouseCoverage(object):
         self.speccomplexity='momdiff'
         self.refine_grid=False
         self.coverage=[]
+        self.coverage_path=[]
         self.coverage_map=None
         self.totalsaas=None
         self.totalspec=None
@@ -80,7 +81,7 @@ class ScouseCoverage(object):
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # compute moments
-        self.masked_cube, self.moments = compute_moments(self)
+        self.moments = compute_moments(self)
         # compute measures of spectral complexity
         self.complexity_maps = compute_spectral_complexity(self)
 
@@ -98,11 +99,11 @@ class ScouseCoverage(object):
         self.blank_window_ax=[0.1,0.2,0.375,0.6]
         self.blank_window=setup_plot_window(self,self.blank_window_ax)
         self.map_window=setup_map_window(self)
-        self.moment = 0
-        self.vmin = np.nanmin(self.moments[0].value)-0.05*np.nanmin(self.moments[0].value)
-        self.vmax = np.nanmax(self.moments[0].value)+0.05*np.nanmax(self.moments[0].value)
+        self.moment=0
+        self.vmin=np.nanmin(self.moments[0].value)-0.05*np.nanmin(self.moments[0].value)
+        self.vmax=np.nanmax(self.moments[0].value)+0.05*np.nanmax(self.moments[0].value)
         # plot the moment map
-        self.map = plot_map(self, self.moments[0].value)
+        self.map=plot_map(self, self.moments[0].value)
 
         #=======#
         # sliders
@@ -334,16 +335,22 @@ class ScouseCoverage(object):
         """
         if self.coverage_map is None:
             self.run_coverage(event)
-            print('')
-            print(colors.fg._yellow_+"Warning: Running coverage with default settings.  "+colors._endc_)
-            print('')
+            if self.verbose:
+                print(colors.fg._yellow_+"Warning: Running coverage with default settings.  "+colors._endc_)
+                print('')
         else:
-            print('')
-            print(colors.fg._green_+"Coverage complete. "+colors._endc_)
-            print('')
+            if self.verbose:
+                print(colors.fg._green_+"Coverage complete. "+colors._endc_)
+                print('')
 
         if self.create_config_table:
+            if self.covmethod=='regular':
+                self.samplesize='N/A'
             self.config_table=make_config_table(self)
+            if self.verbose:
+                print('Coverage summary:')
+                print('')
+                print(self.config_table)
 
         # close the window
         self.close_window()
@@ -383,7 +390,7 @@ class ScouseCoverage(object):
         event : button press event
         """
         # compute moments
-        self.masked_cube,self.moments = compute_moments(self)
+        self.moments = compute_moments(self)
         if (self.moment==3) or (self.moment==4):
             maptoplot=self.moments[self.moment]
         else:
@@ -910,8 +917,10 @@ def plot_coverage(self):
             # bit
             all_verts = np.asarray([saa.get_verts() for saa in saas])
             mypath = path.Path.make_compound_path_from_polys(all_verts)
+            self.coverage_path.append(mypath)
             # create the patch
             saapatch = patches.PathPatch(mypath,alpha=0.4, facecolor=c, edgecolor='black')
+
             # add this to the list and plot it
             _coverage_map.append(self.map_window.add_patch(saapatch))
 
@@ -1066,7 +1075,7 @@ def compute_moments(self):
     mask[~np.isnan(momzero.value)]=1
 
     moments=[momzero, momone, momtwo, momthree, momfour, momnine, mask]
-    return cube.spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s),moments
+    return moments
 
 def trim_cube(self):
     """
@@ -1200,7 +1209,8 @@ def make_config_table(self):
     """
     from astropy.table import Table
 
-    arr = {'Parameter':('mask_below',
+    arr = {'Parameter':('nrefine',
+                        'mask_below',
                         'ppv_vol',
                         'wsaa',
                         'filling factor',
@@ -1210,7 +1220,8 @@ def make_config_table(self):
                         'complexity',
                         'total saas',
                         'total spec'),
-           'Value': (self.mask_below,
+           'Value': (np.size(self.wsaa),
+                     self.mask_below,
                      [self.xmin, self.xmax, self.ymin, self.ymax, self.velmin, self.velmax],
                      self.wsaa,
                      self.fillfactor,

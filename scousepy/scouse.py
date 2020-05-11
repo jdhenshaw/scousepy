@@ -25,7 +25,6 @@ import pyspeckit
 import random
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
-from .stage_1 import *
 from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
@@ -67,15 +66,9 @@ class scouse(object):
             self.outputdirectory = os.path.join(outputdir, filename)
         self.stagedirs = []
         self.cube = None
-        self.wsaa = None
-        self.ppv_vol = None
-        self.rms_approx = None
-        self.mask_below = 0.0
-        self.training_set = None
-        self.sample_size = None
+        self.config_table=None
         self.tolerances = None
         self.specres = None
-        self.nrefine = None
         self.fittype = fittype
         self.sample = None
         self.x = None
@@ -127,25 +120,12 @@ class scouse(object):
                                       "manually.")
                 _cube = _cube[::-1]
 
-            # Trim cube if necessary
-            if (self.ppv_vol[2] is not None) & (self.ppv_vol[3] is not None):
-                _cube = _cube[:, int(self.ppv_vol[2]):int(self.ppv_vol[3]), :]
-            if (self.ppv_vol[4] is not None) & (self.ppv_vol[5] is not None):
-                _cube = _cube[:, :, int(self.ppv_vol[4]):int(self.ppv_vol[5])]
-
             self.cube = _cube
-            # Generate the x axis common to the fitting process
-            self.x, self.xtrim, self.trimids = get_x_axis(self)
-            # Compute typical noise within the spectra
-            self.rms_approx = compute_noise(self)
 
     @staticmethod
-    def stage_1(filename, datadirectory,
-                wsaa, ppv_vol=[None, None, None, None, None, None],
-                mask_below=0.0, cube=None, verbose = False, outputdir=None,
-                write_moments=False, save_fig=True, training_set=False,
-                samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
-                fittype='gaussian'):
+    def stage_1(filename, datadirectory, outputdir=None, fittype='gaussian',
+                write_moments=False, save_fig=False, autosave=True,
+                verbose = False ):
         """
         Stage 1
 
@@ -157,81 +137,58 @@ class scouse(object):
             Name of the file to be loaded
         datadirectory : string
             Directory containing the datacube
-        wsaa : number
-            The width of a spectral averaging area in pixels. Note this has
-            been updated from the IDL implementation where it previously used a
-            half-width (denoted rsaa). Can provide multiple values in a list
-            as an alternative to the refine_grid option (see below).
-        ppv_vol : array like, optional
-            A list containing boundaries for fitting. You can use this to
-            selectively fit part of a datacube. Should be in the format
-            ppv_vol = [vmin, vmax, ymin, ymax, xmin, xmax] with the velocities
-            in absolute units and the x, y values in pixels. If all are set to
-            None scouse will ignore this and just fit the whole cube. Default
-            is ppv_vol = [None, None, None, None, None, None]; whole cube is
-            fitted.
-        mask_below : float, optional
-            Used for moment computation - mask all data below this absolute
-            value.
-        cube : spectral cube object, optional
-            Load in a spectral cube rather than a fits file.
-        verbose : bool, optional
-            Verbose output to terminal
         outputdir : string, optional
             Alternate output directory. Deflault is datadirectory
-        write_moments : bool, optional
-            If true, scouse will write fits files of the moment 0, 1, and 2 as
-            well as the moment 9 (casa notation - velocity channel of peak
-            emission).
-        save_fig : bool, optional
-            If true, scouse will output a figure of the coverage
-        training_set : bool, optional
-            Can be used in combination with samplesize (see below). If true,
-            scouse will select SAAs at random for use as a training set. These
-            can be fit as normal and the solutions supplied to machine learning
-            algorithms for the fitting of very large data cubes.
-        sample_size : float, optional
-            The number of SAAs that will make up your training set.
-        refine_grid : bool, optional
-            If true, scouse will refine the SAA size.
-        nrefine : float, optional
-            The number of refinements of the SAA size.
-        autosave : bool, optional
-            Save the output at each stage of the process.
         fittype : string
             Compatible with pyspeckit's models for fitting different types of
             models. Defualt is Gaussian fitting.
+        write_moments : bool, optional
+            If true, scouse will write fits files of the moment maps
+        save_fig : bool, optional
+            If true, scouse will output a figure of the coverage
+        autosave : bool, optional
+            Save the output at each stage of the process.
+        verbose : bool, optional
+            Verbose output to terminal
         """
+
+        # import
+        from .stage_1 import generate_SAAs, plot_coverage, compute_noise, get_x_axis
 
         if outputdir is None:
             outputdir=datadirectory
 
+        # set the basics
         self = scouse(fittype=fittype, filename=filename, outputdir=outputdir,
                       datadirectory=datadirectory)
 
-        self.wsaa = wsaa
-        self.ppv_vol = ppv_vol
-        self.nrefine = nrefine
-        self.mask_below=mask_below
+        # fits file name
+        fitsfile = os.path.join(datadirectory, self.filename+'.fits')
 
-        if training_set:
-            self.training_set = True
-            self.samplesize = samplesize
-        else:
-            self.training_set = False
-            self.samplesize = 0
+        # load the cube
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
 
-        # Main routine
-        starttime = time.time()
+            self.load_cube(fitsfile=fitsfile)
+
+            log.setLevel(old_log)
+
+        # check to see if output files already exist
+        if os.path.exists(outputdir+filename+'/stage_1/s1.scousepy'):
+            if verbose:
+                progress_bar = print_to_terminal(stage='s1', step='load')
+            self.load_stage_1(outputdir+filename+'/stage_1/s1.scousepy')
+            return self
 
         # directory structure
-        fitsfile = os.path.join(datadirectory, self.filename+'.fits')
         s1dir = os.path.join(outputdir, self.filename, 'stage_1')
         self.stagedirs.append(s1dir)
-
         # create the stage_1 directory
         mkdir_s1(self.outputdirectory, s1dir)
 
+        # verbose output
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='start')
 
@@ -240,186 +197,49 @@ class scouse(object):
             old_log = log.level
             log.setLevel('ERROR')
 
-            self.load_cube(fitsfile=fitsfile)
-            # load in the fitter
+            # Interactive coverage generator
             from scousepy.scousecoverage import ScouseCoverage
-            coverageobject=ScouseCoverage(scouseobject=self)
+            coverageobject=ScouseCoverage(scouseobject=self, verbose=verbose)
             coverageobject.show()
+            self.config_table=coverageobject.config_table
+
+            log.setLevel(old_log)
+
+        # Main routine
+        starttime = time.time()
 
         # create a dictionary to store the SAAs
         self.saa_dict = {}
 
-        # get the locations of all the unmasked data
-        mask=coverageobject.moments[6]
-        idx,idy=np.where(mask.T)
-        unmaskedpositions=np.vstack((idx,idy)).T
+        # Compute typical noise within the spectra
+        self.rms_approx = compute_noise(self)
+        # Generate the x axis common to the fitting process
+        self.x, self.xtrim, self.trimids = get_x_axis(self, coverageobject)
 
-        # get the locations of all pixels in the map
-        _yy,_xx=np.meshgrid(np.arange(np.shape(mask)[0]),np.arange(np.shape(mask)[1]))
-        allpositions=np.array([np.ravel(_xx),np.ravel(_yy)]).T
+        # Generate the SAAs
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
 
-        # use matplotlib to identify which pixels reside within each SAA
-        import matplotlib.patches as patches
-        import matplotlib.path as path
-        for i, w in enumerate(coverageobject.wsaa, start=0):
-            # Create individual dictionaries for each wsaa
-            self.saa_dict[i] = {}
-            coverage=coverageobject.coverage[i]
+            generate_SAAs(self, coverageobject, verbose=verbose)
 
-            for j in range(len(coverage[:,0])):
-                # Identify the bottom left corner of the SAA.
-                bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
-                # create a patch and obtain the path
-                saapatch=patches.Rectangle(bl,w,w)
-                # get the edge points
-                verts = saapatch.get_verts()
-                # create a path
-                saapath = path.Path(verts,closed=True)
+            log.setLevel(old_log)
 
-                # identify which points are located within that path.
-                saaspectramask=saapath.contains_points(allpositions)
-                saaspectra=allpositions[(saaspectramask==True)]
-                saamask_reshaped=np.reshape(saaspectramask,np.flip(mask.shape)).T
-                # Now we have the location of the SAA - need to check this
-                # against the masked moment map
-                saamask=saamask_reshaped*mask
-
-                masked_saacube=self.cube.with_mask(saamask)
-                saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2))
-
-                if coverage[j,2]==1:
-                    sample=True
-                else:
-                    sample=False
-
-                # generate the SAA
-                SAA = saa(np.array([coverage[j,0],coverage[j,1]]), saaspectrum, idx=j, sample=sample, scouse=self)
-                # Add the SAA to the dictionary
-                self.saa_dict[i][j] = SAA
-
-                # get the unmasked positions
-                unmaskedpositionsmask=saapath.contains_points(unmaskedpositions)
-                saaspectra=np.flip(unmaskedpositions[(unmaskedpositionsmask==True)],axis=1)
-
-                # add these to the SAAs
-                add_ids(SAA, saaspectra)
-
-                sys.exit()
-
-
-        # # Stop spectral cube from being noisy
-        # with warnings.catch_warnings():
-        #     warnings.simplefilter('ignore')
-        #     old_log = log.level
-        #     log.setLevel('ERROR')
-        #
-        #     self.load_cube(fitsfile=fitsfile)
-        #
-        #     # Generate moment maps
-        #     momzero, momone, momtwo, momnine = get_moments(self, write_moments,
-        #                                                    s1dir, filename,
-        #                                                    verbose)
-        #
-        #     # get the coverage / average the subcube spectra
-        #     self.saa_dict = {}
-        #
-        #     # If the user has chosen to refine the grid
-        #     if refine_grid:
-        #         self.wsaa = get_wsaa(self)
-        #         if verbose:
-        #             if np.size(self.wsaa) != self.nrefine:
-        #                 raise ValueError(colors.fg._red_+"wsaa < 1 pixel. "+
-        #                                  "Either increase wsaa or decrease"+
-        #                                  " nrefine."+colors.fg._endc_)
-        #
-        #         delta_v = calculate_delta_v(self, momone, momnine)
-        #         # generate logarithmically spaced refinement steps
-        #         step_values = generate_steps(self, delta_v)
-        #         step_values.insert(0, 0.0)
-        #     else:
-        #         mom_zero = momzero.value
-        #
-        #     nref = self.nrefine
-        #     for i, w in enumerate(self.wsaa, start=0):
-        #         # Create a dictionary to house the SAAs
-        #         self.saa_dict[i] = {}
-        #
-        #         # Make a first pass at defining the coverage.
-        #         cc, ss, ids, frac = define_coverage(self.cube, momzero.value,
-        #                                             momzero.value, w, nrefine,
-        #                                             verbose,
-        #                                             refine_grid=refine_grid,
-        #                                             redefine=False)
-        #         if refine_grid:
-        #             # When refining the coverage - we have to recompute the
-        #             # momzero map according to which regions have more complex
-        #             # line profiles. As such we need to recompute _cc, _ids, and
-        #             # _frac. _ss will be the same (the spectra don't change)
-        #             # and so these are not recomputed (see line 264 in stage_1).
-        #             # However, we do want to know which coverage boxes to retain
-        #
-        #             mom_zero = refine_momzero(self, momzero.value, delta_v,
-        #                                       step_values[i], step_values[i+1])
-        #             _cc, _ss, _ids, _frac = define_coverage(self.cube,
-        #                                                     momzero.value,
-        #                                                     mom_zero, w, nref,
-        #                                                     verbose,
-        #                                                     refine_grid=refine_grid,
-        #                                                     redefine=True)
-        #         else:
-        #             _cc, _ss, _ids, _frac = cc, ss, ids, frac
-        #         nref -= 1.0
-        #
-        #         if self.training_set:
-        #             # Randomly select saas to be fit
-        #             self.sample = get_random_saa(cc, samplesize, w,
-        #                                          verbose=verbose)
-        #             totfit = len(self.sample)
-        #         else:
-        #             if not refine_grid:
-        #                 # Define the sample of spectra to fit - i.e. where cc
-        #                 # is finite
-        #                 self.sample = np.squeeze(np.where(np.isfinite(cc[:,0])))
-        #                 totfit = len(cc[(np.isfinite(cc[:,0])),0])
-        #             else:
-        #                 # If refining the grid use _cc as well - i.e. the
-        #                 # recomputed positions based on the refined momzero map
-        #                 self.sample = np.squeeze(np.where(np.isfinite(_cc[:,0])))
-        #                 totfit = len(_cc[(np.isfinite(_cc[:,0])),0])
-        #
-        #
-        #
-        #         speccount=0
-        #         # Now cycle through the spatially-averaged spectra
-        #         for xind in range(np.shape(ss)[2]):
-        #             for yind in range(np.shape(ss)[1]):
-        #                 # Every SAA gets a spectrum even if it is not to be
-        #                 # fitted - this is probably a bit wasteful. If the
-        #                 # spectrum is contained within the sample (see above)
-        #                 # it will be fitted during stage 2.
-        #                 sample = speccount in self.sample
-        #                 # generate the SAA
-        #                 SAA = saa(cc[speccount,:], ss[:, yind, xind],
-        #                           idx=speccount, sample=sample, scouse=self)
-        #                 # Add the SAA to the dictionary
-        #                 self.saa_dict[i][speccount] = SAA
-        #                 # Add the indices of the individual spectra contained
-        #                 # within the SAA box to the SAA.
-        #                 indices = ids[SAA.index,
-        #                                     (np.isfinite(ids[SAA.index,:,0])),:]
-        #                 add_ids(SAA, indices)
-        #                 speccount+=1
-        #     log.setLevel(old_log)
-
+        # Saving figures
         if save_fig:
-            # plot multiple coverage areas
-            plot_wsaa(self.saa_dict, momzero.value, self.wsaa, s1dir, filename)
+            plot_coverage(self, coverageobject, s1dir, filename)
 
+        # Write moments as fits files
+        if write_moments:
+            from .io import output_moments
+            output_moments(self.cube.header,coverageobject.moments,s1dir,filename)
+
+        # Wrapping up
         endtime = time.time()
-
         if verbose:
             progress_bar = print_to_terminal(stage='s1', step='end',
-                                             length=np.size(momzero), var=cc,
+                                             length=np.size(coverageobject.moments[0].value),
                                              t1=starttime, t2=endtime)
 
         self.completed_stages.append('s1')
@@ -427,21 +247,31 @@ class scouse(object):
         # Save the scouse object automatically
         if autosave:
             with open(self.outputdirectory+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.wsaa, self.ppv_vol,
-                                                      self.outputdirectory), fh)
-
-        input("Press enter to continue...")
-        # close all figures before moving on
-        # (only needed for plt.ion() case)
-        plt.close('all')
-
+                pickle.dump((self.datadirectory,
+                             self.filename,
+                             self.outputdirectory,
+                             self.config_table,
+                             self.completed_stages,
+                             self.saa_dict,
+                             self.x,
+                             self.xtrim,
+                             self.trimids), fh)
         return self
 
-    def load_stage_1(self, fn):
+    def load_stage_1(self,fn):
+        """
+        Method used to load in the progress of stage 1
+        """
         with open(fn, 'rb') as fh:
-            self.saa_dict,self.wsaa,self.ppv_vol,self.outputdirectory = \
-                                                                 pickle.load(fh)
-        self.completed_stages.append('s1')
+            self.datadirectory,\
+            self.filename,\
+            self.outputdirectory,\
+            self.config_table,\
+            self.completed_stages,\
+            self.saa_dict,\
+            self.x,\
+            self.xtrim,\
+            self.trimids=pickle.load(fh)
 
     def stage_2(self, verbose = False, write_ascii=False, autosave=True,
                 bitesize=False, nspec=None, training_set=False, derivspec=False):

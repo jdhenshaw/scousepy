@@ -17,6 +17,15 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
     Keeping all the noisy stuff in one place.
     """
     if stage=='s1':
+        if step=='load':
+            print('')
+            print('--------')
+            print(colors.fg._lightblue_+'scousepy'+colors._endc_)
+            print('--------')
+            print('')
+            print(colors.fg._lightblue_+"Stage 1 complete...loading...  "+colors._endc_)
+            print('')
+            progress_bar=[]
         if step=='start':
             print('')
             print('--------')
@@ -32,7 +41,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             progress_bar=[]
         if step=='coverage':
             if length != None:
-                print('Establishing coverage...')
+                print('Generating SAAs of size: {}'.format(var))
                 print("")
                 progress_bar = ProgressBar(length)
             else:

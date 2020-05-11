@@ -114,14 +114,36 @@ def write_averaged_spectra(cube_header, saa_spectra, r, dir,
     hdu.header['wsaa'] = r
     hdu.writeto(dir+'/saa_cube_r_{}.fits'.format(r), overwrite=True)
 
-def output_moments(momzero, momone, momtwo, momnine, dir, filename):
+def output_moments(cube_header, moments, dir, filename):
     """
-    Write the moment maps to file
+    Write the moment maps out as fits files
     """
-    momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
-    momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
-    momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
-    fits.writeto(dir+'/'+filename+'_momnine.fits', momnine.value, momtwo.header, overwrite=True)
+    try:
+        unit=cube_header['BUNIT']
+    except KeyError:
+        cube_header['BUNIT']='I'
+        unit=cube_header['BUNIT']
+
+    header=moments[0].header
+
+    for i in range(len(moments)-1):
+        if i == 0:
+            myunit=unit+str(' km s-1')
+        elif (i==1) or (i==2) or (i==5):
+            myunit=str('km s-1')
+        else:
+            myunit=''
+
+        header['BUNIT']=myunit
+        if (i==0) or (i==1) or (i==2):
+            name='_mom'+str(i)
+            fits.writeto(dir+'/'+filename+name+'.fits', moments[i].value, header, overwrite=True)
+        elif (i==5):
+            name='_velatpeak'
+            fits.writeto(dir+'/'+filename+name+'.fits', moments[i].value, header, overwrite=True)
+        else:
+            name='_mom'+str(i)
+            fits.writeto(dir+'/'+filename+name+'.fits', moments[i], header, overwrite=True)
 
 def output_ascii_saa(self, outputdir):
     """
