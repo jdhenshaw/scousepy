@@ -141,8 +141,6 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
 
     # get the locations of all pixels in the map
     maploc=map_locations((np.shape(coverageobject.moments[6])[0],np.shape(coverageobject.moments[6])[1]))
-    # get the locations of the unmasked data
-    maploc_unmasked=map_locations_unmasked(coverageobject.moments[6])
 
     for i, w in enumerate(coverageobject.wsaa, start=0):
         # Create individual dictionaries for each wsaa
@@ -153,23 +151,11 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             progress_bar = print_to_terminal(stage='s1', step='coverage',length=len(coverage[:,0]), var=w)
 
         for j in range(len(coverage[:,0])):
-            # Identify the bottom left corner of the SAA.
-            bl=(coverage[j,0]-w/2., coverage[j,1]-w/2.)
-            # create a patch and obtain the path
-            saapatch=patches.Rectangle(bl,w,w)
-            # get the edge points
-            verts = saapatch.get_verts()
-            # create a path
-            saapath = path.Path(verts,closed=True)
-
-            # identify which locations are contained within that path.
-            saaspectramask=saapath.contains_points(maploc)
-            saaspectra=maploc[(saaspectramask==True)]
-            saamask_reshaped=np.reshape(saaspectramask,np.flip(coverageobject.moments[6].shape)).T
-            # remove any masked spectra from the SAA
-            saamask=saamask_reshaped*coverageobject.moments[6]
-            # Generate a masked subcube
-            masked_saacube=scouseobject.cube.with_mask(saamask)
+            # generate the masks
+            saamask=generate_saamask(coverage[j,:],w,maploc,coverageobject.moments[6].shape)
+            cubemask=generate_cubemask(scouseobject,saamask,coverageobject.moments[6])
+            # mask the cube using the cubemask
+            masked_saacube=scouseobject.cube.with_mask(cubemask)
             # generate the average spectrum
             saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2))
 
@@ -183,9 +169,8 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             # Add the SAA to the dictionary
             scouseobject.saa_dict[i][j] = SAA
 
-            # get the unmasked positions
-            maploc_unmaskedmask=saapath.contains_points(maploc_unmasked)
-            saaspectra=np.flip(maploc_unmasked[(maploc_unmaskedmask==True)],axis=1)
+            # get the locations of the unmasked data
+            saaspectra=np.flip(map_locations_unmasked(cubemask),axis=1)
             # add these to the SAAs
             add_ids(SAA, saaspectra)
 
@@ -196,7 +181,66 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             print('')
             print('')
 
-def get_x_axis(scouseobject, coverageobject):
+def generate_saamask(coverage, wsaa, maploc, shape):
+    """
+    using matplotlib to create a mask of the SAA
+
+    Parameters
+    ----------
+    coverage : ndarray
+        coverage coordinates
+    wsaa : number
+        size of the SAA
+    maploc : ndarray
+        an array containing the locations of all positions in the map
+    shape : ndarray
+        the shape of the moment map
+    """
+    import matplotlib.patches as patches
+    import matplotlib.path as path
+
+    # Identify the bottom left corner of the SAA.
+    bl=(coverage[0]-wsaa/2., coverage[1]-wsaa/2.)
+    # create a patch and obtain the path
+    saapatch=patches.Rectangle(bl,wsaa,wsaa)
+    # get the edge points
+    verts = saapatch.get_verts()
+    # create a path
+    saapath = path.Path(verts,closed=True)
+
+    # identify which locations are contained within that path.
+    saaspectramask=saapath.contains_points(maploc)
+    saaspectra=maploc[(saaspectramask==True)]
+    return np.reshape(saaspectramask,np.flip(shape)).T
+
+def generate_cubemask(scouseobject,saamask,momentmask):
+    """
+    returns a mask that can be used to mask the data cube (after trimming has
+    been performed)
+
+    Parameters
+    ----------
+    scouseobject : instance of the scouse class
+    saamask : ndarray
+        a mask indicating all pixels contained within the SAA
+    momentmask : ndarray
+        a mask of the moment 0 map
+    """
+    # final mask shape
+    mask_shape=scouseobject.cube.shape[1:]
+    # create arrays to hold the masks
+    saamask_embedded=np.zeros(mask_shape,dtype='bool')
+    momentmask_embedded=np.zeros(mask_shape,dtype='bool')
+    # create the new x0 and y0 positions according to the trimming
+    newx0=np.min(scouseobject.x_range)
+    newy0=np.min(scouseobject.y_range)
+    # now embed the previous masks inside our new mask
+    momentmask_embedded[newy0:newy0+momentmask.shape[0], newx0:newx0+momentmask.shape[1]] = momentmask
+    saamask_embedded[newy0:newy0+saamask.shape[0], newx0:newx0+saamask.shape[1]] = saamask
+    # generate master mask
+    return momentmask_embedded*saamask_embedded
+
+def get_x_axis(scouseobject):
     """
     Returns x_axis for spectra
 
@@ -207,15 +251,14 @@ def get_x_axis(scouseobject, coverageobject):
     """
     x = np.array(scouseobject.cube.spectral_axis.value)
 
-    x = np.array(scouseobject.cube.spectral_axis.value)
-    trimids = ((x>=coverageobject.velmin)&(x<=coverageobject.velmin))
+    trimids = ((x>=np.min(scouseobject.vel_range))&(x<=np.max(scouseobject.vel_range)))
     if not any(trimids):
         trimids=np.ones(np.shape(x), dtype=bool)
     xtrim = x[trimids]
 
     return x, xtrim, trimids
 
-def plot_coverage(scouseobject, coverageobject, dir, filename):
+def plot_coverage(scouseobject, coverageobject, covplotfilename):
     """
     Plot the SAA boxes
 
@@ -223,9 +266,7 @@ def plot_coverage(scouseobject, coverageobject, dir, filename):
     ---------
     scouseobject : Instance of the scousepy class
     coverage object : Instance of the ScouseCoverage class
-    dir : string
-        output directory
-    filename : string
+    covplotfilename : string
         output filename
 
     """
@@ -271,4 +312,4 @@ def plot_coverage(scouseobject, coverageobject, dir, filename):
         saapatch = patches.PathPatch(mypath,alpha=0.4, facecolor=c, edgecolor='black')
         map_window.add_patch(saapatch)
 
-    plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=300,bbox_inches='tight')
+    plt.savefig(covplotfilename, dpi=300,bbox_inches='tight')

@@ -23,11 +23,11 @@ class ScouseCoverage(object):
     ----------
     scouseobject : scouse class object
         Instance of the scouse object.
-    create_config_table : Bool
+    create_config_file : Bool
         Creates an astropy table containing the coverage information
 
     """
-    def __init__(self, scouseobject=None, create_config_table=True, verbose=True):
+    def __init__(self, scouseobject=None, create_config_file=True, verbose=True):
 
         # For moments
         self.scouseobject=scouseobject
@@ -55,8 +55,8 @@ class ScouseCoverage(object):
         self.coverage_map=None
         self.totalsaas=None
         self.totalspec=None
-        self.create_config_table=create_config_table
-        self.config_table=None
+        self.create_config_file=create_config_file
+        self.config_file=None
 
         # imports
         import matplotlib.pyplot as plt
@@ -340,17 +340,13 @@ class ScouseCoverage(object):
                 print('')
         else:
             if self.verbose:
-                print(colors.fg._green_+"Coverage complete. "+colors._endc_)
+                print(colors.fg._lightgreen_+"Coverage complete. "+colors._endc_)
                 print('')
 
-        if self.create_config_table:
+        if self.create_config_file:
             if self.covmethod=='regular':
-                self.samplesize='N/A'
-            self.config_table=make_config_table(self)
-            if self.verbose:
-                print('Coverage summary:')
-                print('')
-                print(self.config_table)
+                self.samplesize=0.0
+            self.config_file=make_config_file(self)
 
         # close the window
         self.close_window()
@@ -507,14 +503,14 @@ class ScouseCoverage(object):
 
         elif _type=='velmin':
             # make sure index can't be less than the minimum of the vel axis
-            if value < self.scouseobject.x[0]:
-                value=self.scouseobject.x[0]
+            if value < self.scouseobject.cube.spectral_axis[0].value:
+                value=self.scouseobject.cube.spectral_axis[0].value
             else:
                 self.velmin=value
         elif _type=='velmax':
             # or greater than the length of the vel axis
-            if value > self.scouseobject.x[-1]:
-                value = self.scouseobject.x[-1]
+            if value > self.scouseobject.cube.spectral_axis[-1].value:
+                value = self.scouseobject.cube.spectral_axis[-1].value
             else:
                 self.velmax=value
 
@@ -1203,38 +1199,77 @@ def plot_map(self, map, update=False):
     else:
         return self.map_window.imshow(map, origin='lower', interpolation='nearest',cmap=self.cmap, vmin=self.vmin, vmax=self.vmax)
 
-def make_config_table(self):
+def append_keywords(config_file, dct, description=True):
+    for key in dct.keys():
+        if description:
+            config_file.append(
+                            '\n\n# {}'.format(dct[key]['description']))
+        config_file.append('\n{} = {}'.format(key, dct[key]['default']))
+    return config_file
+
+def make_string(st):
+    newstring="\'" + str(st) + "\'"
+    return newstring
+
+def make_config_file(self, description=True):
     """
     Creates an astropy table containing important coverage information
     """
-    from astropy.table import Table
+    from collections import OrderedDict
 
-    arr = {'Parameter':('nrefine',
-                        'mask_below',
-                        'ppv_vol',
-                        'wsaa',
-                        'filling factor',
-                        'sample size',
-                        'method',
-                        'spacing',
-                        'complexity',
-                        'total saas',
-                        'total spec'),
-           'Value': (np.size(self.wsaa),
-                     self.mask_below,
-                     [self.xmin, self.xmax, self.ymin, self.ymax, self.velmin, self.velmax],
-                     self.wsaa,
-                     self.fillfactor,
-                     self.samplesize,
-                     self.covmethod,
-                     self.spacing,
-                     self.speccomplexity,
-                     self.totalsaas,
-                     self.totalspec,
-                     )}
+    config_file = str('# ScousePy config file\n\n')
 
-    config_table=Table(arr, names=('Parameter','Value'))
-    return config_table
+    default = [
+        ('nrefine', {
+            'default': np.size(self.wsaa),
+            'description': "number of refinement steps"}),
+        ('mask_below', {
+            'default': self.mask_below,
+            'description': "mask data below this value"}),
+        ('x_range', {
+            'default': [self.xmin, self.xmax],
+            'description': "data x range in pixels"}),
+        ('y_range', {
+            'default': [self.ymin, self.ymax],
+            'description': "data y range in pixels"}),
+        ('vel_range', {
+            'default': [self.velmin, self.velmax],
+            'description': "data velocity range in cube units"}),
+        ('wsaa', {
+            'default': self.wsaa,
+            'description': "width of the spectral averaging areas"}),
+        ('fillfactor', {
+            'default': self.fillfactor,
+            'description': "fractional limit below which SAAs are rejected"}),
+        ('samplesize', {
+            'default': self.samplesize,
+            'description': "sample size for randomly selecting SAAs"}),
+        ('covmethod', {
+            'default': make_string(self.covmethod),
+            'description': "method used to define the coverage [regular/random]"}),
+        ('spacing', {
+            'default': make_string(self.spacing),
+            'description': "method setting spacing of SAAs [nyquist/regular]"}),
+        ('speccomplexity', {
+            'default': make_string(self.speccomplexity),
+            'description': "method defining spectral complexity"}),
+        ('totalsaas', {
+            'default': self.totalsaas,
+            'description': "total number of SAAs"}),
+        ('totalspec', {
+            'default': self.totalspec,
+            'description': "total number of spectra within the coverage"}),
+        ]
+
+    dct_default = OrderedDict(default)
+
+    config_file = []
+
+    config_file.append('[DEFAULT]')
+    config_file = append_keywords(config_file, dct_default,
+                                description=description)
+
+    return config_file
 
 def print_information(self,xloc,yloc,str,**kwargs):
     """

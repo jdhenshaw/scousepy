@@ -30,10 +30,10 @@ from .stage_3 import *
 from .stage_4 import *
 from .stage_5 import interactive_plot, DiagnosticImageFigure
 from .stage_6 import *
-from .io import *
+#from .io import *
 #from .saa_description import saa, add_ids
 #from .solution_description import fit
-from .model_housing import *
+
 from .colors import *
 
 import matplotlib as mpl
@@ -47,8 +47,10 @@ fitting = Fitter.preparefit
 # later when we switch to numpy loops
 if sys.version_info.major >= 3:
     range = range
+    proto=3
 else:
     range = xrange
+    proto=2
 
 try:
     input = raw_input
@@ -56,288 +58,379 @@ except NameError:
     pass
 
 class scouse(object):
+    """
+    the scouse class
 
-    def __init__(self, filename=None, outputdir=None, fittype=None,
-                 datadirectory=None):
+    Attributes
+    ==========
 
-        self.filename = filename
-        self.datadirectory = datadirectory
-        if outputdir is not None:
-            self.outputdirectory = os.path.join(outputdir, filename)
-        self.stagedirs = []
-        self.cube = None
-        self.config_table=None
-        self.tolerances = None
-        self.specres = None
-        self.fittype = fittype
-        self.sample = None
-        self.x = None
-        self.xtrim = None
-        self.trimids=None
-        self.saa_dict = None
-        self.indiv_dict = None
-        self.key_set = None
-        self.fitcount = None
-        self.modelstore = {}
-        self.fitcounts6 = 0
-        self.blockcount = 0
-        self.blocksize = None
-        self.check_spec_indices = None
-        self.check_block_indices = None
+    Global attributes - user defined attributes
+    -------------------------------------------
+    These attributes are set in the config file by the user
+
+    config : string
+        Path to the configutation file of scousepy. Must be passed to each stage
+    datadirectory : string
+        Directory containing the datacube
+    filename : string
+        Name of the file to be loaded
+    outputdirectory : string, optional
+        Alternate output directory. Deflault is datadirectory
+    fittype : string
+        Compatible with pyspeckit's models for fitting different types of
+        models. Defualt is Gaussian fitting.
+    verbose : bool
+        Verbose output to terminal
+    autosave : bool
+        Save the output at each stage of the process.
+
+    Global attributes - scouse defined attributes
+    ---------------------------------------------
+    cube : spectral cube object
+        A spectral cube object generated from the FITS input
+    completed_stages : list
+        a list to be updated as each stage is completed
+
+    stage 1 - user defined attributes
+    ---------------------------------
+    write_moments : bool, optional
+        If true, scouse will write fits files of the moment maps
+    save_fig : bool, optional
+        If true, scouse will output a figure of the coverage
+    coverage_config_file_path : string
+        File path for coverage configuration file
+    nrefine : number
+        Number of refinement steps - scouse will refine the coverage map
+        according to spectral complexity if several wsaas are provided.
+    mask_below : number
+        Masking value for moment generation. This will also determine which
+        pixels scouse fits
+    x_range : list
+        Data x range in pixels
+    y_range : list
+        Data y range in pixels
+    vel_range : list
+        Data velocity range in map units
+    wsaa : list
+        Width of the spectral averaging areas. The user can provide a list of
+        values if they would like to refine the coverage in complex regions.
+    fillfactor : list
+        Fractional limit below which SAAs are rejected. Again, can be given as
+        a list so the user can control which SAAs are selected for fitting.
+    samplesize : number
+        Sample size for randomly selecting SAAs.
+    covmethod : string
+        Method used to define the coverage. Choices are 'regular' for normal
+        scouse fitting or 'random'. The latter generates a random sample of
+        'samplesize' SAAs.
+    spacing : string
+        Method setting spacing of SAAs. Choices are 'nyquist' or 'regular'.
+    speccomplexity : string
+        Method defining spectral complexity. Choices include:
+        - 'momdiff': which measures the difference between the velocity at
+                     peak emission and the
+                     first moment.
+        - 'kurtosis': bases the spectral complexity on the kurtosis of the
+                      spectrum.
+    totalsaas : number
+        Total number of SAAs.
+    totalspec : number
+        Total number of spectra within the coverage.
+
+    stage 1 - scouse defined attributes
+    -----------------------------------
+    saa_dict : dictionary
+        A dictionary containing all of the SAA spectra in scouse format
+    rms_approx : number
+        An estimate of the mean rms across the map
+    x : ndarray
+        The spectral axis
+    xtrim : ndarray
+        The spectral axis trimmed according to vel_range (see above)
+    trimids : ndarray
+        A mask of x according to vel_range
+
+    """
+
+    def __init__(self, config=''):
+
+        # global -- user
+        self.config=config
+        self.datadirectory=None
+        self.filename=None
+        self.outputdirectory=None
+        self.fittype=None
+        self.verbose=None
+        self.autosave=None
+        # global -- scousepy
+        self.cube=None
         self.completed_stages = []
 
-    def load_cube(self, fitsfile=None, cube=None):
-        """
-        Load in a cube
+        # stage 1 -- user
+        self.write_moments=None
+        self.save_fig=None
+        # stage 1 -- scousepy coverage
+        self.coverage_config_file_path=None
+        self.nrefine=None
+        self.mask_below=None
+        self.x_range=None
+        self.y_range=None
+        self.vel_range=None
+        self.wsaa=None
+        self.fillfactor=None
+        self.samplesize=None
+        self.covmethod=None
+        self.spacing=None
+        self.speccomplexity=None
+        self.totalsaas=None
+        self.totalspec=None
+        # stage 1 -- scousepy SAAs
+        self.saa_dict=None
+        self.rms_approx=None
+        self.x=None
+        self.xtrim=None
+        self.trimids=None
 
-        Parameters
-        ----------
-        fitsfile : fits
-            File in fits format to be read in
-        cube : spectral cube
-            If fits file is not supplied - provide a spectral cube object
-            instead
+        # stage 2 -- user
+        self.write_ascii=None
+        # stage 2 -- scousepy
+        self.fitcount=None
+        self.modelstore = {}
 
-        """
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            old_log = log.level
-            log.setLevel('ERROR')
-
-            # Read in the datacube
-            if cube is None:
-                _cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
-                                                    velocity_convention='radio')
-            else:
-                _cube = cube
-
-            if _cube.spectral_axis.diff()[0] < 0:
-                if np.abs(_cube.spectral_axis[0].value -
-                                    _cube[::-1].spectral_axis[-1].value) > 1e-5:
-                    raise ImportError("Update to a more recent version of "
-                                      "spectral-cube or reverse the axes "
-                                      "manually.")
-                _cube = _cube[::-1]
-
-            self.cube = _cube
+        # self.stagedirs = []
+        # self.cube = None
+        # self.config_file=None
+        # self.tolerances = None
+        # self.specres = None
+        # self.fittype = fittype
+        # self.sample = None
+        # self.x = None
+        # self.xtrim = None
+        # self.trimids=None
+        # self.saa_dict = None
+        # self.indiv_dict = None
+        # self.key_set = None
+        # self.fitcount = None
+        #
+        # self.fitcounts6 = 0
+        # self.blockcount = 0
+        # self.blocksize = None
+        # self.check_spec_indices = None
+        # self.check_block_indices = None
+        #
 
     @staticmethod
-    def stage_1(filename, datadirectory, outputdir=None, fittype='gaussian',
-                write_moments=False, save_fig=False, autosave=True,
-                verbose = False ):
+    def stage_1(config=''):
         """
-        Stage 1
-
         Identify the spatial area over which the fitting will be implemented.
 
         Parameters
         ----------
-        filename : string
-            Name of the file to be loaded
-        datadirectory : string
-            Directory containing the datacube
-        outputdir : string, optional
-            Alternate output directory. Deflault is datadirectory
-        fittype : string
-            Compatible with pyspeckit's models for fitting different types of
-            models. Defualt is Gaussian fitting.
-        write_moments : bool, optional
-            If true, scouse will write fits files of the moment maps
-        save_fig : bool, optional
-            If true, scouse will output a figure of the coverage
-        autosave : bool, optional
-            Save the output at each stage of the process.
-        verbose : bool, optional
-            Verbose output to terminal
+        config : string
+            Path to the configuration file. This must be provided.
+
+        Notes
+        -----
+        See scouse class documentation for description of the parameters that
+        are set during this stage.
+
         """
 
-        # import
+        # Import
         from .stage_1 import generate_SAAs, plot_coverage, compute_noise, get_x_axis
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+        from scousepy.scousecoverage import ScouseCoverage
 
-        if outputdir is None:
-            outputdir=datadirectory
+        # Set the basics
+        if os.path.exists(config):
+            self=scouse(config=config)
+            import_from_config(self, config, config_key='stage_1')
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
 
-        # set the basics
-        self = scouse(fittype=fittype, filename=filename, outputdir=outputdir,
-                      datadirectory=datadirectory)
-
-        # fits file name
-        fitsfile = os.path.join(datadirectory, self.filename+'.fits')
-
-        # load the cube
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            old_log = log.level
-            log.setLevel('ERROR')
-
-            self.load_cube(fitsfile=fitsfile)
-
-            log.setLevel(old_log)
-
-        # check to see if output files already exist
-        if os.path.exists(outputdir+filename+'/stage_1/s1.scousepy'):
-            if verbose:
+        # Check to see if stage 1 has already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+            if self.verbose:
                 progress_bar = print_to_terminal(stage='s1', step='load')
-            self.load_stage_1(outputdir+filename+'/stage_1/s1.scousepy')
+            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            if 's1' in self.completed_stages:
+                print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
+                print('')
             return self
 
-        # directory structure
-        s1dir = os.path.join(outputdir, self.filename, 'stage_1')
-        self.stagedirs.append(s1dir)
-        # create the stage_1 directory
-        mkdir_s1(self.outputdirectory, s1dir)
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        # load the cube
+        self.load_cube(fitsfile=fitsfile)
 
-        # verbose output
-        if verbose:
+        # Verbose output
+        if self.verbose:
             progress_bar = print_to_terminal(stage='s1', step='start')
 
+        # Define the coverage
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-
             # Interactive coverage generator
-            from scousepy.scousecoverage import ScouseCoverage
-            coverageobject=ScouseCoverage(scouseobject=self, verbose=verbose)
+            coverageobject=ScouseCoverage(scouseobject=self,verbose=self.verbose)
             coverageobject.show()
-            self.config_table=coverageobject.config_table
-
+            # write out the config file for the coverage
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            with open(self.coverage_config_file_path, 'w') as file:
+                for line in coverageobject.config_file:
+                    file.write(line)
+            # set the parameters
+            import_from_config(self, self.coverage_config_file_path)
             log.setLevel(old_log)
 
         # Main routine
         starttime = time.time()
 
-        # create a dictionary to store the SAAs
+        # Create a dictionary to store the SAAs
         self.saa_dict = {}
-
         # Compute typical noise within the spectra
         self.rms_approx = compute_noise(self)
         # Generate the x axis common to the fitting process
-        self.x, self.xtrim, self.trimids = get_x_axis(self, coverageobject)
+        self.x, self.xtrim, self.trimids = get_x_axis(self)
 
         # Generate the SAAs
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-
-            generate_SAAs(self, coverageobject, verbose=verbose)
-
+            generate_SAAs(self, coverageobject, verbose=self.verbose)
             log.setLevel(old_log)
 
         # Saving figures
-        if save_fig:
-            plot_coverage(self, coverageobject, s1dir, filename)
+        if self.save_fig:
+            coverage_plot_filename=os.path.join(self.outputdirectory,self.filename,'stage_1','coverage.pdf')
+            plot_coverage(self, coverageobject, coverage_plot_filename)
 
         # Write moments as fits files
-        if write_moments:
+        if self.write_moments:
+            momentoutputdir=os.path.join(self.outputdirectory,self.filename,'stage_1/')
             from .io import output_moments
-            output_moments(self.cube.header,coverageobject.moments,s1dir,filename)
+            output_moments(self.cube.header,coverageobject.moments,momentoutputdir,self.filename)
 
         # Wrapping up
         endtime = time.time()
-        if verbose:
+        if self.verbose:
             progress_bar = print_to_terminal(stage='s1', step='end',
                                              length=np.size(coverageobject.moments[0].value),
                                              t1=starttime, t2=endtime)
-
         self.completed_stages.append('s1')
 
         # Save the scouse object automatically
-        if autosave:
-            with open(self.outputdirectory+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.datadirectory,
-                             self.filename,
-                             self.outputdirectory,
-                             self.config_table,
-                             self.completed_stages,
+        if self.autosave:
+            import pickle
+            with open(self.outputdirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                             self.coverage_config_file_path,
                              self.saa_dict,
                              self.x,
                              self.xtrim,
-                             self.trimids), fh)
+                             self.trimids), fh, protocol=proto)
         return self
 
     def load_stage_1(self,fn):
         """
         Method used to load in the progress of stage 1
         """
+        import pickle
         with open(fn, 'rb') as fh:
-            self.datadirectory,\
-            self.filename,\
-            self.outputdirectory,\
-            self.config_table,\
             self.completed_stages,\
+            self.coverage_config_file_path,\
             self.saa_dict,\
             self.x,\
             self.xtrim,\
             self.trimids=pickle.load(fh)
 
-    def stage_2(self, verbose = False, write_ascii=False, autosave=True,
-                bitesize=False, nspec=None, training_set=False, derivspec=False):
+    def stage_2(config=''):
         """
-        Stage 2
-
-        Manual fitting of the SAAs
+        Fitting of the SAAs
 
         Parameters
         ----------
-        verbose : bool, optional
-            Verbose output of fitting process.
-        write_ascii : bool, optional
-            Outputs an ascii table containing the best fitting solutions to the
-            spectral averaging areas.
-        autosave : bool, optional
-            Autosaves the scouse file.
-        bitesize : bool, optional
-            Bitesized fitting. Allows a user to break the fitting process down
-            into multiple stages. Combined with nspec a user can fit 'nspec'
-            spectra at a time. For large data cubes fitting everything in one go
-            can be a bit much...
-        nspec : int, optional
-            Fit this many spectra at a time.
+        config : string
+            Path to the configuration file. This must be provided.
+
+        Notes
+        -----
+        See scouse class documentation for description of the parameters that
+        are set during this stage.
 
         """
+        # import
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+        from scousepy.scousefitter import ScouseFitter
 
-        s2dir = os.path.join(self.outputdirectory, 'stage_2')
-        self.stagedirs.append(s2dir)
-        # create the stage_2 directory
-        mkdir_s2(self.outputdirectory, s2dir)
+        # Set the basics
+        if os.path.exists(config):
+            self=scouse(config=config)
+            stages=['stage_1','stage_2']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
+
+        # Check to see if stage 1 has already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            import_from_config(self, self.coverage_config_file_path)
+
+        # Check to see if stage 2 has already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s2', step='load')
+            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+            if self.fitcount is not None:
+                if np.all(self.fitcount):
+                    print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                    print('')
+                    return self
+
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        # load the cube
+        self.load_cube(fitsfile=fitsfile)
+
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s2', step='start')
 
         # generate a list of all SAA's (inc. all wsaas)
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
-        # Total number of spectra to be fit across all SAAs
-        speccount=np.size(saa_list[:,0])
-        spectratobefit=saa_list[:,0]
-        parent=saa_list[:,1]
-
         # Record which spectra have been fit - first check to see if this has
         # already been created
         if self.fitcount is None:
             # if it hasn't
-            self.fitcount=np.zeros(speccount, dtype='bool')
-
-        # load in the fitter
-        from scousepy.scousefitter import ScouseFitter
-
-        if verbose:
-            progress_bar = print_to_terminal(stage='s2', step='start')
+            self.fitcount=np.zeros(int(np.sum(self.totalsaas)), dtype='bool')
 
         starttime = time.time()
 
-        myfitter=ScouseFitter(self.modelstore, method='scouse',
-                              spectra=spectratobefit,
-                              scouseobject=self,
-                              SAA_dict=self.saa_dict,
-                              parent=parent,
-                              fitcount=self.fitcount,
-                              )
-        myfitter.show()
+        fitterobject=ScouseFitter(self.modelstore, method='scouse',
+                                spectra=saa_list[:,0],
+                                scouseobject=self,
+                                SAA_dict=self.saa_dict,
+                                parent=saa_list[:,1],
+                                fitcount=self.fitcount,
+                                )
+        fitterobject.show()
 
         endtime = time.time()
-        if verbose:
+        if self.verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
                                              t1=starttime, t2=endtime)
 
@@ -427,24 +520,27 @@ class scouse(object):
         #     output_ascii_saa(self, s2dir)
         #     self.completed_stages.append('s2')
         #
-
+        if np.all(self.fitcount):
+            self.completed_stages.append('s2')
 
         # Save the scouse object automatically
-        if autosave:
-            with open(self.outputdirectory+'/stage_2/s2.scousepy', 'wb') as fh:
-                pickle.dump((self.saa_dict, self.fitcount, self.modelstore), fh)
-
-
-        # close all figures before moving on
-        # (only needed for plt.ion() case)
-        plt.close('all')
+        if self.autosave:
+            import pickle
+            with open(self.outputdirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                            self.saa_dict,
+                            self.fitcount,
+                            self.modelstore), fh, protocol=proto)
 
         return self
 
     def load_stage_2(self, fn):
+        import pickle
         with open(fn, 'rb') as fh:
-            self.saa_dict, self.fitcount, self.modelstore = pickle.load(fh)
-        self.completed_stages.append('s2')
+            self.completed_stages,\
+            self.saa_dict, \
+            self.fitcount, \
+            self.modelstore = pickle.load(fh)
 
     def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
                 clear_cache=True, autosave=True):
@@ -958,6 +1054,99 @@ class scouse(object):
 #==============================================================================#
 # io
 #==============================================================================#
+
+    def run_setup(filename, datadirectory, outputdir=None,
+                  config_filename='scousepy.config', description=True,
+                  verbose=True):
+        """
+        Generates a scousepy configuration file
+
+        Parameters
+        ----------
+        filename : string
+            Name of the file to be loaded
+        datadirectory : string
+            Directory containing the datacube
+        outputdir : string, optional
+            Alternate output directory. Deflault is datadirectory
+        config_filename : string, optional
+            output filename for the configuration file
+        description : bool, optional
+            whether or not a description of each parameter is included in the
+            configuration file
+        verbose : bool, optional
+            verbose output to terminal
+
+        """
+        from .io import create_directory_structure
+        from .io import generate_config_file
+        from .verbose_output import print_to_terminal
+
+        if outputdir is None:
+            outputdir=datadirectory
+
+        scousedir=os.path.join(outputdir, filename)
+        configdir=os.path.join(scousedir+'/config_files')
+        configpath=os.path.join(scousedir+'/config_files', config_filename)
+
+        if verbose:
+            progress_bar = print_to_terminal(stage='init', step='init')
+
+        if os.path.exists(configpath):
+            if verbose:
+                progress_bar = print_to_terminal(stage='init', step='configexists')
+            return os.path.join(scousedir+'/config_files', config_filename)
+        else:
+            if not os.path.exists(scousedir):
+                create_directory_structure(scousedir)
+                generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description)
+                if verbose:
+                    progress_bar = print_to_terminal(stage='init', step='makingconfig')
+            else:
+                configpath=None
+                print('')
+                print(colors.fg._yellow_+"Warning: output directory exists but does not contain a config file. "+colors._endc_)
+                print('')
+
+        return configpath
+
+    def load_cube(self, fitsfile=None, cube=None):
+        """
+        Load in a cube
+
+        Parameters
+        ----------
+        fitsfile : fits
+            File in fits format to be read in
+        cube : spectral cube
+            If fits file is not supplied - provide a spectral cube object
+            instead
+
+        """
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+
+            # Read in the datacube
+            if cube is None:
+                _cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s,
+                                                    velocity_convention='radio')
+            else:
+                _cube = cube
+
+            if _cube.spectral_axis.diff()[0] < 0:
+                if np.abs(_cube.spectral_axis[0].value -
+                                    _cube[::-1].spectral_axis[-1].value) > 1e-5:
+                    raise ImportError("Update to a more recent version of "
+                                      "spectral-cube or reverse the axes "
+                                      "manually.")
+                _cube = _cube[::-1]
+
+            self.cube = _cube
+            log.setLevel(old_log)
 
     def save_to(self, filename):
         """

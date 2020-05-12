@@ -152,7 +152,7 @@ class ScouseFitter(object):
                         # Check to see if all of the spectra have been fitted.
                         if np.all(self.fitcount):
                             print('')
-                            print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
                             print('')
                             # exit if fitting has been completed
                             return
@@ -210,7 +210,25 @@ class ScouseFitter(object):
         # imports
         from scousepy.dspec import DSpec
         import matplotlib.pyplot as plt
+        from matplotlib import rcParams
         plt.ioff()
+        self.cmap=plt.cm.binary_r
+        rcParams['font.family']= 'Arial'
+        rcParams['font.size']= 9
+        rcParams['lines.linewidth']= 1.     ## line width in points
+        rcParams['axes.labelsize'] =10  ## fontsize of the x any y labels
+        rcParams['xtick.labelsize']=10 ## fontsize of the tick labels
+        rcParams['ytick.labelsize'] =10 ## fontsize of the tick labels
+        rcParams['xtick.major.pad']=8   ## distance to major tick label in points
+        rcParams['ytick.major.pad']=8    ## distance to major tick label in points
+        rcParams['xtick.major.size'] =4    ## major tick size in points
+        rcParams['xtick.minor.size' ]=2     ## minor tick size in points
+        rcParams['xtick.major.width'] =1.    ## major tick width in points
+        rcParams['xtick.minor.width']=1.    ## minor tick width in points
+        rcParams['ytick.major.size']= 4    ## major tick size in points
+        rcParams['ytick.minor.size' ]=2      ## minor tick size in points
+        rcParams['ytick.major.width']=1.    ## major tick width in points
+        rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # compute derivative spectroscopy for spectrum in memory
         self.dsp = compute_dsp(self)
@@ -442,7 +460,7 @@ class ScouseFitter(object):
         self.close_window()
         # print completion statement
         print('')
-        print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
         print('')
         return
 

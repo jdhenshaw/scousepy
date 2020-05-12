@@ -16,6 +16,22 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
     """
     Keeping all the noisy stuff in one place.
     """
+    if stage=='init':
+        if step=='init':
+            print('')
+            print('---------------------')
+            print(colors.fg._lightblue_+'initialising scousepy'+colors._endc_)
+            print('---------------------')
+            print('')
+            progress_bar=[]
+        if step=='configexists':
+            print(colors.fg._lightgreen_+"scousepy config file already exists. Returning filepath. "+colors._endc_)
+            print('')
+            progress_bar=[]
+        if step=='makingconfig':
+            print(colors.fg._lightgreen_+"config file created "+colors._endc_)
+            print('')
+            progress_bar=[]
     if stage=='s1':
         if step=='load':
             print('')
@@ -23,7 +39,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print(colors.fg._lightblue_+'scousepy'+colors._endc_)
             print('--------')
             print('')
-            print(colors.fg._lightblue_+"Stage 1 complete...loading...  "+colors._endc_)
+            print(colors.fg._lightblue_+"loading s1.scousepy...  "+colors._endc_)
             print('')
             progress_bar=[]
         if step=='start':
@@ -56,6 +72,11 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             progress_bar=[]
 
     if stage=='s2':
+        if step=='load':
+            print('')
+            print(colors.fg._lightblue_+"loading s2.scousepy...  "+colors._endc_)
+            print('')
+            progress_bar=[]
         if step=='start':
             print('')
             print(colors.fg._lightblue_+'Beginning stage_2 analysis...'+colors._endc_)
