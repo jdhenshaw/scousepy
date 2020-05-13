@@ -94,6 +94,11 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             progress_bar=[]
 
     if stage=='s3':
+        if step=='load':
+            print('')
+            print(colors.fg._lightblue_+"loading s3.scousepy...  "+colors._endc_)
+            print('')
+            progress_bar=[]
         if step=='start':
             print("")
             print(colors.fg._lightblue_+"Beginning stage_3 analysis..."+colors._endc_)

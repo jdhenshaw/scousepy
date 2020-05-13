@@ -383,8 +383,8 @@ def get_soln_desc(idx, soln, x, y):
     """
     params_non_specific = [soln.ncomps, \
                            x, y,\
-                           soln.rms, soln.residstd, soln.chi2, \
-                           soln.dof, soln.redchi2, soln.aic]
+                           soln.rms, soln.residstd, soln.chisq, \
+                           soln.dof, soln.redchisq, soln.AIC]
 
     parlow = int((idx*len(soln.parnames)))
     parhigh = int((idx*len(soln.parnames))+len(soln.parnames))

@@ -25,11 +25,10 @@ import pyspeckit
 import random
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
-from .stage_2 import *
 from .stage_3 import *
 from .stage_4 import *
 from .stage_5 import interactive_plot, DiagnosticImageFigure
-from .stage_6 import *
+#from .stage_6 import *
 #from .io import *
 #from .saa_description import saa, add_ids
 #from .solution_description import fit
@@ -39,9 +38,6 @@ from .colors import *
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 plt.ion()
-
-Fitter = Stage2Fitter()
-fitting = Fitter.preparefit
 
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
@@ -197,6 +193,9 @@ class scouse(object):
         self.fitcount=None
         self.modelstore = {}
 
+        # stage 3 -- user
+        
+
         # self.stagedirs = []
         # self.cube = None
         # self.config_file=None
@@ -242,7 +241,7 @@ class scouse(object):
         from .verbose_output import print_to_terminal
         from scousepy.scousecoverage import ScouseCoverage
 
-        # Set the basics
+        # Check input
         if os.path.exists(config):
             self=scouse(config=config)
             import_from_config(self, config, config_key='stage_1')
@@ -254,7 +253,7 @@ class scouse(object):
             print('')
             return
 
-        # Check to see if stage 1 has already been run
+        # check if stage 1 has already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s1', step='load')
@@ -264,11 +263,13 @@ class scouse(object):
                 print('')
             return self
 
-        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
         # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
         self.load_cube(fitsfile=fitsfile)
 
-        # Verbose output
+        #----------------------------------------------------------------------#
+        # Main routine
+        #----------------------------------------------------------------------#
         if self.verbose:
             progress_bar = print_to_terminal(stage='s1', step='start')
 
@@ -289,7 +290,7 @@ class scouse(object):
             import_from_config(self, self.coverage_config_file_path)
             log.setLevel(old_log)
 
-        # Main routine
+        # start the time once the coverage has been generated
         starttime = time.time()
 
         # Create a dictionary to store the SAAs
@@ -319,6 +320,7 @@ class scouse(object):
             output_moments(self.cube.header,coverageobject.moments,momentoutputdir,self.filename)
 
         # Wrapping up
+        plt.close('all')
         endtime = time.time()
         if self.verbose:
             progress_bar = print_to_terminal(stage='s1', step='end',
@@ -336,6 +338,7 @@ class scouse(object):
                              self.x,
                              self.xtrim,
                              self.trimids), fh, protocol=proto)
+
         return self
 
     def load_stage_1(self,fn):
@@ -370,8 +373,10 @@ class scouse(object):
         from .io import import_from_config
         from .verbose_output import print_to_terminal
         from scousepy.scousefitter import ScouseFitter
+        from .model_housing2 import saamodel
+        from .stage_2 import generate_saa_list
 
-        # Set the basics
+        # Check input
         if os.path.exists(config):
             self=scouse(config=config)
             stages=['stage_1','stage_2']
@@ -385,12 +390,10 @@ class scouse(object):
             print('')
             return
 
-        # Check to see if stage 1 has already been run
+        # check if stages 1 and 2 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
             import_from_config(self, self.coverage_config_file_path)
-
-        # Check to see if stage 2 has already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s2', step='load')
@@ -401,10 +404,13 @@ class scouse(object):
                     print('')
                     return self
 
-        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
         # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
         self.load_cube(fitsfile=fitsfile)
 
+        #----------------------------------------------------------------------#
+        # Main routine
+        #----------------------------------------------------------------------#
         if self.verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
@@ -429,98 +435,30 @@ class scouse(object):
                                 )
         fitterobject.show()
 
+        # Now we want to go through and add the model solutions to the SAAs
+        for key in range(len(saa_list[:,0])):
+            # identify the right dictionary
+            saa_dict=self.saa_dict[saa_list[key,1]]
+            # retrieve the SAA
+            SAA=saa_dict[saa_list[key,0]]
+            # obtain the correct model from modelstore
+            modeldict=self.modelstore[key]
+            # convert the modelstore dictionary into an saamodel object
+            model=saamodel(modeldict)
+            # add this to the SAA
+            SAA.add_saamodel(model)
+
+        # Wrapping up
         endtime = time.time()
         if self.verbose:
             progress_bar = print_to_terminal(stage='s2', step='end',
                                              t1=starttime, t2=endtime)
 
-
-        # loop through the saa sizes
-        # for i in range(len(self.wsaa)):
-        #     saa_dict=self.saa_dict[i]
-        #     spectratobefit=spectra_to_be_fit(self,saa_dict)
-        #
-        #     sys.exit()
-        #
-        # sys.exit()
-        #
-        #
-        #
-        # # bitesize fitting preparation
-        # if bitesize:
-        #     if self.fitcount != 0.0:
-        #         lower = int(self.fitcount)
-        #         upper = int(lower+nspec)
-        #     else:
-        #         lower = 0
-        #         upper = int(lower+nspec)
-        #
-
-        #
-        # # Set ranges for bitesize fitting
-        # if not bitesize:
-        #     fitrange=np.arange(0,int(np.size(saa_list[:,0])))
-        # else:
-        #     if upper>=np.size(saa_list[:,0]):
-        #         if lower >= np.size(saa_list[:,0]):
-        #             fitrange=[]
-        #         else:
-        #             fitrange=np.arange(int(lower),int(np.size(saa_list[:,0])))
-        #     else:
-        #         fitrange=np.arange(int(lower),int(upper))
-        #
-        # # determine how many fits we will actually be performing
-        # n_to_fit = sum([self.saa_dict[saa_list[ii,1]][saa_list[ii,0]].to_be_fit
-        #                 for ii in fitrange])
-        #
-        # if n_to_fit <= 0:
-        #     raise ValueError(colors.fg._red_+"No spectra are selected to be fit."+
-        #                      "Fitting has completed."+colors._endc_)
-        #
-        # # Loop through the SAAs
-        # for i_,i in enumerate(fitrange):
-        #     print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-        #     print(colors.fg._lightgrey_+"Fitting {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
-        #     print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-        #     # Get the relevant SAA dictionary (if multiple wsaa values are
-        #     # supplied)
-        #     saa_dict = self.saa_dict[saa_list[i,1]]
-        #     # Get the first SAA to fit
-        #     SAA = saa_dict[saa_list[i,0]]
-        #
-        #     # Fitting process is different for the first SAA in a wsaa loop.
-        #     # For all subsequent SAAs scouse will try and apply the previous
-        #     # solution to the spectrum in an attempt to speed things up and
-        #     # reduce the interactivity
-        #     if SAA.index == 0.0:
-        #         SAAid=0
-        #         firstfit=True
-        #     elif i == np.min(fitrange):
-        #         SAAid=SAA.index
-        #         firstfit=True
-        #     elif training_set:
-        #         SAAid=SAA.index
-        #         firstfit=True
-        #
-        #     if SAA.to_be_fit:
-        #         with warnings.catch_warnings():
-        #             warnings.simplefilter('ignore', category=DeprecationWarning)
-        #
-        #             # enter the fitting process
-        #             bf = fitting(self, SAA, saa_dict, SAAid,
-        #                          training_set=self.training_set,
-        #                          init_guess=firstfit, derivspec=derivspec)
-        #         SAAid = SAA.index
-        #         firstfit=False
-        #
-        #     self.fitcount+=1
-        #
-        # # Output at the end of SAA fitting
-        # if write_ascii and (self.fitcount == np.size(saa_list[:,0])):
-        #     output_ascii_saa(self, s2dir)
-        #     self.completed_stages.append('s2')
-        #
+        # Check that the fitting has completed
         if np.all(self.fitcount):
+            if self.write_ascii:
+                from .io import output_ascii_saa
+                output_ascii_saa(self, os.path.join(self.outputdirectory,self.filename,'stage_2/'))
             self.completed_stages.append('s2')
 
         # Save the scouse object automatically
@@ -542,12 +480,19 @@ class scouse(object):
             self.fitcount, \
             self.modelstore = pickle.load(fh)
 
-    def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
-                clear_cache=True, autosave=True):
+    # def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
+    #             clear_cache=True, autosave=True):
+
+    def stage_3(config=''):
         """
         Stage 3
 
         Automated fitting of the data.
+
+        Parameters
+        ----------
+        config : string
+            Path to the configuration file. This must be provided.
 
         Parameters
         ----------
@@ -583,6 +528,43 @@ class scouse(object):
             Autosaves the scouse file.
 
         """
+        # import
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+
+        # Check input
+        if os.path.exists(config):
+            self=scouse(config=config)
+            stages=['stage_1','stage_2','stage_3']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
+
+        # check if stages 1, 2, and 3 have already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            import_from_config(self, self.coverage_config_file_path)
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
+            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+            if self.fitcount is not None:
+                if not np.all(self.fitcount):
+                    print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s3', step='load')
+            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+
+        # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        self.load_cube(fitsfile=fitsfile)
+
+        sys.exit()
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
         self.stagedirs.append(s3dir)

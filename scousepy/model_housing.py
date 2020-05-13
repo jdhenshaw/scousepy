@@ -16,7 +16,8 @@ from astropy.stats import median_absolute_deviation
 class BaseSpectrum(object):
     def __init__(self, coords, spectrum, idx=None, scouse=None, sample=False):
         """
-        Stores all the information regarding individual spectra
+        Stores all the information regarding individual spectra. These
+        properties are shared 
         """
 
         self._index = idx
@@ -107,6 +108,7 @@ class saa(BaseSpectrum):
         self._indiv_spectra = None
         self._sample = sample
         self._cube_shape = scouse.cube.shape
+        self.params=None
 
     @classmethod
     def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):

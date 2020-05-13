@@ -822,7 +822,7 @@ def get_spectral_info(self):
     """
     if self.method=='scouse':
         self.specx=self.scouseobject.xtrim
-        self.specy=self.my_spectrum.ytrim
+        self.specy=self.my_spectrum.spectrum[self.scouseobject.trimids]
         self.specrms=self.my_spectrum.rms
     else:
         self.specx = self.individual[self.index,0,:]
