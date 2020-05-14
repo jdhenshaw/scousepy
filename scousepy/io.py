@@ -142,9 +142,21 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
             'simple': False}),
         ]
 
+    stage_3 = [
+        ('tol', {
+            'default': make_string([3.0,1.0,2.5,2.5,0.5]),
+            'description': "Tolerance values for the fitting. See Henshaw et al. 2016a",
+            'simple': True}),
+        ('njobs', {
+            'default': '1',
+            'description': "Number of CPUs used for parallel processing",
+            'simple': True})
+        ]
+
     dct_default = OrderedDict(default)
     dct_stage_1 = OrderedDict(stage_1)
     dct_stage_2 = OrderedDict(stage_2)
+    dct_stage_3 = OrderedDict(stage_3)
 
     config_file = []
 
@@ -160,6 +172,11 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
 
     config_file.append('\n\n[stage_2]')
     config_file = append_keywords(config_file, dct_stage_2,
+                                  all_keywords=True,
+                                  description=description)
+
+    config_file.append('\n\n[stage_3]')
+    config_file = append_keywords(config_file, dct_stage_3,
                                   all_keywords=True,
                                   description=description)
 

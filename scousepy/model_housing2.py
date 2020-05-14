@@ -17,7 +17,7 @@ class saa(object):
     Parameters
     ----------
     coordinates : array
-        The coordinates of the SAA in pixel units
+        The coordinates of the SAA in pixel units. In (x,y).
     spectrum : array
         The spectrum
     index : number
@@ -54,7 +54,7 @@ class saa(object):
         self.index=index
         self.coordinates=coordinates
         self.spectrum=spectrum
-        self.rms=self.get_rms(scouseobject)
+        self.rms=get_rms(self,scouseobject)
         self.indices=None
         self.indices_flat=None
         self.to_be_fit=to_be_fit
@@ -66,27 +66,6 @@ class saa(object):
         Return a nice printable format for the object.
         """
         return "< scousepy SAA; index={0} >".format(self.index)
-
-    def get_rms(self, scouseobject):
-        """
-        Calculates rms value
-
-        Parameters
-        ----------
-        scouseobject : instance of the scouse class
-
-        """
-        from .stage_1 import calc_rms
-        # make sure there are no NaNs and that the spectrum isn't all +ve - e.g.
-        # dodgy baselines
-        if not np.isnan(self.spectrum).any() and not (self.spectrum > 0).all():
-            rms = calc_rms(self.spectrum)
-        else:
-            # if the spectrum violates these conditions then simply set the rms to
-            # the value measured over the entire cube
-            rms = scouseobject.rms_approx
-
-        return rms
 
     def add_indices(self, indices, shape):
         """
@@ -113,6 +92,89 @@ class saa(object):
 
         """
         self.model=model
+
+
+class individual_spectrum(object):
+    """
+    Stores all the information regarding individual spectra
+
+    Parameters
+    ----------
+    coordinates : array
+        The coordinates of the spectrum in pixel units. In (x,y).
+    spectrum : array
+        The spectrum
+    index : number
+        The flattened index of the spectrum
+    scouseobject : instance of the scouse class
+    saa_dict_index : number
+        Index of the saa_dict. This will be used along with saaindex to find the
+        parent model solution to provide initial guesses for the fitter
+    saaindex : number
+        Index of the SAA. Used to locate a given spectrum's parent SAA
+
+    Attributes
+    ----------
+    model : instance of the indivmodel class
+        The final best-fitting model solution as determined in stage 4
+    model_from_saa : instance of the indivmodel class
+        The best-fitting solution as determined from using the SAA model as
+        input guesses
+    model_from_dspec : instance of the indivmodel class
+        The best-fitting model solution derived from derivative spectroscopy
+    model_from_spatial : instance of the indivmodel class
+        The best-fitting model solution derived from spatial fitting
+    model_from_manual : instance of the indivmodel class
+        The best-fitting model solution as fit manually during stage 6 of the
+        process
+    decision : string
+        The decision made during stage 6 of the process, i.e. if the spectrum
+        was refit,
+    """
+
+    def __init__(self, coordinates, spectrum, index=None, scouseobject=None,
+                 saa_dict_index=None, saaindex=None):
+
+        self.index=index
+        self.coordinates=coordinates
+        self.spectrum=spectrum
+        self.rms=get_rms(self, scouseobject)
+        self.saa_dict_index=saa_dict_index
+        self.saaindex=saaindex 
+        self.model=None
+        self.model_from_saa=None
+        self.model_from_dspec=None
+        self.model_from_spatial=None
+        self.model_from_manual=None
+        self.decision=None
+
+    def __repr__(self):
+        """
+        Return a nice printable format for the object.
+        """
+        return "<< scousepy individual spectrum; index={0} >>".format(self.index)
+
+
+def get_rms(self, scouseobject):
+    """
+    Calculates rms value. Used by both saa and individual_spectrum classes
+
+    Parameters
+    ----------
+    scouseobject : instance of the scouse class
+
+    """
+    from .stage_1 import calc_rms
+    # make sure there are no NaNs and that the spectrum isn't all +ve - e.g.
+    # dodgy baselines
+    if not np.isnan(self.spectrum).any() and not (self.spectrum > 0).all():
+        rms = calc_rms(self.spectrum)
+    else:
+        # if the spectrum violates these conditions then simply set the rms to
+        # the value measured over the entire cube
+        rms = scouseobject.rms_approx
+
+    return rms
 
 class basemodel(object):
     """

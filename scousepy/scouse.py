@@ -135,6 +135,10 @@ class scouse(object):
 
     stage 1 - scouse defined attributes
     -----------------------------------
+    lenspec : number
+        This will refer to the total number of spectra that scouse will actually
+        fit. This includes some spectra being fit multiple times due to overlap
+        of SAAs if spacing: 'nyquist' is selected.
     saa_dict : dictionary
         A dictionary containing all of the SAA spectra in scouse format
     rms_approx : number
@@ -181,6 +185,7 @@ class scouse(object):
         self.totalsaas=None
         self.totalspec=None
         # stage 1 -- scousepy SAAs
+        self.lenspec=None
         self.saa_dict=None
         self.rms_approx=None
         self.x=None
@@ -191,10 +196,11 @@ class scouse(object):
         self.write_ascii=None
         # stage 2 -- scousepy
         self.fitcount=None
-        self.modelstore = {}
+        self.modelstore={}
 
         # stage 3 -- user
-        
+        self.tol=None
+        self.njobs=None
 
         # self.stagedirs = []
         # self.cube = None
@@ -334,6 +340,7 @@ class scouse(object):
             with open(self.outputdirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
                 pickle.dump((self.completed_stages,
                              self.coverage_config_file_path,
+                             self.lenspec,
                              self.saa_dict,
                              self.x,
                              self.xtrim,
@@ -349,6 +356,7 @@ class scouse(object):
         with open(fn, 'rb') as fh:
             self.completed_stages,\
             self.coverage_config_file_path,\
+            self.lenspec,\
             self.saa_dict,\
             self.x,\
             self.xtrim,\
@@ -564,6 +572,27 @@ class scouse(object):
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
         self.load_cube(fitsfile=fitsfile)
 
+        #----------------------------------------------------------------------#
+        # Main routine
+        #----------------------------------------------------------------------#
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='start')
+
+        starttime = time.time()
+        # create a list that is going to house all instances of the
+        # individual_spectrum class. We want this to be a list for ease of
+        # parallelisation.
+        indivspec_list=[]
+        indivspec_list=initialise_fitting(self, indivspec_list)
+
+        endtime = time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='end',
+                                             t1=starttime, t2=endtime)
+
+
+
+                                             
         sys.exit()
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
@@ -578,8 +607,7 @@ class scouse(object):
         self.tolerances = np.array(tol)
         self.specres = self.cube.header['CDELT3']
 
-        if verbose:
-            progress_bar = print_to_terminal(stage='s3', step='start')
+
 
         # Begin by preparing the spectra and adding them to the relevant SAA
         initialise_indiv_spectra(self, verbose=verbose, njobs=njobs)

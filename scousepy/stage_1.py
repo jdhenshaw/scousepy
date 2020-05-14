@@ -103,7 +103,7 @@ def map_locations(shape):
     ----------
     shape : tuple
         (x,y) shape of the map/cube
-        
+
     """
     _yy,_xx=np.meshgrid(np.arange(shape[0]),np.arange(shape[1]))
     locations=np.array([np.ravel(_xx),np.ravel(_yy)]).T
@@ -144,6 +144,7 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
     # get the locations of all pixels in the map
     maploc=map_locations((np.shape(coverageobject.moments[6])[0],np.shape(coverageobject.moments[6])[1]))
 
+    scouseobject.lenspec=0.0
     for i, w in enumerate(coverageobject.wsaa, start=0):
         # Create individual dictionaries for each wsaa
         scouseobject.saa_dict[i] = {}
@@ -175,6 +176,9 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             saaspectra=np.flip(map_locations_unmasked(cubemask),axis=1)
             # add these to the SAAs
             SAA.add_indices(saaspectra, scouseobject.cube.shape[1:])
+            # determine the *actual* number of spectra scouse will fit 
+            if SAA.to_be_fit:
+                scouseobject.lenspec+=np.size(SAA.indices_flat)
 
             if verbose:
                 progress_bar.update()

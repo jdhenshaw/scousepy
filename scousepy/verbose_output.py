@@ -106,8 +106,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
         if step=='init':
             if length != None:
                 print("")
-                print("")
-                print('Initialising spectra: wsaa = {0}'.format(var))
+                print('Initialising spectra...')
                 print("")
                 progress_bar = ProgressBar(length)
         if step=='fitting':
