@@ -27,7 +27,7 @@ warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_3 import *
 from .stage_4 import *
-from .stage_5 import interactive_plot, DiagnosticImageFigure
+#from .stage_5 import interactive_plot, DiagnosticImageFigure
 #from .stage_6 import *
 #from .io import *
 #from .saa_description import saa, add_ids
@@ -250,7 +250,9 @@ class scouse(object):
         # Check input
         if os.path.exists(config):
             self=scouse(config=config)
-            import_from_config(self, config, config_key='stage_1')
+            stages=['stage_1']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
         else:
             print('')
             print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
@@ -585,6 +587,12 @@ class scouse(object):
         indivspec_list=[]
         indivspec_list=initialise_fitting(self, indivspec_list)
 
+        # determine cpus to use
+        if self.njobs==None:
+            self.get_njobs()
+        # now begin the fitting
+        autonomous_decomposition(self, indivspec_list)
+
         endtime = time.time()
         if self.verbose:
             progress_bar = print_to_terminal(stage='s3', step='end',
@@ -592,7 +600,7 @@ class scouse(object):
 
 
 
-                                             
+
         sys.exit()
 
         s3dir = os.path.join(self.outputdirectory, 'stage_3')
@@ -1172,6 +1180,20 @@ class scouse(object):
         """
         from .io import load
         return load(filename)
+
+#==============================================================================#
+# Methods
+#==============================================================================#
+
+    def get_njobs(self):
+        """
+        Determines number of cpus available for parallel processing. If njobs
+        is set to None scouse will automatically use 75% of available cpus.
+
+        """
+        import multiprocessing
+        maxcpus=multiprocessing.cpu_count()
+        self.njobs=int(0.75*maxcpus)
 
 #==============================================================================#
 # Analysis

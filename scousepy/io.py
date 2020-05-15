@@ -144,7 +144,7 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
 
     stage_3 = [
         ('tol', {
-            'default': make_string([3.0,1.0,2.5,2.5,0.5]),
+            'default': "[3.0,1.0,2.5,2.5,0.5]",
             'description': "Tolerance values for the fitting. See Henshaw et al. 2016a",
             'simple': True}),
         ('njobs', {
@@ -208,7 +208,8 @@ def import_from_config(self, config_file, config_key='DEFAULT'):
 
     for key, value in config[config_key].items():
         try:
-            setattr(self, key, ast.literal_eval(value))
+            value=ast.literal_eval(value)
+            setattr(self, key, value)
         except ValueError:
             raise Exception('Could not parse parameter {} from config file'.format(key))
 

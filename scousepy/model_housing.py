@@ -17,7 +17,7 @@ class BaseSpectrum(object):
     def __init__(self, coords, spectrum, idx=None, scouse=None, sample=False):
         """
         Stores all the information regarding individual spectra. These
-        properties are shared 
+        properties are shared
         """
 
         self._index = idx

@@ -115,9 +115,11 @@ class individual_spectrum(object):
 
     Attributes
     ----------
+    template : instance of pyspeckit's Spectrum class
+        A template spectrum updated during fitting
     model : instance of the indivmodel class
         The final best-fitting model solution as determined in stage 4
-    model_from_saa : instance of the indivmodel class
+    model_from_parent : instance of the indivmodel class
         The best-fitting solution as determined from using the SAA model as
         input guesses
     model_from_dspec : instance of the indivmodel class
@@ -140,9 +142,12 @@ class individual_spectrum(object):
         self.spectrum=spectrum
         self.rms=get_rms(self, scouseobject)
         self.saa_dict_index=saa_dict_index
-        self.saaindex=saaindex 
+        self.saaindex=saaindex
+        self.template=None
+        self.guesses_from_parent=None
+        self.guesses_updated=None
         self.model=None
-        self.model_from_saa=None
+        self.model_from_parent=None
         self.model_from_dspec=None
         self.model_from_spatial=None
         self.model_from_manual=None
@@ -154,6 +159,26 @@ class individual_spectrum(object):
         """
         return "<< scousepy individual spectrum; index={0} >>".format(self.index)
 
+    def add_model(self, model):
+        """
+        Adds model solution
+
+        Parameters
+        ----------
+        model : instance of the indivmodel class
+
+        """
+
+        if model.method=='parent':
+            self.model_from_parent=model
+        elif model.method=='dspec':
+            self.model_from_dspec=model
+        elif model.method=='spatial':
+            self.model_from_spatial=model
+        elif model.method=='manual':
+            self.model_from_manual=model
+        else:
+            pass # error here?
 
 def get_rms(self, scouseobject):
     """
@@ -255,6 +280,38 @@ class saamodel(basemodel):
         self.SNR=None
         self.kernelsize=None
         self.manual=None
+
+        self.set_attributes(modeldict)
+
+    def __repr__(self):
+        """
+        Return a nice printable format for the object.
+        """
+        return "< scousepy saamodel_solution; fittype={0}; ncomps={1} >".format(self.fittype, self.ncomps)
+
+    def set_attributes(self, modeldict):
+        """
+        Sets the attributes of the SAA model
+        """
+        for parameter, value in modeldict.items():
+            setattr(self, parameter, value)
+
+class indivmodel(basemodel):
+    """
+    This houses the model information for individual spectra. It uses the base
+    model and includes some parameters that are unique to individual spectra.
+
+    Parameters
+    ----------
+    modeldict : dictionary
+        This is a dictionary containing the model parameters that we want to
+        add to the individual spectrum.
+
+    """
+    def __init__(self, modeldict):
+        super(basemodel, self).__init__()
+
+        self.method=None
 
         self.set_attributes(modeldict)
 

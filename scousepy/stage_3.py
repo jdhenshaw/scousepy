@@ -10,8 +10,6 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import sys
-import warnings
-import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 import time
@@ -61,7 +59,7 @@ def initialise_fitting(scouseobject, indivspec_list):
                 # get the indices of the pixels contained within the SAA
                 indices=SAA.indices
                 indices_flat=SAA.indices_flat
-
+                template=gen_template(scouseobject,SAA)
                 # loop over these and for each one create an instance of the
                 # individual_spectrum class
                 for k in range(len(indices_flat)):
@@ -73,6 +71,9 @@ def initialise_fitting(scouseobject, indivspec_list):
                     indivspec=individual_spectrum(coordinates,spectrum,index=index,
                                         scouseobject=scouseobject, saa_dict_index=i,
                                         saaindex=SAA.index)
+                    # add the template
+                    setattr(indivspec, 'template', template)
+                    setattr(indivspec, 'guesses_from_parent', SAA.model.params)
                     # append the model to the list
                     indivspec_list.append(indivspec)
                     if scouseobject.verbose:
@@ -80,150 +81,251 @@ def initialise_fitting(scouseobject, indivspec_list):
 
     return indivspec_list
 
-
-def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
+def gen_template(scouseobject, SAA):
     """
-    Here, the individual spectra are primed ready for fitting. We create a new
-    object for each spectrum and they are contained within a dictionary which
-    can be located within the relavent SAA.
+    Here we create a template spectrum. Parallelised fitting replaces the
+    spectrum in memory and so it is best to generate a template outside of the
+    parallel fitting process.
 
     Parameters
     ----------
-    scouseobject : Instance of the scousepy class
-    verbose : bool (optional)
-        verbose output
-    njobs : number (optional)
-        number of cores used for the computation - prep spec is parallelised
+    scouseobject : instance of the scousepy class
+    SAA : instance of the saa class
 
     """
+    from .SpectralDecomposer import Decomposer
 
-    # Cycle through potentially multiple wsaa values
-    for i in range(len(scouseobject.wsaa)):
-        # Get the relavent SAA dictionary
-        saa_dict = scouseobject.saa_dict[i]
-        # initialise the progress bar
-        if verbose:
-            count=0
-            progress_bar = print_to_terminal(stage='s3', step='init',
-                                             length=len(saa_dict.keys()),
-                                             var=scouseobject.wsaa[i])
+    # properties of the template spectrum
+    spectral_axis=scouseobject.xtrim
+    unit=scouseobject.cube.header['BUNIT'],
+    xarrkwargs={'unit':'km/s',
+                'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
+                'velocity_convention': 'radio',}
 
-        for _key in saa_dict.keys():
-            prep_spec(_key, saa_dict, njobs, scouseobject)
-            if verbose:
-                progress_bar.update()
-    if verbose:
-        print("")
+    decomposer=Decomposer(spectral_axis)
+    Decomposer.create_a_template(decomposer,unit=unit,xarrkwargs=xarrkwargs)
 
-def prep_spec(_key, saa_dict, njobs, scouseobject):
-    """
-    Prepares the spectra for automated fitting
+    return decomposer.psktemplate
 
-    Parameters
-    ----------
-    _key : number
-        key for SAA dictionary entry - used to select the correct SAA
-    saa_dict : dictionary
-        dictionary of spectral averaging areas
-    njobs : number
-        number of cores used for the computation - prep spec is parallelised
-    scouseobject : Instance of the scousepy class
-
+def autonomous_decomposition(scouseobject, indivspec_list):
     """
 
-    # get the relavent SAA
-    SAA = saa_dict[_key]
-    # Initialise indiv spectra
-    indiv_spectra = {}
-    # We only care about the SAA's that are to be fit at this stage
-    if SAA.to_be_fit:
-        if np.size(SAA.indices_flat) != 0.0:
-
-            # Parallel
-            if njobs > 1:
-                args = [scouseobject, SAA]
-                inputs = [[k] + args for k in range(len(SAA.indices_flat))]
-                # Send to parallel_map
-                indiv_spec = parallel_map(get_indiv_spec,inputs,numcores=njobs)
-                # flatten the output from parallel map
-                merged_spec = [spec for spec in indiv_spec if spec is not None]
-                merged_spec = np.asarray(merged_spec)
-                for k in range(len(SAA.indices_flat)):
-                    # Add the spectra to the dict
-                    key = SAA.indices_flat[k]
-                    indiv_spectra[key] = merged_spec[k]
-            else:
-                for k in range(len(SAA.indices_flat)):
-                    key = SAA.indices_flat[k]
-                    args = [scouseobject, SAA]
-                    inputs = [[k] + args]
-                    inputs = inputs[0]
-                    indiv_spec = get_indiv_spec(inputs)
-                    indiv_spectra[key] = indiv_spec
-    # add the spectra to the spectral averaging areas
-    add_indiv_spectra(SAA, indiv_spectra)
-
-def get_indiv_spec(inputs):
     """
-    Returns a spectrum
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    import multiprocessing as mp
 
-    Parameters
-    ----------
-    inputs : list
-        list containing inputs to parallel map - contains the index of the
-        relavent spectrum, the scouseobject, and the SAA
+    inputlist=[[scouseobject]+[indivspec] for indivspec in indivspec_list]
+    # st=time.time()
+    # with ProcessPoolExecutor(max_workers=scouseobject.njobs) as pool:
+    #     outputlist = [pool.submit(decomposition_method, input) for input in inputlist]
+    # et=time.time()
 
-    """
-    idx, scouseobject, SAA = inputs
-    # get the coordinates of the pixel based on the flattened index
-    _coords = np.unravel_index(SAA.indices_flat[idx],scouseobject.cube.shape[1:])
-    # create a pyspeckit spectrum
-    indiv_spec = spectrum(_coords, \
-                          scouseobject.cube[:,_coords[0], _coords[1]].value, \
-                          idx=SAA.indices_flat[idx], \
-                          scouse=scouseobject)
+    st=time.time()
+    pool = mp.Pool(processes=scouseobject.njobs)
+    results = pool.map(decomposition_method, inputlist)
+    pool.close()
+    et=time.time()
 
-    return indiv_spec
+    manager = mp.Manager()
+    out_q = manager.Queue()
+    err_q = manager.Queue()
+    lock = manager.Lock()
 
-def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1,
-                      spatial=False, verbose=False, stage=3):
-    """
-    Automated fitting procedure for individual spectra
+    sequence = np.array_split(inputlist, scouseobject.njobs)
+    print(sequence)
 
-    Parameters
-    ----------
-    scouseobject : Instance of the scousepy class
-    saa_dict : dictionary
-        dictionary of spectral averaging areas
-    wsaa : number
-        width of the SAA
-    njobs : number (optional)
-        number of cores used for the computation - prep spec is parallelised
-    spatial : bool (optional)
-        not implemented yet
-    verbose : bool (optional)
-        verbose output
-    stage : number (optional)
-        indicates whether the fitting is being performed during stage 3 or 6
+    procs = [mp.Process(target=decomposition_method,args=(function, ii, chunk, out_q, err_q, lock))
+    #        for ii, chunk in enumerate(sequence)]
+
+    #
+    #outputlist=[parallel_decomposition(input) for input in inputlist]
+
+
+    print('')
+    print(et-st)
+    # for i,indivspec in enumerate(outputlist):
+    #     print(indivspec.model_from_parent)
+
+    #print(multiprocessing.cpu_count())
+    sys.exit()
+
+def decomposition_method(input):
     """
 
-    if verbose:
-        if stage == 3:
-            progress_bar = print_to_terminal(stage='s3', step='fitting',
-                                             length=len(saa_dict.keys()),
-                                             var=wsaa)
-        else:
-            progress_bar = print_to_terminal(stage='s6', step='fitting',
-                                             length=len(saa_dict.keys()),
-                                             var=wsaa)
+    """
+    from .SpectralDecomposer import Decomposer
+    from .model_housing2 import indivmodel
+    # unpack the inputs
+    scouseobject, indivspec = input
+    # set up the decomposer
+    spectral_axis=scouseobject.xtrim
+    decomposer=Decomposer(spectral_axis)
 
-    for _key in saa_dict.keys():
-        fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
-        if verbose:
-            progress_bar.update()
+    # set the parameters to fit the spectrum
+    template=indivspec.template
+    spectrum=indivspec.spectrum[scouseobject.trimids]
+    rms=indivspec.rms
+    if indivspec.guesses_updated==None:
+        guesses=indivspec.guesses_from_parent
+    else:
+        guesses=indivspec.guesses_updated
+    fittype=scouseobject.saa_dict[indivspec.saa_dict_index][indivspec.saaindex].model.fittype
 
-    if verbose:
-        print("")
+    # fit the spectrum
+    Decomposer.fit_spectrum_from_parent(decomposer,template,spectrum,rms,guesses,
+                                        scouseobject.tol,scouseobject.cube.header['CDELT3'],
+                                        fittype=fittype)
+
+    if decomposer.validfit:
+        model=indivmodel(decomposer.modeldict)
+        indivspec.add_model(model)
+    else:
+        setattr(indivspec, 'guesses_updated', decomposer.guesses_updated)
+
+    return indivspec
+# def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
+#     """
+#     Here, the individual spectra are primed ready for fitting. We create a new
+#     object for each spectrum and they are contained within a dictionary which
+#     can be located within the relavent SAA.
+#
+#     Parameters
+#     ----------
+#     scouseobject : Instance of the scousepy class
+#     verbose : bool (optional)
+#         verbose output
+#     njobs : number (optional)
+#         number of cores used for the computation - prep spec is parallelised
+#
+#     """
+#
+#     # Cycle through potentially multiple wsaa values
+#     for i in range(len(scouseobject.wsaa)):
+#         # Get the relavent SAA dictionary
+#         saa_dict = scouseobject.saa_dict[i]
+#         # initialise the progress bar
+#         if verbose:
+#             count=0
+#             progress_bar = print_to_terminal(stage='s3', step='init',
+#                                              length=len(saa_dict.keys()),
+#                                              var=scouseobject.wsaa[i])
+#
+#         for _key in saa_dict.keys():
+#             prep_spec(_key, saa_dict, njobs, scouseobject)
+#             if verbose:
+#                 progress_bar.update()
+#     if verbose:
+#         print("")
+
+# def prep_spec(_key, saa_dict, njobs, scouseobject):
+#     """
+#     Prepares the spectra for automated fitting
+#
+#     Parameters
+#     ----------
+#     _key : number
+#         key for SAA dictionary entry - used to select the correct SAA
+#     saa_dict : dictionary
+#         dictionary of spectral averaging areas
+#     njobs : number
+#         number of cores used for the computation - prep spec is parallelised
+#     scouseobject : Instance of the scousepy class
+#
+#     """
+#
+#     # get the relavent SAA
+#     SAA = saa_dict[_key]
+#     # Initialise indiv spectra
+#     indiv_spectra = {}
+#     # We only care about the SAA's that are to be fit at this stage
+#     if SAA.to_be_fit:
+#         if np.size(SAA.indices_flat) != 0.0:
+#
+#             # Parallel
+#             if njobs > 1:
+#                 args = [scouseobject, SAA]
+#                 inputs = [[k] + args for k in range(len(SAA.indices_flat))]
+#                 # Send to parallel_map
+#                 indiv_spec = parallel_map(get_indiv_spec,inputs,numcores=njobs)
+#                 # flatten the output from parallel map
+#                 merged_spec = [spec for spec in indiv_spec if spec is not None]
+#                 merged_spec = np.asarray(merged_spec)
+#                 for k in range(len(SAA.indices_flat)):
+#                     # Add the spectra to the dict
+#                     key = SAA.indices_flat[k]
+#                     indiv_spectra[key] = merged_spec[k]
+#             else:
+#                 for k in range(len(SAA.indices_flat)):
+#                     key = SAA.indices_flat[k]
+#                     args = [scouseobject, SAA]
+#                     inputs = [[k] + args]
+#                     inputs = inputs[0]
+#                     indiv_spec = get_indiv_spec(inputs)
+#                     indiv_spectra[key] = indiv_spec
+#     # add the spectra to the spectral averaging areas
+#     add_indiv_spectra(SAA, indiv_spectra)
+
+# def get_indiv_spec(inputs):
+#     """
+#     Returns a spectrum
+#
+#     Parameters
+#     ----------
+#     inputs : list
+#         list containing inputs to parallel map - contains the index of the
+#         relavent spectrum, the scouseobject, and the SAA
+#
+#     """
+#     idx, scouseobject, SAA = inputs
+#     # get the coordinates of the pixel based on the flattened index
+#     _coords = np.unravel_index(SAA.indices_flat[idx],scouseobject.cube.shape[1:])
+#     # create a pyspeckit spectrum
+#     indiv_spec = spectrum(_coords, \
+#                           scouseobject.cube[:,_coords[0], _coords[1]].value, \
+#                           idx=SAA.indices_flat[idx], \
+#                           scouse=scouseobject)
+#
+#     return indiv_spec
+
+# def fit_indiv_spectra(scouseobject, saa_dict, wsaa, njobs=1,
+#                       spatial=False, verbose=False, stage=3):
+#     """
+#     Automated fitting procedure for individual spectra
+#
+#     Parameters
+#     ----------
+#     scouseobject : Instance of the scousepy class
+#     saa_dict : dictionary
+#         dictionary of spectral averaging areas
+#     wsaa : number
+#         width of the SAA
+#     njobs : number (optional)
+#         number of cores used for the computation - prep spec is parallelised
+#     spatial : bool (optional)
+#         not implemented yet
+#     verbose : bool (optional)
+#         verbose output
+#     stage : number (optional)
+#         indicates whether the fitting is being performed during stage 3 or 6
+#     """
+#
+#     if verbose:
+#         if stage == 3:
+#             progress_bar = print_to_terminal(stage='s3', step='fitting',
+#                                              length=len(saa_dict.keys()),
+#                                              var=wsaa)
+#         else:
+#             progress_bar = print_to_terminal(stage='s6', step='fitting',
+#                                              length=len(saa_dict.keys()),
+#                                              var=wsaa)
+#
+#     for _key in saa_dict.keys():
+#         fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial)
+#         if verbose:
+#             progress_bar.update()
+#
+#     if verbose:
+#         print("")
 
 def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
     """
@@ -289,70 +391,70 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
                 add_model_parent(SAA.indiv_spectra[key], bfs[0])
                 add_model_dud(SAA.indiv_spectra[key], bfs[1])
 
-def generate_template_spectrum(scouseobject):
-    """
-    Generate a template spectrum to be passed to the fitter. This will contain
-    some basic information that will be updated during the fitting process. This
-    is implemented because the parallelised fitting replaces the spectrum in
-    memory and things...break
+# def generate_template_spectrum(scouseobject):
+#     """
+#     Generate a template spectrum to be passed to the fitter. This will contain
+#     some basic information that will be updated during the fitting process. This
+#     is implemented because the parallelised fitting replaces the spectrum in
+#     memory and things...break
+#
+#     Parameters
+#     ----------
+#     scouseobject : Instance of the scousepy class
+#
+#     """
+#     x=scouseobject.xtrim
+#     y=scouseobject.saa_dict[0][0].ytrim
+#     rms=scouseobject.saa_dict[0][0].rms
+#
+#     return pyspeckit.Spectrum(data=y,
+#                               error=np.ones(len(y))*rms,
+#                               xarr=x,
+#                               doplot=False,
+#                               unit=scouseobject.cube.header['BUNIT'],
+#                               xarrkwargs={'unit':'km/s',
+#                                           'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
+#                                           'velocity_convention': 'radio',
+#                                          },
+#                               verbose=False
+#                               )
 
-    Parameters
-    ----------
-    scouseobject : Instance of the scousepy class
+# def get_flux(scouseobject, indiv_spec):
+#     """
+#     Returns flux for a given spectrum
+#
+#     Parameters
+#     ----------
+#     scouseobject : Instance of the scousepy class
+#     indiv_spec : Instance of the fit class
+#         the spectrum to be fit, produced by prep spec
+#     """
+#     y=scouseobject.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
+#     y=y[scouseobject.trimids]
+#     return y
 
-    """
-    x=scouseobject.xtrim
-    y=scouseobject.saa_dict[0][0].ytrim
-    rms=scouseobject.saa_dict[0][0].rms
-
-    return pyspeckit.Spectrum(data=y,
-                              error=np.ones(len(y))*rms,
-                              xarr=x,
-                              doplot=False,
-                              unit=scouseobject.cube.header['BUNIT'],
-                              xarrkwargs={'unit':'km/s',
-                                          'refX': scouseobject.cube.wcs.wcs.restfrq*u.Hz,
-                                          'velocity_convention': 'radio',
-                                         },
-                              verbose=False
-                              )
-
-def get_flux(scouseobject, indiv_spec):
-    """
-    Returns flux for a given spectrum
-
-    Parameters
-    ----------
-    scouseobject : Instance of the scousepy class
-    indiv_spec : Instance of the fit class
-        the spectrum to be fit, produced by prep spec
-    """
-    y=scouseobject.cube[:,indiv_spec.coordinates[0],indiv_spec.coordinates[1]]
-    y=y[scouseobject.trimids]
-    return y
-
-def get_spec(scouseobject, indiv_spec, template_spectrum):
-    """
-    Here we update the template with values corresponding to the spectrum
-    we want to fit
-
-    Parameters
-    ----------
-    scouseobject : Instance of the scousepy class
-    indiv_spec : pyspeckit spectrum
-        the spectrum to be fit, produced by prep spec
-    template_spectrum : pyspeckit spectrum
-        dummy spectrum to be updated
-    """
-    y = get_flux(scouseobject, indiv_spec)
-    rms=indiv_spec.rms
-
-    template_spectrum.data = u.Quantity(y).value
-    template_spectrum.error = u.Quantity(np.ones(len(y))*rms).value
-    template_spectrum.specfit.spectofit = u.Quantity(y).value
-    template_spectrum.specfit.errspec = u.Quantity(np.ones(len(y))*rms).value
-
-    return template_spectrum
+# def get_spec(scouseobject, indiv_spec, template_spectrum):
+#     """
+#     Here we update the template with values corresponding to the spectrum
+#     we want to fit
+#
+#     Parameters
+#     ----------
+#     scouseobject : Instance of the scousepy class
+#     indiv_spec : pyspeckit spectrum
+#         the spectrum to be fit, produced by prep spec
+#     template_spectrum : pyspeckit spectrum
+#         dummy spectrum to be updated
+#     """
+#     y = get_flux(scouseobject, indiv_spec)
+#     rms=indiv_spec.rms
+#
+#     template_spectrum.data = u.Quantity(y).value
+#     template_spectrum.error = u.Quantity(np.ones(len(y))*rms).value
+#     template_spectrum.specfit.spectofit = u.Quantity(y).value
+#     template_spectrum.specfit.errspec = u.Quantity(np.ones(len(y))*rms).value
+#
+#     return template_spectrum
 
 def fit_a_spectrum(inputs):
     """
