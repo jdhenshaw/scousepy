@@ -11,14 +11,55 @@ import numpy as np
 
 class Decomposer(object):
     """
-    spectral decomposition methods
+    A class containing various methods for decomposing individual spectra
+
+    Parameters
+    ----------
+    spectral_axis : array
+        An array of the spectral axis
+    spectrum : array
+        The spectrum
+    rms : number
+        An estimate of the rms
+
+    Attributes
+    ----------
+    fittype : string
+        A string describing the pyspeckit fitter
+    guesses : list
+        A list containing the initial guesses to the fit
+    guesses_updated : list
+        Used if the best-fitting solution is to be compared with a parent
+        spectrum (as in scouse)
+    psktemplate : instance of pyspeckit's Spectrum class
+        A template spectrum generated using pyspeckit
+    pskspectrum : instance of pyspeckit's Spectrum class
+        This is the spectrum that will be fit
+    modeldict : dictionary
+        A dictionary describing the best-fitting solution
+    validfit : bool
+        Whether or not the fit is valid. Used if the best-fitting solution is to
+        be compared with a parent spectrum (as in scouse)
+    tol : list
+        list of tolerance values used to compare the best-fitting solution to
+        that of its parent spectrum
+    res : number
+        the channel spacing
+    method : string
+        The fitting method used. Current options:
+
+            parent: the fitting method predominantly used by scouse, where a
+                    spectrum has been fit using initial guesses from a parent
+                    spectrum
+            dspec:  Where a spectrum has been fit using input guesses from
+                    derivative spectroscopy
 
     """
-    def __init__(self, spectral_axis):
+    def __init__(self,spectral_axis,spectrum,rms):
 
         self.spectral_axis=spectral_axis
-        self.spectrum=None
-        self.rms=None
+        self.spectrum=spectrum
+        self.rms=rms
         self.fittype=None
         self.guesses=None
         self.guesses_updated=None
@@ -30,36 +71,42 @@ class Decomposer(object):
         self.res=None
         self.method=None
 
-    def fit_spectrum_from_parent(self,template,spectrum,rms,guesses,tol,res,fittype='gaussian'):
+    def fit_spectrum_from_parent(self,guesses,tol,res,fittype='gaussian'):
         """
-        pass:
+        The fitting method most commonly used by scouse. This method will fit
+        a spectrum and compare the result against another model. Most commonly
+        a model describing a lower resolution parent spectrum
 
-        template
-        spectrum
-        rms
-
-        methods:
-
-        update the template
-        fit the spectrum
-        check the spectrum
+        Parameters
+        ----------
+        guesses : list
+            a list containing the initial guesses for the fit parameters
+        tol : list
+            list of tolerance values used to compare the best-fitting solution to
+            that of its parent spectrum
+        res : number
+            the channel spacing
+        fittype : string
+            A string describing the pyspeckit fitter    
         """
         import pyspeckit
         self.method='parent'
-        self.spectrum=spectrum
-        self.psktemplate=template
-        self.rms=rms
         self.fittype=fittype
         self.guesses=guesses
         self.tol=tol
         self.res=res
 
-        self.update_template()
+        if self.psktemplate is not None:
+            self.update_template()
+        else:
+            self.create_a_spectrum()
         self.fit_a_spectrum()
         self.get_model_information()
         self.check_against_parent()
         if not self.validfit:
             self.modeldict={}
+        self.psktemplate=None
+        self.pskspectrum=None
 
     def fit_a_spectrum(self):
         """
@@ -113,6 +160,42 @@ class Decomposer(object):
             log.setLevel('ERROR')
             self.psktemplate = Spectrum(data=spectrum,
                                         error=error_spectrum,
+                                        xarr=self.spectral_axis,
+                                        doplot=False,
+                                        unit=unit,
+                                        xarrkwargs=xarrkwargs,
+                                        verbose=False,
+                                        )
+
+            log.setLevel(old_log)
+
+    def create_a_spectrum(self,unit='',xarrkwargs={}):
+        """
+        generates an instance of pyspeckit's Spectrum class
+
+        Parameters
+        ----------
+        x : array
+            spectral axis
+        y : array
+            the spectrum
+        rms : number
+            estimate of the rms
+        unit : str
+            unit of the spectral axis
+        xarrkwargs : dictionary
+            key word arguments describing the spectral axis
+        """
+        import warnings
+        from pyspeckit import Spectrum
+        from astropy import log
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+            self.pskspectrum = Spectrum(data=self.spectrum,
+                                        error=np.ones_like(self.spectrum)*self.rms,
                                         xarr=self.spectral_axis,
                                         doplot=False,
                                         unit=unit,
