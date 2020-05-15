@@ -10,6 +10,8 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import sys
+import warnings
+import pyspeckit
 import matplotlib.pyplot as plt
 import itertools
 import time
@@ -18,10 +20,10 @@ from astropy import log
 from astropy import units as u
 from astropy.utils.console import ProgressBar
 
-#from .indiv_spec_description import *
+from .indiv_spec_description import *
 from .parallel_map import *
-#from .saa_description import add_indiv_spectra, clean_up, merge_models
-#from .solution_description import fit, print_fit_information
+from .saa_description import add_indiv_spectra, clean_up, merge_models
+from .solution_description import fit, print_fit_information
 from .verbose_output import print_to_terminal
 
 def initialise_fitting(scouseobject, indivspec_list):
@@ -114,39 +116,36 @@ def autonomous_decomposition(scouseobject, indivspec_list):
     from concurrent.futures import ProcessPoolExecutor, as_completed
     import multiprocessing as mp
 
-    inputlist=[[scouseobject]+[indivspec] for indivspec in indivspec_list]
+    inputlist=[[scouseobject]+[indivspec]+[indivspec.template] for indivspec in indivspec_list]
+
+    # parallel method 1
     # st=time.time()
     # with ProcessPoolExecutor(max_workers=scouseobject.njobs) as pool:
     #     outputlist = [pool.submit(decomposition_method, input) for input in inputlist]
     # et=time.time()
 
+    # parallel method 2
+    # st=time.time()
+    # pool = mp.Pool(processes=scouseobject.njobs)
+    # results = pool.map(decomposition_method, inputlist)
+    # st=time.time()
+    # pool.close()
+
+    # parallel method 3
     st=time.time()
-    pool = mp.Pool(processes=scouseobject.njobs)
-    results = pool.map(decomposition_method, inputlist)
-    pool.close()
+    results = parallel_map(decomposition_method, inputlist, numcores=scouseobject.njobs)
     et=time.time()
 
-    manager = mp.Manager()
-    out_q = manager.Queue()
-    err_q = manager.Queue()
-    lock = manager.Lock()
-
-    sequence = np.array_split(inputlist, scouseobject.njobs)
-    print(sequence)
-
-    procs = [mp.Process(target=decomposition_method,args=(function, ii, chunk, out_q, err_q, lock))
-    #        for ii, chunk in enumerate(sequence)]
-
-    #
-    #outputlist=[parallel_decomposition(input) for input in inputlist]
-
-
+    # linear
+    # results=[decomposition_method(input) for input in inputlist]
     print('')
     print(et-st)
-    # for i,indivspec in enumerate(outputlist):
-    #     print(indivspec.model_from_parent)
 
-    #print(multiprocessing.cpu_count())
+    for result in results:
+        print(result)
+
+
+
     sys.exit()
 
 def decomposition_method(input):
@@ -155,14 +154,13 @@ def decomposition_method(input):
     """
     from .SpectralDecomposer import Decomposer
     from .model_housing2 import indivmodel
+
     # unpack the inputs
-    scouseobject, indivspec = input
+    scouseobject, indivspec, template = input
     # set up the decomposer
     spectral_axis=scouseobject.xtrim
     decomposer=Decomposer(spectral_axis)
-
     # set the parameters to fit the spectrum
-    template=indivspec.template
     spectrum=indivspec.spectrum[scouseobject.trimids]
     rms=indivspec.rms
     if indivspec.guesses_updated==None:
@@ -176,13 +174,16 @@ def decomposition_method(input):
                                         scouseobject.tol,scouseobject.cube.header['CDELT3'],
                                         fittype=fittype)
 
-    if decomposer.validfit:
-        model=indivmodel(decomposer.modeldict)
-        indivspec.add_model(model)
-    else:
-        setattr(indivspec, 'guesses_updated', decomposer.guesses_updated)
+    # if decomposer.validfit:
+    #     model=indivmodel(decomposer.modeldict)
+    #     indivspec.add_model(model)
+    # else:
+    #     setattr(indivspec, 'guesses_updated', decomposer.guesses_updated)
 
-    return indivspec
+    return [indivspec.index,decomposer.validfit,decomposer.modeldict, decomposer.guesses_updated]
+
+
+
 # def initialise_indiv_spectra(scouseobject, verbose=False, njobs=1):
 #     """
 #     Here, the individual spectra are primed ready for fitting. We create a new
@@ -456,39 +457,39 @@ def fitting_spec(_key, scouseobject, saa_dict, wsaa, njobs, spatial):
 #
 #     return template_spectrum
 
-def fit_a_spectrum(inputs):
-    """
-    Process used for fitting spectra. Returns a best-fit solution and a dud for
-    every spectrum.
-
-    Parameters
-    ----------
-    inputs : list
-        list containing inputs to parallel map - contains the spectrum index,
-        the scouseobject, SAA, the best-fitting model solution to the SAA, and
-        the template spectrum
-    """
-    idx, scouseobject, SAA, parent_model, template_spectrum = inputs
-    key = SAA.indices_flat[idx]
-    spec=None
-
-    # Shhh
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-        # update the template
-        spec = get_spec(scouseobject, SAA.indiv_spectra[key], template_spectrum)
-        log.setLevel(old_log)
-
-    # begin the fitting process
-    bf = fitting_process_parent(scouseobject, SAA, key, spec, parent_model)
-    # if the result is a zero component fit, create a dud spectrum
-    if bf.ncomps == 0.0:
-        dud = bf
-    else:
-        dud = fitting_process_duds(scouseobject, SAA, key, spec)
-    return [bf, dud]
+# def fit_a_spectrum(inputs):
+#     """
+#     Process used for fitting spectra. Returns a best-fit solution and a dud for
+#     every spectrum.
+#
+#     Parameters
+#     ----------
+#     inputs : list
+#         list containing inputs to parallel map - contains the spectrum index,
+#         the scouseobject, SAA, the best-fitting model solution to the SAA, and
+#         the template spectrum
+#     """
+#     idx, scouseobject, SAA, parent_model, template_spectrum = inputs
+#     key = SAA.indices_flat[idx]
+#     spec=None
+#
+#     # Shhh
+#     with warnings.catch_warnings():
+#         warnings.simplefilter('ignore')
+#         old_log = log.level
+#         log.setLevel('ERROR')
+#         # update the template
+#         spec = get_spec(scouseobject, SAA.indiv_spectra[key], template_spectrum)
+#         log.setLevel(old_log)
+#
+#     # begin the fitting process
+#     bf = fitting_process_parent(scouseobject, SAA, key, spec, parent_model)
+#     # if the result is a zero component fit, create a dud spectrum
+#     if bf.ncomps == 0.0:
+#         dud = bf
+#     else:
+#         dud = fitting_process_duds(scouseobject, SAA, key, spec)
+#     return [bf, dud]
 
 def fitting_process_parent(scouseobject, SAA, key, spec, parent_model):
     """

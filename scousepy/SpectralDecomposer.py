@@ -44,6 +44,7 @@ class Decomposer(object):
         fit the spectrum
         check the spectrum
         """
+        import pyspeckit
         self.method='parent'
         self.spectrum=spectrum
         self.psktemplate=template
@@ -57,6 +58,8 @@ class Decomposer(object):
         self.fit_a_spectrum()
         self.get_model_information()
         self.check_against_parent()
+        if not self.validfit:
+            self.modeldict={}
 
     def fit_a_spectrum(self):
         """
@@ -80,7 +83,7 @@ class Decomposer(object):
             log.setLevel(old_log)
 
 
-    def create_a_template(self,unit=None,xarrkwargs=None):
+    def create_a_template(self,unit='',xarrkwargs={}):
         """
         generates an instance of pyspeckit's Spectrum class
 
@@ -132,6 +135,8 @@ class Decomposer(object):
         self.pskspectrum.specfit.Spectrum = self.pskspectrum
         self.pskspectrum.data = u.Quantity(self.spectrum).value
         self.pskspectrum.error = u.Quantity(np.ones_like(self.spectrum)*self.rms).value
+        self.pskspectrum.specfit.spectofit = u.Quantity(self.spectrum).value
+        self.pskspectrum.specfit.errspec = u.Quantity(np.ones_like(self.spectrum)*self.rms).value
 
     def get_model_information(self):
         """
