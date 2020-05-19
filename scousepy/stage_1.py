@@ -60,7 +60,7 @@ def compute_noise(scouseobject):
         stopcount+=1
         specidx+=1
 
-    rms = np.median(rmsList)
+    rms = np.nanmedian(rmsList)
 
     return rms
 
@@ -176,7 +176,7 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             saaspectra=np.flip(map_locations_unmasked(cubemask),axis=1)
             # add these to the SAAs
             SAA.add_indices(saaspectra, scouseobject.cube.shape[1:])
-            # determine the *actual* number of spectra scouse will fit 
+            # determine the *actual* number of spectra scouse will fit
             if SAA.to_be_fit:
                 scouseobject.lenspec+=np.size(SAA.indices_flat)
 
