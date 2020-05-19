@@ -490,9 +490,6 @@ class scouse(object):
             self.fitcount, \
             self.modelstore = pickle.load(fh)
 
-    # def stage_3(self, tol, njobs=1, verbose=False, spatial=False,
-    #             clear_cache=True, autosave=True):
-
     def stage_3(config=''):
         """
         Stage 3
@@ -569,6 +566,10 @@ class scouse(object):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s3', step='load')
             self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+            if 's3' in self.completed_stages:
+                print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
+                print('')
+            return self
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -584,85 +585,52 @@ class scouse(object):
         # create a list that is going to house all instances of the
         # individual_spectrum class. We want this to be a list for ease of
         # parallelisation.
+        starttimeinit=time.time()
         indivspec_list=initialise_fitting(self)
+        endtimeinit=time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='initend',t1=starttimeinit, t2=endtimeinit)
 
         # determine cpus to use
         if self.njobs==None:
             self.get_njobs()
-        # now begin the fitting
-        autonomous_decomposition(self, indivspec_list)
 
+        # now begin the fitting
+        starttimefitting=time.time()
+        indivspec_list_completed=autonomous_decomposition(self, indivspec_list)
+        endtimefitting=time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='fitend',
+                                        t1=starttimefitting, t2=endtimefitting)
+
+        # now compile the spectra
+        starttimecompile=time.time()
+        compile_spectra(self, indivspec_list_completed)
+        endtimecompile=time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='compileend',
+                                        t1=starttimecompile, t2=endtimecompile)
+
+        # Wrapping up
         endtime = time.time()
         if self.verbose:
             progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
-
-
-
-
-        sys.exit()
-
-        s3dir = os.path.join(self.outputdirectory, 'stage_3')
-        self.stagedirs.append(s3dir)
-        # create the stage_3 directory
-        mkdir_s3(self.outputdirectory, s3dir)
-
-        starttime = time.time()
-        # initialise the dictionary containing all individual spectra
-        indiv_dictionaries = {}
-
-        self.tolerances = np.array(tol)
-        self.specres = self.cube.header['CDELT3']
-
-
-
-        # Begin by preparing the spectra and adding them to the relevant SAA
-        initialise_indiv_spectra(self, verbose=verbose, njobs=njobs)
-
-        key_set = []
-        # Cycle through potentially multiple wsaa values
-        for i in range(len(self.wsaa)):
-            # Get the relavent SAA dictionary
-            saa_dict = self.saa_dict[i]
-            indiv_dictionaries[i] = {}
-            # Fit the spectra
-            fit_indiv_spectra(self, saa_dict, self.wsaa[i], njobs=njobs,
-                              spatial=spatial, verbose=verbose)
-
-
-            # Compile the spectra
-            indiv_dict = indiv_dictionaries[i]
-            _key_set = compile_spectra(self, saa_dict, indiv_dict,
-                                       self.wsaa[i], spatial=spatial,
-                                       verbose=verbose)
-            # Clean things up a bit
-            if clear_cache:
-                clean_SAAs(self, saa_dict)
-            key_set.append(_key_set)
-
-
-        # At this stage there are multiple key sets: 1 for each wsaa value
-        # compile into one.
-        compile_key_sets(self, key_set)
-        # merge multiple wsaa solutions into a single dictionary
-        merge_dictionaries(self, indiv_dictionaries,
-                           spatial=spatial, verbose=verbose)
-        # remove any duplicate entries
-        remove_duplicates(self, verbose=verbose)
-
-        endtime = time.time()
-        if verbose:
-            progress_bar = print_to_terminal(stage='s3', step='end',
-                                             t1=starttime, t2=endtime)
-
         self.completed_stages.append('s3')
 
         # Save the scouse object automatically
-        if autosave:
-            with open(self.outputdirectory+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump((self.indiv_dict, self.tolerances), fh)
+        if self.autosave:
+            import pickle
+            with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
 
         return self
+
+    def load_stage_3(self, fn):
+        import pickle
+        with open(fn, 'rb') as fh:
+            self.completed_stages,\
+            self.indiv_dict = pickle.load(fh)
 
     def load_indiv_dicts(self, fn, stage):
         if stage=='s6':
@@ -671,12 +639,6 @@ class scouse(object):
         else:
             with open(fn, 'rb') as fh:
                 self.indiv_dict = pickle.load(fh)
-        self.completed_stages.append(stage)
-
-    def load_stage_3(self, fn):
-        with open(fn, 'rb') as fh:
-            self.indiv_dict, self.tolerances = pickle.load(fh)
-        self.completed_stages.append('s3')
 
     def stage_4(self, verbose=False, autosave=True):
         """

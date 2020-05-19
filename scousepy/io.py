@@ -144,7 +144,7 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
 
     stage_3 = [
         ('tol', {
-            'default': "[3.0,1.0,2.5,2.5,0.5]",
+            'default': "[2.0,3.0,1.0,2.5,2.5,0.5]",
             'description': "Tolerance values for the fitting. See Henshaw et al. 2016a",
             'simple': True}),
         ('njobs', {

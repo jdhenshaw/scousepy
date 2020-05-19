@@ -62,6 +62,7 @@ class Decomposer(object):
         self.rms=rms
         self.fittype=None
         self.guesses=None
+        self.guesses_from_parent=None
         self.guesses_updated=None
         self.psktemplate=None
         self.pskspectrum=None
@@ -71,7 +72,7 @@ class Decomposer(object):
         self.res=None
         self.method=None
 
-    def fit_spectrum_from_parent(self,guesses,tol,res,fittype='gaussian'):
+    def fit_spectrum_from_parent(self,guesses,guesses_parent,tol,res,fittype='gaussian'):
         """
         The fitting method most commonly used by scouse. This method will fit
         a spectrum and compare the result against another model. Most commonly
@@ -81,6 +82,8 @@ class Decomposer(object):
         ----------
         guesses : list
             a list containing the initial guesses for the fit parameters
+        guesses_parent : list
+            a list containing the model parameters of the parent
         tol : list
             list of tolerance values used to compare the best-fitting solution to
             that of its parent spectrum
@@ -93,6 +96,7 @@ class Decomposer(object):
         self.method='parent'
         self.fittype=fittype
         self.guesses=guesses
+        self.guesses_parent=guesses_parent
         self.tol=tol
         self.res=res
 
@@ -258,18 +262,41 @@ class Decomposer(object):
 
         """
         self.guesses_updated=np.asarray(self.modeldict['params'])
-        condition_passed = np.zeros(3, dtype='bool')
-        condition_passed = self.check_rms(condition_passed)
+        condition_passed = np.zeros(4, dtype='bool')
+
+        condition_passed = self.check_ncomps(condition_passed)
 
         if condition_passed[0]:
-            condition_passed=self.check_dispersion(condition_passed)
+            condition_passed=self.check_rms(condition_passed)
             if (condition_passed[0]) and (condition_passed[1]):
-                condition_passed=self.check_velocity(condition_passed)
-                if np.all(condition_passed):
-                    if int((np.size(self.guesses_updated)/np.size(self.modeldict['parnames']))==1):
-                        self.validfit = True
-                    else:
-                        self.check_distinct()
+                condition_passed=self.check_dispersion(condition_passed)
+                if (condition_passed[0]) and (condition_passed[1]) and (condition_passed[2]):
+                    condition_passed=self.check_velocity(condition_passed)
+                    if np.all(condition_passed):
+                        if int((np.size(self.guesses_updated)/np.size(self.modeldict['parnames']))==1):
+                            self.validfit = True
+                        else:
+                            self.check_distinct()
+
+    def check_ncomps(self, condition_passed):
+        """
+        Check to see if the number of components in the fit has changed beyond
+        a reasonable amount
+
+        """
+        nparams=np.size(self.modeldict['parnames'])
+        ncomponents_parent=np.size(self.guesses_parent)/nparams
+        ncomponents_child=np.size(self.guesses_updated)/nparams
+
+        ncompdiff = np.abs(ncomponents_parent-ncomponents_child)
+
+        if ncompdiff > self.tol[0]:
+            condition_passed[0]=False
+            self.guesses_updated=[]
+        else:
+            condition_passed[0]=True
+
+        return condition_passed
 
     def check_rms(self,condition_passed):
         """
@@ -293,14 +320,14 @@ class Decomposer(object):
 
         # Now check all components to see if they are above the rms threshold
         for i in range(self.modeldict['ncomps']):
-            if (self.modeldict['params'][int(i*nparams)+idx] < self.rms*self.tol[0]):
+            if (self.modeldict['params'][int(i*nparams)+idx] < self.rms*self.tol[1]):
                 self.guesses_updated[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[0]=False
+            condition_passed[1]=False
         else:
-            condition_passed[0]=True
+            condition_passed[1]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
@@ -337,21 +364,21 @@ class Decomposer(object):
             idmin = idmin[0]
 
             # Work out the relative change in velocity dispersion
-            relchange = self.guesses_updated[int((i*nparams)+idx)]/self.guesses[int((idmin*nparams)+idx)]
+            relchange = self.guesses_updated[int((i*nparams)+idx)]/self.guesses_parent[int((idmin*nparams)+idx)]
             if relchange < 1.:
                 relchange = 1./relchange
 
             # Does this satisfy the criteria
-            if (self.guesses_updated[int((i*nparams)+idx)]*fwhmconv < self.res*self.tol[1]) or \
-               (relchange > self.tol[2]):
+            if (self.guesses_updated[int((i*nparams)+idx)]*fwhmconv < self.res*self.tol[2]) or \
+               (relchange > self.tol[3]):
                 # set to zero
                 self.guesses_updated[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[1]=False
+            condition_passed[2]=False
         else:
-            condition_passed[1]=True
+            condition_passed[2]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
@@ -393,9 +420,8 @@ class Decomposer(object):
             idmin = idmin[0]
 
             # Limits for tolerance
-            lower_lim = self.guesses[int((idmin*nparams)+idxv)]-(self.tol[3]*self.guesses[int((idmin*nparams)+idxd)])
-            upper_lim = self.guesses[int((idmin*nparams)+idxv)]+(self.tol[3]*self.guesses[int((idmin*nparams)+idxd)])
-
+            lower_lim = self.guesses_parent[int((idmin*nparams)+idxv)]-(self.tol[4]*self.guesses_parent[int((idmin*nparams)+idxd)])
+            upper_lim = self.guesses_parent[int((idmin*nparams)+idxv)]+(self.tol[4]*self.guesses_parent[int((idmin*nparams)+idxd)])
             # Does this satisfy the criteria
             if (self.guesses_updated[(i*nparams)+idxv] < lower_lim) or \
                (self.guesses_updated[(i*nparams)+idxv] > upper_lim):
@@ -404,9 +430,9 @@ class Decomposer(object):
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[2]=False
+            condition_passed[3]=False
         else:
-            condition_passed[2]=True
+            condition_passed[3]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
@@ -470,7 +496,7 @@ class Decomposer(object):
                 # Get the separation between each component and its neighbour
                 sep = np.abs(velolist[i] - adjacent_velocity)
                 # Calculate the allowed separation between components
-                min_allowed_sep = np.min(np.array([displist[i], adjacent_dispersion]))*fwhmconv*self.tol[4]
+                min_allowed_sep = np.min(np.array([displist[i], adjacent_dispersion]))*fwhmconv*self.tol[5]
 
                 if sep > min_allowed_sep:
                     if validvs[idmin] !=0.0:
@@ -524,11 +550,11 @@ class Decomposer(object):
 
         """
 
-        diff = np.zeros(int(np.size(self.guesses)/nparams))
-        for j in range(int(np.size(self.guesses)/nparams)):
+        diff = np.zeros(int(np.size(self.guesses_parent)/nparams))
+        for j in range(int(np.size(self.guesses_parent)/nparams)):
             pdiff = 0.0
             for k in range(nparams):
-                pdiff+=(self.guesses_updated[int((i*nparams)+k)] - self.guesses[int((j*nparams)+k)])**2.
+                pdiff+=(self.guesses_updated[int((i*nparams)+k)] - self.guesses_parent[int((j*nparams)+k)])**2.
             diff[j] = np.sqrt(pdiff)
 
         return diff

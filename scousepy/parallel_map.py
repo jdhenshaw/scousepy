@@ -6,6 +6,7 @@ from __future__ import print_function
 import numpy
 import warnings
 from astropy import log
+from tqdm import tqdm
 _multi=False
 _ncpus=1
 
@@ -39,7 +40,7 @@ def worker(f, ii, chunk, out_q, err_q, lock):
   vals = []
 
   # iterate over slice
-  for val in chunk:
+  for val in tqdm(chunk):
     try:
       result = f(val)
     except Exception as e:

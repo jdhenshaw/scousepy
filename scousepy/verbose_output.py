@@ -11,6 +11,7 @@ CONTACT: henshaw@mpia.de
 import numpy as np
 from astropy.utils.console import ProgressBar
 from .colors import *
+from tqdm import tqdm
 
 def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None):
     """
@@ -59,7 +60,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             if length != None:
                 print('Generating SAAs of size: {}'.format(var))
                 print("")
-                progress_bar = ProgressBar(length)
+                progress_bar = tqdm(total=length)
             else:
                 print("")
                 print('Number of spectra to fit manually: {}'.format(var))
@@ -108,20 +109,37 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
                 print("")
                 print('Initialising spectra...')
                 print("")
-                progress_bar = ProgressBar(length)
-        if step=='fitting':
-            if length != None:
-                print("")
-                print('Automated fitting: wsaa = {0}'.format(var))
-                print("")
-                progress_bar = ProgressBar(length)
-
-        if step=='compile':
+                progress_bar = tqdm(total=length, position=0, leave=True)
+        if step=='initend':
             print("")
-            print("")
-            print("Compiling model solutions: wsaa = {0}".format(var))
+            print('Intialisation completed in: {0} minutes'.format((t2-t1)/60.))
             print("")
             progress_bar=[]
+        if step=='fitinit':
+            print("")
+            print('Fitting spectra...')
+            print("")
+            progress_bar = []
+        if step=='fitting':
+            if length != None:
+                progress_bar = length
+        if step=='fitend':
+            print("")
+            print('Fitting completed in: {0} minutes'.format((t2-t1)/60.))
+            print("")
+            progress_bar=[]
+        if step=='compileinit':
+            print("")
+            print("Compiling solutions...")
+            print("")
+            progress_bar=[]
+        if step=='compileend':
+            print("")
+            print('Compilation completed in: {0} minutes'.format((t2-t1)/60.))
+            print("")
+            progress_bar=[]
+
+            
         if step=='merge':
             print("")
             print("Merging model solutions...")
@@ -178,7 +196,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
                 print("")
                 print('Automated fitting: wsaa = {0}'.format(var))
                 print("")
-                progress_bar = ProgressBar(length)
+                progress_bar = tqdm(total=length)
         if step=='end':
             print("")
             print('scousepy stage 6 completed in: {0} minutes'.format((t2-t1)/60.))
