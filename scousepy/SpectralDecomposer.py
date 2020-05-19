@@ -87,7 +87,7 @@ class Decomposer(object):
         res : number
             the channel spacing
         fittype : string
-            A string describing the pyspeckit fitter    
+            A string describing the pyspeckit fitter
         """
         import pyspeckit
         self.method='parent'

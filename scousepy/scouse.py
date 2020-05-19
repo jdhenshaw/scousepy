@@ -584,8 +584,7 @@ class scouse(object):
         # create a list that is going to house all instances of the
         # individual_spectrum class. We want this to be a list for ease of
         # parallelisation.
-        indivspec_list=[]
-        indivspec_list=initialise_fitting(self, indivspec_list)
+        indivspec_list=initialise_fitting(self)
 
         # determine cpus to use
         if self.njobs==None:

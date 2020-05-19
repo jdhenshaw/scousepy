@@ -125,23 +125,40 @@ def autonomous_decomposition(scouseobject, indivspec_list):
     import multiprocessing as mp
 
     newlist=[]
-    for i in range(100):
+    for i in range(50):
         newlist+=indivspec_list
 
-    #mylist=indivspec_list
-    mylist=newlist
+    mylist=indivspec_list
+    #mylist=newlist
     print('')
     print(np.size(mylist))
-    inputlist=[[scouseobject]+[indivspec] for indivspec in mylist]
 
+    # generate a template spectrum for the fitter
+    scouseobjectlist=[scouseobject.xtrim, scouseobject.trimids,scouseobject.fittype,
+                      scouseobject.tol,scouseobject.cube.header['CDELT3']]
+    inputlist=[scouseobjectlist+[indivspec] for indivspec in mylist]
 
+    trynew=True
     st=time.time()
-    if scouseobject.njobs > 1:
-        results = parallel_map(decomposition_method, inputlist, numcores=scouseobject.njobs)
-        #for i, result in enumerate(results):
-        #    print(i, result[0],result[1],result[2])
+    if trynew:
+        #parallel method 2
+        # with ProcessPoolExecutor(max_workers=scouseobject.njobs) as pool:
+        #     results = [pool.submit(decomposition_method, input) for input in inputlist]
+
+        pool = mp.Pool(processes=4)#scouseobject.njobs)
+        resultobjects=[pool.apply_async(decomposition_method, args=[input]) for input in inputlist]
+        results = [r.get() for r in resultobjects]
+        #results = pool.map(decomposition_method, inputlist)
+        #print(results)
+        for i, result in enumerate(results):
+           print(i, result[0],result[1],result[2])
     else:
-        results=[decomposition_method(input) for input in inputlist]
+        if scouseobject.njobs > 1:
+            results = parallel_map(decomposition_method, inputlist, numcores=4)#scouseobject.njobs)
+            for i, result in enumerate(results):
+               print(i, result[0],result[1],result[2])
+        else:
+            results=[decomposition_method(input) for input in inputlist]
     et=time.time()
 
     print('')
@@ -159,19 +176,17 @@ def decomposition_method(input):
         A list which contains the scousepy object and an individual spectrum.
 
         scouseobject : an instance of the scousepy class
-        indivspec : an instance of the individual_spectrum class 
+        indivspec : an instance of the individual_spectrum class
 
     """
     from .SpectralDecomposer import Decomposer
     from .model_housing2 import indivmodel
 
     # unpack the inputs
-    scouseobject,indivspec = input
-
-    # inputs to initiate the decomposer
-    spectral_axis=scouseobject.xtrim
-    spectrum=indivspec.spectrum[scouseobject.trimids]
+    spectral_axis,specids,fittype,tol,res,indivspec = input
+    spectrum=indivspec.spectrum[specids]
     rms=indivspec.rms
+
     # set up the decomposer
     decomposer=Decomposer(spectral_axis,spectrum,rms)
     setattr(decomposer,'psktemplate',indivspec.template,)
@@ -181,13 +196,10 @@ def decomposition_method(input):
         guesses=indivspec.guesses_from_parent
     else:
         guesses=indivspec.guesses_updated
-    fittype=scouseobject.saa_dict[indivspec.saa_dict_index][indivspec.saaindex].model.fittype
-    # fit the spectrum
-    Decomposer.fit_spectrum_from_parent(decomposer,guesses,
-                                        scouseobject.tol,scouseobject.cube.header['CDELT3'],
-                                        fittype=fittype,)
 
-    # generate a model
+    # fit the spectrum
+    Decomposer.fit_spectrum_from_parent(decomposer,guesses,tol,res,fittype=fittype,)
+    # # generate a model
     if decomposer.validfit:
         model=indivmodel(decomposer.modeldict)
     else:
