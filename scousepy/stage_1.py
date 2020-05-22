@@ -160,7 +160,7 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             # mask the cube using the cubemask
             masked_saacube=scouseobject.cube.with_mask(cubemask)
             # generate the average spectrum
-            saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2))
+            saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2)).value
 
             if coverage[j,2]==1:
                 to_be_fit=True
@@ -183,9 +183,6 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
             if verbose:
                 progress_bar.update()
 
-        if verbose:
-            print('')
-            print('')
 
 def generate_saamask(coverage, wsaa, maploc, shape):
     """

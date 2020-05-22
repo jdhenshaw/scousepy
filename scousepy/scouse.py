@@ -37,7 +37,6 @@ from .colors import *
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-plt.ion()
 
 # add Python 2 xrange compatibility, to be removed
 # later when we switch to numpy loops
@@ -445,18 +444,19 @@ class scouse(object):
                                 )
         fitterobject.show()
 
-        # Now we want to go through and add the model solutions to the SAAs
-        for key in range(len(saa_list[:,0])):
-            # identify the right dictionary
-            saa_dict=self.saa_dict[saa_list[key,1]]
-            # retrieve the SAA
-            SAA=saa_dict[saa_list[key,0]]
-            # obtain the correct model from modelstore
-            modeldict=self.modelstore[key]
-            # convert the modelstore dictionary into an saamodel object
-            model=saamodel(modeldict)
-            # add this to the SAA
-            SAA.add_saamodel(model)
+        if np.all(self.fitcount):
+            # Now we want to go through and add the model solutions to the SAAs
+            for key in range(len(saa_list[:,0])):
+                # identify the right dictionary
+                saa_dict=self.saa_dict[saa_list[key,1]]
+                # retrieve the SAA
+                SAA=saa_dict[saa_list[key,0]]
+                # obtain the correct model from modelstore
+                modeldict=self.modelstore[key]
+                # convert the modelstore dictionary into an saamodel object
+                model=saamodel(modeldict)
+                # add this to the SAA
+                SAA.add_saamodel(model)
 
         # Wrapping up
         endtime = time.time()
@@ -562,6 +562,7 @@ class scouse(object):
             if self.fitcount is not None:
                 if not np.all(self.fitcount):
                     print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
+                    return
         if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s3', step='load')

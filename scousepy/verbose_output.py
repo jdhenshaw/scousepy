@@ -67,6 +67,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
                 progress_bar=[]
                 print('')
         if step=='end':
+            print('')
             print('Total number of spectra: {}'.format(length))
             print('scousepy stage 1 completed in: {} minutes'.format((t2-t1)/60.))
             print('')
@@ -139,7 +140,7 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print("")
             progress_bar=[]
 
-            
+
         if step=='merge':
             print("")
             print("Merging model solutions...")

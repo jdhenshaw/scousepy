@@ -13,6 +13,8 @@ import warnings
 from astropy import log
 import sys
 from .colors import *
+# import the decomposer
+from scousepy.SpectralDecomposer import Decomposer
 
 class ScouseFitter(object):
     """
@@ -28,10 +30,11 @@ class ScouseFitter(object):
                        scouse_single=False,
                        individual=None,
                        cube=None,
+                       fittype='gaussian',
                        fitcount=None,
                        x=None,y=None,rms=None,
                        SNR=3,minSNR=1,maxSNR=30,
-                       kernelsize=5,minkernel=1,maxkernel=30,
+                       kernelsize=10,minkernel=1,maxkernel=30,
                        outputfile=None,
                        xarrkwargs={},unit={}):
 
@@ -106,6 +109,7 @@ class ScouseFitter(object):
             change the slider values.
 
         """
+
         # set the global quantities
         self.method=method
         self.spectra=spectra
@@ -115,7 +119,9 @@ class ScouseFitter(object):
         self.scouse_single=scouse_single
         self.individual=individual
         self.cube=cube
+        self.fittype=fittype
         self.fitcount=fitcount
+        self.decomposer=None
         self.modelstore=modelstore
         self.SNR=SNR
         self.minSNR=minSNR
@@ -167,8 +173,8 @@ class ScouseFitter(object):
                     self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
                     # get the x,y,rms values
                     get_spectral_info(self)
-                    # generate a template pyspeckit spectrum
-                    self.spectrum=generate_pyspeckit_spectrum(self,xarrkwargs=self.xarrkwargs,unit=self.unit)
+                    # initiate the decomposer
+                    self.initiate_decomposer()
 
         # Cube fitting
         elif method=='cube':
@@ -200,8 +206,8 @@ class ScouseFitter(object):
             self.index=0
             # get the x,y,rms values
             get_spectral_info(self)
-            # generate a template pyspeckit spectrum
-            self.spectrum = generate_template_spectrum(self)
+            # initiate the decomposer
+            self.initiate_decomposer()
 
         else:
             # throw an error
@@ -211,7 +217,7 @@ class ScouseFitter(object):
         from scousepy.dspec import DSpec
         import matplotlib.pyplot as plt
         from matplotlib import rcParams
-        plt.ioff()
+
         self.cmap=plt.cm.binary_r
         rcParams['font.family']= 'Arial'
         rcParams['font.size']= 9
@@ -284,6 +290,7 @@ class ScouseFitter(object):
         self.text_snr=print_information(self,0.01,0.84,'SNR: '+str(self.SNR), fontsize=10)
         self.text_kernel=print_information(self,0.01,0.76,'kernel size: '+str(self.kernelsize),fontsize=10)
         self.text_fitinformation=print_information(self,0.01,0.68,'pyspeckit fit information: ', fontsize=10, fontweight='bold')
+        self.text_converge=print_information(self, 0.15,0.68, '', fontsize=10, color='green', fontweight='bold')
         self.text_ncomp=print_information(self,0.01,0.6,'number of components: '+str(self.ncomps),fontsize=10)
         self.text_peaks=print_information(self,0.01,0.52,'', fontsize=10)
         self.text_centroids=print_information(self,0.01,0.44,'', fontsize=10)
@@ -301,7 +308,8 @@ class ScouseFitter(object):
         self.totmodkwargs={'color':'magenta','ls':'-','lw':1}
 
         # Fit the spectrum according to dspec guesses
-        self.spectrum=fit_spectrum(self)
+        if self.dsp.ncomps != 0:
+            Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
         # Add the best-fitting solution and useful parameters to a dictionary
         self.modeldict=get_model_info(self)
         # Recreate the model
@@ -330,7 +338,7 @@ class ScouseFitter(object):
         self.button_applyall=make_button(self.button_applyall_ax,"apply dspec to all",self.dspec_apply_to_all)
 
         self.button_stop_ax=self.fig.add_axes([0.85, 0.475, 0.1, 0.05])
-        self.button_stop=make_button(self.button_stop_ax,"stop",self.stop)
+        self.button_stop=make_button(self.button_stop_ax,"exit",self.stop, color='lightblue',hovercolor='aliceblue')
 
         # navigation buttons
         inc=0.08
@@ -367,19 +375,26 @@ class ScouseFitter(object):
         import matplotlib.pyplot as plt
         plt.show()
 
+    def initiate_decomposer(self):
+        """
+        initiates an instance of the SpectralDecomposer
+        """
+        # create the decomposer
+        self.decomposer=Decomposer(self.specx, self.specy, self.specrms)
+        Decomposer.create_a_spectrum(self.decomposer,unit=self.unit,xarrkwargs=self.xarrkwargs)
+        # generate pyspeckit spectrum
+        self.spectrum=self.decomposer.pskspectrum
+
     def open_scousefitter_manual(self, event):
         """
         This controls the manual fitting if no reasonable solution can be found
         with the derivative spectroscopy method
 
         """
-        # import the manual fitter
-        from scousepy.scousefittermanual import ScouseFitterManual
-        ManualFitter = ScouseFitterManual(self)
-        fit = ManualFitter.manualfit()
-        self.spectrum=fit.spectrum
+        # manual fit
+        Decomposer.fit_spectrum_manually(self.decomposer, fittype=self.fittype)
         # add model to dictionary
-        self.modeldict=get_model_info(self,manual=True)
+        self.modeldict=get_model_info(self)
         # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
         # update the plot with the manually-fitted solution
@@ -395,16 +410,15 @@ class ScouseFitter(object):
         This controls the manual dspec fitter.
 
         """
-        # update the spectrum
-        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
-        # fit the spectrum
-        self.spectrum=fit_spectrum(self)
-        # add model to dictionary
+        # Fit the spectrum according to dspec guesses
+        if self.dsp.ncomps != 0:
+            Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+        # Add the best-fitting solution and useful parameters to a dictionary
         self.modeldict=get_model_info(self)
         # recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
@@ -424,15 +438,19 @@ class ScouseFitter(object):
         do not have solutions.
 
         """
+        from tqdm import tqdm
         # this feature will apply dspec settings to all spectra without
         # solutions and exit the fitter - first we want to make sure we save
         # the current solution.
+        print("Fitting all remaining spectra using derivative spectroscopy... ")
+        print('')
+
         self.modelstore[self.index]=self.modeldict
         self.fitcount[self.index]=True
         # identify all spectra that do not currently have best-fitting solutions
         id = np.where(self.fitcount==False)[0]
         # loop through and fit
-        for i in id:
+        for i in tqdm(id):
             # retrieve the new index
             index=int(i)
             # check against modelstore to see if there is a solution
@@ -441,13 +459,14 @@ class ScouseFitter(object):
                 self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
                 # get the spectral information
                 get_spectral_info(self)
-                # update the spectrum
-                self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
+                # initiate the decomposer
+                self.initiate_decomposer()
                 #compute new dspec
                 self.dsp = compute_dsp(self)
-                # fit
-                self.spectrum=fit_spectrum(self)
-                # add model to dictionary
+                # Fit the spectrum according to dspec guesses
+                if self.dsp.ncomps != 0:
+                    Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+                # Add the best-fitting solution and useful parameters to a dictionary
                 self.modeldict=get_model_info(self)
                 # add model to model store
                 self.modelstore[index]=self.modeldict
@@ -461,7 +480,7 @@ class ScouseFitter(object):
         # print completion statement
         print('')
         print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-        print('')
+
         return
 
     def stop(self, event):
@@ -477,11 +496,11 @@ class ScouseFitter(object):
         if np.all(self.fitcount):
             print('')
             print(colors.fg._green_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-            print('')
+
         else:
             print('')
             print(colors.fg._yellow_+"Warning: Fitting stopped. Not all spectra have solutions.  "+colors._endc_)
-            print('')
+
         # close the fitter
         self.close_window()
         # output fits for individual spectra
@@ -529,8 +548,9 @@ class ScouseFitter(object):
         self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
         # get the spectral information
         get_spectral_info(self)
-        # update the spectrum
-        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
+
+        # initiate the decomposer
+        self.initiate_decomposer()
         #compute new dspec
         self.dsp = compute_dsp(self)
 
@@ -554,8 +574,9 @@ class ScouseFitter(object):
 
         # check to see if a model already exists
         if self.index in self.modelstore.keys():
-            # Not actually going to fit here - we just want the spectral info
-            self.spectrum=fit_spectrum(self)
+            # Fit the spectrum according to dspec guesses
+            if self.dsp.ncomps != 0:
+                Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
             # retrieve the current model
             self.modeldict=self.modelstore[self.index]
             # recreate the model
@@ -570,7 +591,7 @@ class ScouseFitter(object):
             # components - If this happens a zero component model will be
             # displayed
             if self.dsp.ncomps!=0:
-                self.spectrum=fit_spectrum(self)
+                Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
             # Get the model
             self.modeldict=get_model_info(self)
             # recreate the model
@@ -610,8 +631,6 @@ class ScouseFitter(object):
         """
         # New SNR
         self.SNR = int(round(pos))
-        # update the spectrum
-        self.spectrum=generate_pyspeckit_spectrum(self, xarrkwargs=self.xarrkwargs,unit=self.unit)
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
@@ -627,7 +646,7 @@ class ScouseFitter(object):
         update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
-            self.spectrum=fit_spectrum(self)
+            Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
         # get the model
         self.modeldict=get_model_info(self)
         # recreate the model
@@ -668,7 +687,7 @@ class ScouseFitter(object):
         update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
-            self.spectrum=fit_spectrum(self)
+            Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
         # get the model
         self.modeldict=get_model_info(self)
         # recreate the model
@@ -829,47 +848,6 @@ def get_spectral_info(self):
         self.specy = self.individual[self.index,1,:]
         self.specrms = calc_rms(self.individual[self.index,1,:])
 
-def generate_pyspeckit_spectrum(self,plotkwargs={},xarrkwargs={},
-                                unit=None,doplot=False):
-    """
-    Generates a generic pyspeckit template spectrum
-    """
-    import pyspeckit
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-        spectrum=pyspeckit.Spectrum(data=self.specy,
-                                    error=np.ones(len(self.specy))*self.specrms,
-                                    xarr=self.specx,
-                                    doplot=doplot,
-                                    plotkwargs=plotkwargs,
-                                    unit=unit,
-                                    xarrkwargs=xarrkwargs
-                                    )
-    log.setLevel(old_log)
-    return spectrum
-
-def generate_template_spectrum(self):
-    """
-    Generate a template spectrum to be passed to the manual fitter.
-
-    """
-    import pyspeckit
-    import astropy.units as u
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-        template_spectrum = pyspeckit.Spectrum(data=self.specy,
-                                               error=np.ones_like(self.specy)*self.specrms,
-                                               xarr=self.specx,
-                                               doplot=False,
-                                               verbose=False,
-                                               )
-        log.setLevel(old_log)
-    return template_spectrum
-
 def calc_rms(spectrum):
     """
     Returns the spectral rms
@@ -939,40 +917,6 @@ def compute_dsp(self):
     self.guesses =dsp.guesses
     return dsp
 
-def fit_spectrum(self):
-    """
-    Non-interactice pyspeckit fitting of the spectrum
-    """
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        old_log = log.level
-        log.setLevel('ERROR')
-        #parvalues=np.asarray(self.guesses)
-        #parlimited=[(True, False), (False, False), (False, False)]
-        #parlimits=[(0,0),(0,0),(0,0)]
-        #parinfo={'parvalues':parvalues, 'parlimited':parlimited, 'parlimits':parlimits}
-        # self.spectrum.specfit(interactive=False,
-        #                       clear_all_connections=True,
-        #                       xmin=np.min(self.specx),
-        #                       xmax=np.max(self.specx),
-        #                       fittype = 'gaussian',
-        #                       guesses = self.guesses,
-        #                       minpars = [0,0,0,0,0,0],
-        #                       maxpars = [0,0,0,0,0,0],
-        #                       fixed = [True, False, False, False, False, False],
-        #                       verbose=False,
-        #                       use_lmfit=True)
-        self.spectrum.specfit(interactive=False,
-                              clear_all_connections=True,
-                              xmin=np.min(self.specx),
-                              xmax=np.max(self.specx),
-                              fittype = 'gaussian',
-                              guesses = self.guesses,
-                              verbose=False,
-                              use_lmfit=True)
-        log.setLevel(old_log)
-        return self.spectrum
-
 def recreate_model(self):
     """
     Recreates model from parameters in modeldict
@@ -1000,12 +944,13 @@ def recreate_model(self):
 
     return mod, res, totmod
 
-def get_model_info(self, manual=False):
+def get_model_info(self):
     """
     Framework for model solution dictionary
     """
-    modeldict={}
-    if self.ncomps==0:
+    if self.dsp.ncomps != 0:
+        modeldict=self.decomposer.modeldict
+    else:
         modeldict['fittype']=None
         modeldict['parnames']=['amplitude','shift','width']
         modeldict['ncomps']=0
@@ -1018,30 +963,10 @@ def get_model_info(self, manual=False):
         modeldict['redchisq']=0.0
         modeldict['AIC']=0.0
         modeldict['fitconverge']=False
-        modeldict['SNR']=self.SNR
-        modeldict['kernelsize']=self.kernelsize
-        modeldict['manual']=manual
+        modeldict['method']=decomposer.method
 
-    else:
-        modeldict['fittype']=self.spectrum.specfit.fittype
-        modeldict['parnames']=self.spectrum.specfit.fitter.parnames
-        modeldict['ncomps']=int(self.spectrum.specfit.npeaks)
-        modeldict['params']=self.spectrum.specfit.modelpars
-        modeldict['errors']=self.spectrum.specfit.modelerrs
-        modeldict['rms']=self.spectrum.error[0]
-        modeldict['residstd']= np.std(self.spectrum.specfit.residuals)
-        modeldict['chisq']=self.spectrum.specfit.chi2
-        modeldict['dof']=self.spectrum.specfit.dof
-        modeldict['redchisq']=self.spectrum.specfit.chi2/self.spectrum.specfit.dof
-        modeldict['AIC']=get_aic(self)
-        if None in self.spectrum.specfit.modelerrs:
-            modeldict['fitconverge'] = False
-            self.spectrum.specfit.modelerrs = np.zeros(len(self.spectrum.specfit.modelerrs))
-        else:
-            modeldict['fitconverge'] = True
-        modeldict['SNR']=self.SNR
-        modeldict['kernelsize']=self.kernelsize
-        modeldict['manual']=manual
+    modeldict['SNR']=self.SNR
+    modeldict['kernelsize']=self.kernelsize
 
     return modeldict
 
@@ -1163,7 +1088,10 @@ def update_plot_model(self,update=False):
     GUI setup
     """
     if self.dsp.ncomps < 10:
-        update_text(self.text_fitinformation,'pyspeckit fit information: ')
+        if self.modeldict['fitconverge']:
+            update_text(self.text_converge,"Fit has converged...", color='limegreen')
+        else:
+            update_text(self.text_converge,"Fit has not converged...try increasing the SNR and/or the kernel size.", color='red')
 
         if update:
             self.plot_res.remove()
@@ -1279,7 +1207,7 @@ def get_headings(self, dict):
     headings_non_specific = ['index', 'ncomps', 'rms', 'residstd',
                              'chisq','dof', 'redchisq', 'AIC',
                              'fitconverge','SNR', 'kernelsize',
-                             'manual' ]
+                             'method' ]
     #These ones depend on the model used by pyspeckit
     headings_params = dict['parnames']
     headings_errs = [str('err {0}').format(dict['parnames'][k]) for k in range(len(dict['parnames']))]
@@ -1295,12 +1223,12 @@ def get_soln_desc(key,idx,dict):
     Returns the solution in the format:
 
     ncomps, param1, err1, .... paramn, errn, rms, residstd, chi2, dof, chi2red,
-    aic, fitconverge, snr, kernelsize, manual
+    aic, fitconverge, snr, kernelsize, method
     """
     params_non_specific = [key, dict['ncomps'], dict['rms'],
                            dict['residstd'],dict['chisq'],dict['dof'],
                            dict['redchisq'], dict['AIC'], dict['fitconverge'],
-                           dict['SNR'], dict['kernelsize'],dict['manual'] ]
+                           dict['SNR'], dict['kernelsize'],dict['method'] ]
 
     parlow = int((idx*len(dict['parnames'])))
     parhigh = int((idx*len(dict['parnames']))+len(dict['parnames']))
@@ -1317,11 +1245,13 @@ def get_soln_desc(key,idx,dict):
 
     return solution_desc
 
-def update_text(textobject,textstring):
+def update_text(textobject,textstring,color=None):
     """
     GUI setup
     """
     textobject.set_text(textstring)
+    if color is not None:
+        textobject.set_color(color)
 
 def make_slider(ax,name,min,max,function,**kwargs):
     """
@@ -1341,7 +1271,7 @@ def make_button(ax,name,function,**kwargs):
     GUI setup
     """
     from matplotlib.widgets import Button
-    mybutton=Button(ax,name)
+    mybutton=Button(ax,name,**kwargs)
     mybutton.on_clicked(function)
     return mybutton
 

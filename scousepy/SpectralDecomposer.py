@@ -8,6 +8,11 @@ CONTACT: henshaw@mpia.de
 
 """
 import numpy as np
+from .colors import *
+import time
+from astropy import log
+import warnings
+import matplotlib.pyplot as plt
 
 class Decomposer(object):
     """
@@ -53,6 +58,8 @@ class Decomposer(object):
                     spectrum
             dspec:  Where a spectrum has been fit using input guesses from
                     derivative spectroscopy
+            manual: Where a spectrum has been fit manually using pyspeckit's
+                    interactive fitter
 
     """
     def __init__(self,spectral_axis,spectrum,rms):
@@ -71,6 +78,29 @@ class Decomposer(object):
         self.tol=None
         self.res=None
         self.method=None
+        self.fit_updated=False
+        self.residuals_shown=False
+        self.guesses=None
+        self.happy=False
+
+    def fit_spectrum_with_guesses(self, guesses, fittype='gaussian'):
+        """
+        Fitting method used when using scouse as a standalone fitter. It takes
+        guesses supplied by dspec and calls on pyspeckit to fit the spectrum
+
+        Parameters
+        ----------
+        guesses : list
+            a list containing the initial guesses for the fit parameters
+        fittype : string
+            A string describing the pyspeckit fitter
+
+        """
+        self.method='dspec'
+        self.fittype=fittype
+        self.guesses=guesses
+        self.fit_a_spectrum()
+        self.get_model_information()
 
     def fit_spectrum_from_parent(self,guesses,guesses_parent,tol,res,fittype='gaussian'):
         """
@@ -92,7 +122,6 @@ class Decomposer(object):
         fittype : string
             A string describing the pyspeckit fitter
         """
-        import pyspeckit
         self.method='parent'
         self.fittype=fittype
         self.guesses=guesses
@@ -112,13 +141,196 @@ class Decomposer(object):
         self.psktemplate=None
         self.pskspectrum=None
 
+    def fit_spectrum_manually(self, fittype='gaussian'):
+        """
+        Method used to manually fit a spectrum
+
+        Parameters
+        ----------
+        fittype : string
+            A string describing the pyspeckit fitter
+        """
+        plt.ion()
+        self.method='manual'
+        self.fittype=fittype
+
+        self.interactive_fitter()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+            while not self.happy:
+                try:
+                    # using just a few little bits of plt.pause below
+                    plt.gcf().canvas.draw()
+                    plt.gcf().canvas.start_event_loop(0.1)
+                    time.sleep(0.1)
+                except KeyboardInterrupt:
+                    break
+
+        plt.ioff()
+
+        self.get_model_information()
+
+    def interactive_fitter(self):
+        """
+        Interactive fitter - the interactive fitting process controlled by
+        fit_spectrum_manually. Starts with the interactive fitter with
+        fit_updated= false. The user can fit the spectrum. Pressing enter will
+        initialise the fit (fit_updated=True). Pressing enter again will
+        accept the fit.
+        """
+        old_log = log.level
+        log.setLevel('ERROR')
+
+        if not self.fit_updated:
+            self.fit_updated=False
+            # Interactive fitting with pyspeckit
+            self.pskspectrum.plotter(xmin=np.min(self.spectral_axis),
+                                    xmax=np.max(self.spectral_axis),)
+
+            self.pskspectrum.plotter.figure.canvas.callbacks.disconnect(3)
+            self.pskspectrum.specfit.clear_all_connections()
+
+            assert self.pskspectrum.plotter._active_gui is None
+            # interactive fitting
+            self.fit_a_spectrum_interactively()
+            assert self.pskspectrum.plotter._active_gui is not None
+            self.residuals_shown=False
+        else:
+            self.fit_updated=True
+            self.pskspectrum.plotter(xmin=np.min(self.spectral_axis),
+                                    xmax=np.max(self.spectral_axis),)
+            # disable mpl key commands (especially 'q')
+            self.pskspectrum.plotter.figure.canvas.callbacks.disconnect(3)
+            self.pskspectrum.specfit.clear_all_connections()
+            assert self.pskspectrum.plotter._active_gui is None
+
+            if None in self.guesses:
+                raise ValueError(colors.fg._red_+"Encountered a 'None' value in"+
+                                 " guesses"+colors._endc_)
+            # non interactive - display the fit
+            self.fit_a_spectrum()
+            self.pskspectrum.specfit.plot_fit(show_components=True)
+            self.pskspectrum.specfit.plotresiduals(axis=self.pskspectrum.plotter.axis,
+                                       clear=False,
+                                       color='g',
+                                       label=False)
+            assert self.pskspectrum.plotter._active_gui is None
+            self.residuals_shown=True
+            self.printable_format()
+            print("Options:"
+                  "\n"
+                  "1) If you are happy with this fit, press Enter."
+                  "\n"
+                  "2) If not, press 'f' to re-enter the interactive fitter.")
+
+        log.setLevel(old_log)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+
+            if plt.matplotlib.rcParams['interactive']:
+                self.happy = None
+                self.pskspectrum.plotter.axis.figure.canvas.mpl_connect('key_press_event',self.interactive_callback)
+            else:
+                plt.show()
+                self.happy = self.interactive_callback('noninteractive')
+            #
+            if not hasattr(self.pskspectrum.specfit, 'fitter'):
+                raise ValueError("No fitter available for the spectrum."
+                                 "  This can occur if you have plt.ion() set"
+                                 " or if you did not fit the spectrum."
+                                )
+        return
+
+    def interactive_callback(self, event):
+        """
+        A 'callback function' to be triggered when the user selects a fit.
+
+        Parameters
+        ----------
+        event : interactive event
+
+        """
+
+        if plt.matplotlib.rcParams['interactive']:
+            if hasattr(event, 'key'):
+
+                # Enter to continue
+                if event.key in ('enter'):
+                    if self.residuals_shown:
+                        print("")
+                        print("'enter' key acknowledged."+
+                        colors.fg._lightgreen_+" Solution accepted"+colors._endc_+".")
+                        self.happy = True
+                        self.pskspectrum.specfit.clear_all_connections()
+                        self.pskspectrum.plotter.disconnect()
+                        plt.close(self.pskspectrum.plotter.figure.number)
+                        assert self.pskspectrum.plotter._active_gui is None
+                    else:
+                        print("")
+                        print("'enter' key acknowledged."+
+                        colors.fg._cyan_+" Showing fit and residuals"+colors._endc_+".")
+                        self.fit_updated=True
+                        self.guesses = self.pskspectrum.specfit.parinfo.values
+                        self.interactive_fitter()
+
+                # To re-enter the fitter
+                elif event.key in ('f', 'F'):
+                    print("")
+                    print("'f' key acknowledged."+
+                    colors.fg._lightred_+" Re-entering interactive fitter"+colors._endc_+".")
+                    self.residuals_shown = False
+
+                # to indicate that all components have been selected
+                elif event.key in ('d','D','3',3):
+                    # The fit has been performed interactively, but we also
+                    # want to print out the nicely-formatted additional
+                    # information
+                    self.pskspectrum.specfit.button3action(event)
+                    print("'d' key acknowledged."+
+                    colors.fg._cyan_+" Guess initialized"+colors._endc_+".")
+                    print('')
+                    print("Options:"
+                          "\n"
+                          "1) To lock the fit and display residuals, press Enter."
+                          "\n"
+                          "2) Press 'f' to re-enter the interactive fitter.")
+                    self.happy = None
+                else:
+                    self.happy = None
+
+            elif hasattr(event, 'button') and event.button in ('d','D','3',3):
+                # The fit has been performed interactively, but we also
+                # want to print out the nicely-formatted additional
+                # information
+                print("'d' key acknowledged."+
+                colors.fg._cyan_+" Guess initialized"+colors._endc_+".")
+                print('')
+                print("Options:"
+                      "\n"
+                      "1) To lock the fit and display residuals, press Enter."
+                      "\n"
+                      "2) Press 'f' to re-enter the interactive fitter.")
+                self.happy = None
+            else:
+                self.happy = None
+        else:
+            # this should only happen if not triggered by a callback
+            assert event == 'noninteractive'
+            self.printable_format()
+            h = input("Are you happy with the fit? (y/n): ")
+            self.happy = h in ['True', 'T', 'true', '1', 't', 'y', 'yes', 'Y', 'Yes']
+            print("")
+            self.fit_updated=True
+
+            return self.happy
+
     def fit_a_spectrum(self):
         """
         Fits a spectrum
 
         """
-        import warnings
-        from astropy import log
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             old_log = log.level
@@ -133,6 +345,24 @@ class Decomposer(object):
                                 use_lmfit=True)
             log.setLevel(old_log)
 
+    def fit_a_spectrum_interactively(self):
+        """
+        Fits a spectrum interactively
+
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            old_log = log.level
+            log.setLevel('ERROR')
+            self.pskspectrum.specfit(interactive=True,
+                                print_message=True,
+                                xmin=np.min(self.spectral_axis),
+                                xmax=np.max(self.spectral_axis),
+                                fittype = self.fittype,
+                                verbose=False,
+                                use_lmfit=True,
+                                show_components=True)
+            log.setLevel(old_log)
 
     def create_a_template(self,unit='',xarrkwargs={}):
         """
@@ -151,9 +381,7 @@ class Decomposer(object):
         xarrkwargs : dictionary
             key word arguments describing the spectral axis
         """
-        import warnings
         from pyspeckit import Spectrum
-        from astropy import log
 
         spectrum=np.zeros_like(self.spectral_axis,dtype='float')
         error_spectrum=np.ones_like(self.spectral_axis,dtype='float')
@@ -190,9 +418,7 @@ class Decomposer(object):
         xarrkwargs : dictionary
             key word arguments describing the spectral axis
         """
-        import warnings
         from pyspeckit import Spectrum
-        from astropy import log
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -231,23 +457,34 @@ class Decomposer(object):
         """
         self.modeldict={}
 
-        self.modeldict['fittype']=self.pskspectrum.specfit.fittype
-        self.modeldict['parnames']=self.pskspectrum.specfit.fitter.parnames
-        self.modeldict['ncomps']=int(self.pskspectrum.specfit.npeaks)
-        self.modeldict['params']=self.pskspectrum.specfit.modelpars
-        self.modeldict['errors']=self.pskspectrum.specfit.modelerrs
-        self.modeldict['rms']=self.pskspectrum.error[0]
-        self.modeldict['residstd']= np.std(self.pskspectrum.specfit.residuals)
-        self.modeldict['chisq']=self.pskspectrum.specfit.chi2
-        self.modeldict['dof']=self.pskspectrum.specfit.dof
-        self.modeldict['redchisq']=self.pskspectrum.specfit.chi2/self.pskspectrum.specfit.dof
-        self.modeldict['AIC']=self.get_aic()
-        if None in self.pskspectrum.specfit.modelerrs:
-            self.modeldict['fitconverge'] = False
-            self.pskspectrum.specfit.modelerrs = np.zeros(len(self.pskspectrum.specfit.modelerrs))
+        if (None in self.pskspectrum.specfit.modelerrs):
+            self.modeldict['fittype']=None
+            self.modeldict['parnames']=self.pskspectrum.specfit.fitter.parnames
+            self.modeldict['ncomps']=0
+            self.modeldict['params']=np.zeros(len(self.pskspectrum.specfit.modelerrs))
+            self.modeldict['errors']=np.zeros(len(self.pskspectrum.specfit.modelerrs))
+            self.modeldict['rms']=self.pskspectrum.error[0]
+            self.modeldict['residstd']= np.std(self.pskspectrum.data)
+            self.modeldict['chisq']=0.0
+            self.modeldict['dof']=0.0
+            self.modeldict['redchisq']=0.0
+            self.modeldict['AIC']=0.0
+            self.modeldict['fitconverge'] = self.fit_converge()
+            self.modeldict['method']=self.method
         else:
-            self.modeldict['fitconverge'] = True
-        self.modeldict['method']=self.method
+            self.modeldict['fittype']=self.pskspectrum.specfit.fittype
+            self.modeldict['parnames']=self.pskspectrum.specfit.fitter.parnames
+            self.modeldict['ncomps']=int(self.pskspectrum.specfit.npeaks)
+            self.modeldict['params']=self.pskspectrum.specfit.modelpars
+            self.modeldict['errors']=self.pskspectrum.specfit.modelerrs
+            self.modeldict['rms']=self.pskspectrum.error[0]
+            self.modeldict['residstd']= np.std(self.pskspectrum.specfit.residuals)
+            self.modeldict['chisq']=self.pskspectrum.specfit.chi2
+            self.modeldict['dof']=self.pskspectrum.specfit.dof
+            self.modeldict['redchisq']=self.pskspectrum.specfit.chi2/self.pskspectrum.specfit.dof
+            self.modeldict['AIC']=self.get_aic()
+            self.modeldict['fitconverge'] = self.fit_converge()
+            self.modeldict['method']=self.method
 
     def get_aic(self):
         """
@@ -558,3 +795,62 @@ class Decomposer(object):
             diff[j] = np.sqrt(pdiff)
 
         return diff
+
+    def fit_converge(self):
+        if None in self.pskspectrum.specfit.modelerrs:
+            return False
+        else:
+            return True
+
+    def printable_format(self):
+        """
+
+        Parameters
+        ----------
+
+        """
+        specfit=self.pskspectrum.specfit
+        print("")
+        print("-----------------------------------------------------")
+
+        print("")
+        print("Model type: {0}".format(specfit.fittype))
+        print("")
+        print(("Number of components: {0}").format(specfit.npeaks))
+        print("")
+        compcount=0
+
+        if not self.fit_converge():
+            print(colors.fg._yellow_+"WARNING: Minimisation failed to converge. Please "
+                  "\nrefit manually. "+colors._endc_)
+            print("")
+
+        for i in range(0, int(specfit.npeaks)):
+            parlow = int((i*len(specfit.fitter.parnames)))
+            parhigh = int((i*len(specfit.fitter.parnames))+len(specfit.fitter.parnames))
+            parrange = np.arange(parlow,parhigh)
+            for j in range(0, len(specfit.fitter.parnames)):
+                print(("{0}:  {1} +/- {2}").format(specfit.fitter.parnames[j], \
+                                             np.around(specfit.modelpars[parrange[j]],
+                                             decimals=5), \
+                                             np.around(specfit.modelerrs[parrange[j]],
+                                             decimals=5)))
+            print("")
+            compcount+=1
+
+        print(("chisq:    {0}").format(np.around(specfit.chi2, decimals=2)))
+        print(("redchisq: {0}").format(np.around(specfit.chi2/specfit.dof, decimals=2)))
+        print(("AIC:      {0}").format(np.around(self.get_aic(), decimals=2)))
+        print("-----------------------------------------------------")
+        print("")
+
+def event_loop():
+    fig = plt.gcf()
+    while plt.fignum_exists(fig.number):
+        try:
+            # using just a few little bits of plt.pause below
+            plt.gcf().canvas.draw()
+            plt.gcf().canvas.start_event_loop(0.1)
+            time.sleep(0.1)
+        except KeyboardInterrupt:
+            break
