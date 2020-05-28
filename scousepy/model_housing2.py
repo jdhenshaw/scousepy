@@ -192,8 +192,8 @@ def get_rms(self, scouseobject):
     from .stage_1 import calc_rms
     # make sure there are no NaNs and that the spectrum isn't all +ve - e.g.
     # dodgy baselines
-    if not np.isnan(self.spectrum).any() and not (self.spectrum > 0).all():
-        rms = calc_rms(self.spectrum)
+    if not np.isnan(self.spectrum.value).any() and not (self.spectrum.value > 0).all():
+        rms = calc_rms(self.spectrum.value)
     else:
         # if the spectrum violates these conditions then simply set the rms to
         # the value measured over the entire cube

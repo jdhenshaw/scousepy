@@ -114,6 +114,10 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
             'default': make_string('gaussian'),
             'description': "decomposition model (default=Gaussian)",
             'simple': True}),
+        ('njobs', {
+            'default': '3',
+            'description': "Number of CPUs used for parallel processing",
+            'simple': True}),
         ('verbose', {
             'default': 'True',
             'description': "print messages to the terminal [True/False]",
@@ -147,10 +151,6 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
             'default': "[2.0,3.0,1.0,2.5,2.5,0.5]",
             'description': "Tolerance values for the fitting. See Henshaw et al. 2016a",
             'simple': True}),
-        ('njobs', {
-            'default': '1',
-            'description': "Number of CPUs used for parallel processing",
-            'simple': True})
         ]
 
     dct_default = OrderedDict(default)

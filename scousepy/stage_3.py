@@ -262,9 +262,7 @@ def compile_spectra(scouseobject, indivspec_list_completed):
 
     # create a list to house the output
     indivspec_list_compiled=[]
-    # # loop over the individual spectra
-    # for i in range(len(indexarr_unique)):
-
+    # loop over the individual spectra
     inputlist=[[i]+[indexarr]+[indexarr_unique]+[indivspec_list_completed] for i in range(len(indexarr_unique))]
 
     if scouseobject.verbose:

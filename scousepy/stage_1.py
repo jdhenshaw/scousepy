@@ -12,6 +12,7 @@ import numpy as np
 import sys
 
 from .io import *
+from .parallel_map import *
 
 def compute_noise(scouseobject):
     """
@@ -124,7 +125,7 @@ def map_locations_unmasked(mask):
     unmaskedlocations=np.vstack((idx,idy)).T
     return unmaskedlocations
 
-def generate_SAAs(scouseobject, coverageobject, verbose=True):
+def generate_SAAs(scouseobject, coverageobject):
     """
     Generates the spectral averaging areas according to the parameters set in
     the coverage GUI
@@ -135,10 +136,7 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
     coverage object : Instance of the ScouseCoverage class
 
     """
-
-    import matplotlib.patches as patches
-    import matplotlib.path as path
-    from .model_housing2 import saa
+    from tqdm import tqdm
     from .verbose_output import print_to_terminal
 
     # get the locations of all pixels in the map
@@ -150,39 +148,76 @@ def generate_SAAs(scouseobject, coverageobject, verbose=True):
         scouseobject.saa_dict[i] = {}
         coverage=coverageobject.coverage[i]
 
-        if verbose:
-            progress_bar = print_to_terminal(stage='s1', step='coverage',length=len(coverage[:,0]), var=w)
+        if scouseobject.verbose:
+            progress_bar = print_to_terminal(stage='s1', step='coverage', var=w)
+
+        inputlist=[[j]+[w, maploc, coverage, coverageobject.moments[6], scouseobject] for j in range(len(coverage[:,0]))]
+
+        if scouseobject.njobs > 1:
+            results = parallel_map(create_saa, inputlist, numcores=scouseobject.njobs)
+        else:
+            if scouseobject.verbose:
+                results=[create_saa(input) for input in tqdm(inputlist)]
+            else:
+                results=[create_saa(input) for input in inputlist]
+
+        if scouseobject.verbose:
+            progress_bar = print_to_terminal(stage='s1', step='coverageend', length=len(coverage[:,0]),var=w)
 
         for j in range(len(coverage[:,0])):
-            # generate the masks
-            saamask=generate_saamask(coverage[j,:],w,maploc,coverageobject.moments[6].shape)
-            cubemask=generate_cubemask(scouseobject,saamask,coverageobject.moments[6])
-            # mask the cube using the cubemask
-            masked_saacube=scouseobject.cube.with_mask(cubemask)
-            # generate the average spectrum
-            saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2)).value
-
-            if coverage[j,2]==1:
-                to_be_fit=True
-            else:
-                to_be_fit=False
-
-            # generate the SAA
-            SAA = saa(np.array([coverage[j,0],coverage[j,1]]), saaspectrum, index=j, to_be_fit=to_be_fit, scouseobject=scouseobject)
-            # Add the SAA to the dictionary
+            SAA=results[j]
             scouseobject.saa_dict[i][j] = SAA
 
-            # get the locations of the unmasked data
-            saaspectra=np.flip(map_locations_unmasked(cubemask),axis=1)
-            # add these to the SAAs
-            SAA.add_indices(saaspectra, scouseobject.cube.shape[1:])
-            # determine the *actual* number of spectra scouse will fit
             if SAA.to_be_fit:
-                scouseobject.lenspec+=np.size(SAA.indices_flat)
+                 scouseobject.lenspec+=np.size(SAA.indices_flat)
 
-            if verbose:
+            if scouseobject.verbose:
                 progress_bar.update()
 
+def create_saa(input):
+    """
+    Method used to create a spectral averaging area. Parallelised.
+
+    Parameters
+    ----------
+    input : list
+        A list containing the following:
+
+        j : index of saa
+        w : size of the saa in pixels
+        maploc : locations of all pixels in the map
+        coverage : the coverage array
+        momentmask : the masked moment0 data
+        scouseobject : an instance of the scousepy class
+
+    """
+    import matplotlib.patches as patches
+    import matplotlib.path as path
+    from .model_housing2 import saa
+
+    # unpack the input
+    j, w, maploc, coverage, momentmask, scouseobject=input
+    # generate the masks
+    saamask=generate_saamask(coverage[j,:],w,maploc,momentmask.shape)
+    cubemask=generate_cubemask(scouseobject.cube.shape[1:],scouseobject.x_range,scouseobject.y_range,saamask,momentmask)
+    # mask the cube using the cubemask
+    masked_saacube=scouseobject.cube.with_mask(cubemask)
+    # generate the average spectrum
+    saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2)).value
+
+    if coverage[j,2]==1:
+        to_be_fit=True
+    else:
+        to_be_fit=False
+
+    # generate the SAA
+    SAA = saa(np.array([coverage[j,0],coverage[j,1]]), saaspectrum, index=j, to_be_fit=to_be_fit, scouseobject=scouseobject)
+    # get the locations of the unmasked data
+    saaspectra=np.flip(map_locations_unmasked(cubemask),axis=1)
+    # add these to the SAAs
+    SAA.add_indices(saaspectra, scouseobject.cube.shape[1:])
+
+    return SAA
 
 def generate_saamask(coverage, wsaa, maploc, shape):
     """
@@ -216,27 +251,29 @@ def generate_saamask(coverage, wsaa, maploc, shape):
     saaspectra=maploc[(saaspectramask==True)]
     return np.reshape(saaspectramask,np.flip(shape)).T
 
-def generate_cubemask(scouseobject,saamask,momentmask):
+def generate_cubemask(mask_shape,x_range,y_range,saamask,momentmask):
     """
     returns a mask that can be used to mask the data cube (after trimming has
     been performed)
 
     Parameters
     ----------
-    scouseobject : instance of the scouse class
+    cube : spectral cube
+    x_range : list
+        range in x pixels after trimming during coverage
+    y_range : list
+        range in y pixels after trimming during coverage
     saamask : ndarray
         a mask indicating all pixels contained within the SAA
     momentmask : ndarray
         a mask of the moment 0 map
     """
-    # final mask shape
-    mask_shape=scouseobject.cube.shape[1:]
     # create arrays to hold the masks
     saamask_embedded=np.zeros(mask_shape,dtype='bool')
     momentmask_embedded=np.zeros(mask_shape,dtype='bool')
     # create the new x0 and y0 positions according to the trimming
-    newx0=np.min(scouseobject.x_range)
-    newy0=np.min(scouseobject.y_range)
+    newx0=np.min(x_range)
+    newy0=np.min(y_range)
     # now embed the previous masks inside our new mask
     momentmask_embedded[newy0:newy0+momentmask.shape[0], newx0:newx0+momentmask.shape[1]] = momentmask
     saamask_embedded[newy0:newy0+saamask.shape[0], newx0:newx0+saamask.shape[1]] = saamask

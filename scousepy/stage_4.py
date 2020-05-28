@@ -9,9 +9,8 @@ CONTACT: henshaw@mpia.de
 """
 
 import numpy as np
-#from .indiv_spec_description import *
 
-def select_best_model(scouseobject):
+def model_selection(scouseobject):
     """
     Selects the best model out of those fitted - that with the smallest aic
     value
@@ -21,32 +20,57 @@ def select_best_model(scouseobject):
     scouseobject : Instance of the scousepy class
 
     """
+    from .verbose_output import print_to_terminal
+    from .model_housing2 import indivmodel
+
+    if scouseobject.verbose:
+        progress_bar = print_to_terminal(stage='s4', step='selectmodsstart',length=len(scouseobject.indiv_dict.keys()))
 
     for key in scouseobject.indiv_dict.keys():
-        spectrum = scouseobject.indiv_dict[key]
-        models = spectrum.models
-        ncomps = [mod.ncomps for mod in models]
-        findduds = (np.asarray(ncomps) == 0.0)
-
+        indivspec = scouseobject.indiv_dict[key]
+        models = indivspec.model_from_parent
+        findduds = [True if model is None else False for model in models]
         if np.any(np.asarray(findduds)):
-            idx = np.squeeze(np.where(findduds == True))
-            dud = models[idx]
-            models.remove(dud)
-        else:
-            dud=None
-        if np.size(models) != 0:
-            aic = [mod.aic for mod in models]
-            idx = np.squeeze(np.where(aic == np.min(aic)))
-            model = models[idx]
-            models.remove(model)
-        else:
-            model = dud
-            dud = None
+            idx = np.squeeze(np.where(np.asarray(findduds) == True))
+            if np.size(idx)>1:
+                for j in range(len(idx)):
+                    dud = models[idx[j]]
+                    models.remove(dud)
+            else:
+                dud = models[idx]
+                models.remove(dud)
 
-        if dud is None:
-            add_bf_model(scouseobject.indiv_dict[key], model)
-            update_model_list(scouseobject.indiv_dict[key], models)
+        if np.size(models) != 0:
+            aic = [model.AIC for model in models]
+            idx = np.squeeze(np.where(aic == np.min(aic)))
+            bfmodel = models[idx]
+            models.remove(bfmodel)
         else:
-            models.append(dud)
-            add_bf_model(scouseobject.indiv_dict[key], model)
-            update_model_list(scouseobject.indiv_dict[key], models)
+            modeldict = create_a_dud(indivspec)
+            bfmodel = indivmodel(modeldict)
+
+        setattr(indivspec, 'model', bfmodel)
+
+        if scouseobject.verbose:
+            progress_bar.update()
+
+def create_a_dud(indivspec):
+    """
+    Creates a dud spectrum - used if no best fitting solution can be found
+    """
+    modeldict={}
+    modeldict['fittype']=None
+    modeldict['parnames']=['amplitude','shift','width']
+    modeldict['ncomps']=0
+    modeldict['params']=[0.0,0.0,0.0]
+    modeldict['errors']=[0.0,0.0,0.0]
+    modeldict['rms']=indivspec.rms
+    modeldict['residstd']= np.std(indivspec.spectrum)
+    modeldict['chisq']=0.0
+    modeldict['dof']=0.0
+    modeldict['redchisq']=0.0
+    modeldict['AIC']=0.0
+    modeldict['fitconverge']=False
+    modeldict['method']='dud'
+
+    return modeldict

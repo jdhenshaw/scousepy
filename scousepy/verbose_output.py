@@ -57,15 +57,14 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print('')
             progress_bar=[]
         if step=='coverage':
-            if length != None:
-                print('Generating SAAs of size: {}'.format(var))
-                print("")
-                progress_bar = tqdm(total=length)
-            else:
-                print("")
-                print('Number of spectra to fit manually: {}'.format(var))
-                progress_bar=[]
-                print('')
+            print('Generating SAAs of size: {}'.format(var))
+            print("")
+            progress_bar = []
+        if step=='coverageend':
+            print('')
+            print('Updating SAA dictionary'.format(var))
+            print("")
+            progress_bar = tqdm(total=length, position=0, leave=True)
         if step=='end':
             print('')
             print('Total number of spectra: {}'.format(length))
@@ -139,18 +138,6 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print('Compilation completed in: {0} minutes'.format((t2-t1)/60.))
             print("")
             progress_bar=[]
-
-
-        if step=='merge':
-            print("")
-            print("Merging model solutions...")
-            print("")
-            progress_bar=[]
-        if step=='duplicates':
-            print("")
-            print("Removing duplicate model solutions...")
-            print("")
-            progress_bar=[]
         if step=='end':
             print("")
             print('scousepy stage 3 completed in: {0} minutes'.format((t2-t1)/60.))
@@ -158,11 +145,22 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             progress_bar=[]
 
     if stage=='s4':
+        if step=='load':
+            print('')
+            print(colors.fg._lightblue_+"loading s4.scousepy...  "+colors._endc_)
+            print('')
+            progress_bar=[]
         if step=='start':
             print("")
             print(colors.fg._lightblue_+"Beginning stage_4 analysis..."+colors._endc_)
             print("")
             progress_bar=[]
+        if step=='selectmodsstart':
+            if length != None:
+                print("")
+                print('Selecting best-fitting solutions...')
+                print("")
+                progress_bar = tqdm(total=length, position=0, leave=True)
         if step=='end':
             print("")
             print('scousepy stage 4 completed in: {0} minutes'.format((t2-t1)/60.))

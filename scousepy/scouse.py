@@ -149,6 +149,81 @@ class scouse(object):
     trimids : ndarray
         A mask of x according to vel_range
 
+    stage 2 - user defined attributes
+    ---------------------------------
+    write_ascii : bool
+        If True will create an ascii file containing the best-fitting solutions
+        to each of the spectral averaging areas.
+
+    stage 2 - scouse defined attributes
+    -----------------------------------
+    saa_dict : dictionary
+        This dictionary houses each of the spectral averaging areas fit by
+        scouse
+    fitcount : number
+        A number indicating how many of the spectra have currently been fit.
+        Used so that scouse can remember where it got upto in the fitting
+        process
+    modelstore : dictionary
+        Modelstore contains all the best-fitting solutions while they are
+        waiting to be added to saa_dict
+
+    stage 3 - user defined attributes
+    ---------------------------------
+    tol : list
+        Tolerance values for the fitting. Should be in the form
+        tol = [T0, T1, T2, T3, T4, T4]. See Henshaw et al. 2016a for full
+        explanation but in short:
+        T0 = NEW! controls how different the number of components in the fitted
+             spectrum can be from the number of components of the parent
+             spectrum.
+
+             if |ncomps_spec - ncomps_saa| > T0 ; the fit is rejected
+
+        T1 = multiple of the rms noise value (all components below this
+             value are rejected).
+
+             if I_peak < T1*rms ; the component is rejected
+
+        T2 = minimum width of a component (in channels)
+
+             if FHWM < T2*channel_width ; the component is rejected
+
+        T3 = Governs how much the velocity dispersion of a given component can
+             differ from the closest matching component in the SAA fit. It is
+             given as a multiple of the velocity dispersion of the closest
+             matching component.
+
+             relchange = sigma/sigma_saa
+             if relchange < 1:
+                 relchange = 1/relchange
+             if relchange > T3 ; the component is rejected
+
+        T4 = Similar to T3. Governs how much the velocity of a given component
+             can differ from the velocity of the closest matching component in
+             the parent SAA.
+
+             lowerlim = vel_saa - T4*disp_saa
+             upperlim = vel_saa + T4*disp_saa
+             if vel < lowerlim or vel > upperlim ; the component is rejected
+
+        T5 = Dictates how close two components have to be before they are
+             considered indistinguishable. Given as a multiple of the
+             velocity dispersion of the narrowest neighbouring component.
+
+             if vel - vel_neighbour < T5*FWHM_narrowestcomponent ; take the
+             average of the two components and use this as a new guess
+
+    njobs : int, optional
+        Used for parallelised fitting
+
+    stage 3 - scouse defined attributes
+    -----------------------------------
+    indiv_dict : dictionary
+        A dictionary containing each spectrum fit by scouse and their best
+        fitting model solutions
+
+
     """
 
     def __init__(self, config=''):
@@ -312,7 +387,7 @@ class scouse(object):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-            generate_SAAs(self, coverageobject, verbose=self.verbose)
+            generate_SAAs(self, coverageobject)
             log.setLevel(old_log)
 
         # Saving figures
@@ -501,39 +576,6 @@ class scouse(object):
         config : string
             Path to the configuration file. This must be provided.
 
-        Parameters
-        ----------
-        tol : array like
-            Tolerance values for the fitting. Should be in the form
-            tol = [T1, T2, T3, T4, T4]. See Henshaw et al. 2016a for full
-            explanation but in short:
-            T1 = multiple of the rms noise value (all components below this
-                 value are rejected).
-            T2 = minimum width of a component (in channels)
-            T3 = Governs how much the velocity of a given component can differ
-                 from the closest matching component in the SAA fit. It is
-                 given as a multiple of the velocity dispersion of the closest
-                 matching component.
-            T4 = Similar to T3. Governs how much the velocity dispersion of a
-                 given component can differ from the velocity dispersion of the
-                 closest matching component in the parent SAA.
-            T5 = Dictates how close two components have to be before they are
-                 considered indistinguishable. Given as a multiple of the
-                 velocity dispersion of the narrowest neighbouring component.
-        njobs : int, optional
-            Used for parallelised fitting. The parallelisation is a bit crummy
-            at the minute - I need to work on this.
-        verbose : bool, optional
-            Verbose output of the fitting process.
-        spatial : bool, optional
-            An extra layer of spatial fitting - this isn't implemented yet. Its
-            largely covered by the SAA fits but it might be worthwhile
-            implementing in the future.
-        clear_cache : bool, optional
-            Gets rid of the dead weight. Scouse generates *big* output files.
-        autosave : bool, optional
-            Autosaves the scouse file.
-
         """
         # import
         from .io import import_from_config
@@ -635,13 +677,15 @@ class scouse(object):
 
     def load_indiv_dicts(self, fn, stage):
         if stage=='s6':
+            import pickle
             with open(fn, 'rb') as fh:
                 self.indiv_dict, self.fitcounts6 = pickle.load(fh)
         else:
+            import pickle
             with open(fn, 'rb') as fh:
                 self.indiv_dict = pickle.load(fh)
 
-    def stage_4(self, verbose=False, autosave=True):
+    def stage_4(config=''):
         """
         Stage 4
 
@@ -649,38 +693,78 @@ class scouse(object):
 
         Parameters
         ----------
-        verbose : bool, optional
-            Verbose output.
-        autosave : bool, optional
-            Autosaves the scouse file.
+        config : string
+            Path to the configuration file. This must be provided.
 
         """
 
-        s4dir = os.path.join(self.outputdirectory, 'stage_4')
-        self.stagedirs.append(s4dir)
-        # create the stage_4 directory
-        mkdir_s4(self.outputdirectory, s4dir)
+        # import
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+
+        # Check input
+        if os.path.exists(config):
+            self=scouse(config=config)
+            stages=['stage_1','stage_2','stage_3']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
+
+        # check if stages 1, 2, 3 and 4 have already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            import_from_config(self, self.coverage_config_file_path)
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
+            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+            if self.fitcount is not None:
+                if not np.all(self.fitcount):
+                    print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
+                    return
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s4', step='load')
+            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
+            if 's4' in self.completed_stages:
+                print(colors.fg._lightgreen_+"Best-fitting solutions already selected. "+colors._endc_)
+                print('')
+
+        # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        self.load_cube(fitsfile=fitsfile)
+
+        #----------------------------------------------------------------------#
+        # Main routine
+        #----------------------------------------------------------------------#
 
         starttime = time.time()
 
-        if verbose:
+        if self.verbose:
             progress_bar = print_to_terminal(stage='s4', step='start')
 
         # select the best model out of those available - i.e. that with the
         # lowest aic value
-        select_best_model(self)
+        model_selection(self)
 
+        # Wrapping up
         endtime = time.time()
-        if verbose:
+        if self.verbose:
             progress_bar = print_to_terminal(stage='s4', step='end',
                                              t1=starttime, t2=endtime)
-
         self.completed_stages.append('s4')
 
         # Save the scouse object automatically
-        if autosave:
-            with open(self.outputdirectory+'/stage_4/s4.scousepy', 'wb') as fh:
-                pickle.dump(self.indiv_dict, fh)
+        if self.autosave:
+            import pickle
+            with open(self.outputdirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,self.indiv_dict), fh, protocol=proto)
 
         return self
 
