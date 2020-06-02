@@ -420,7 +420,8 @@ class scouse(object):
                              self.saa_dict,
                              self.x,
                              self.xtrim,
-                             self.trimids), fh, protocol=proto)
+                             self.trimids,
+                             self.rms_approx), fh, protocol=proto)
 
         return self
 
@@ -436,7 +437,8 @@ class scouse(object):
             self.saa_dict,\
             self.x,\
             self.xtrim,\
-            self.trimids=pickle.load(fh)
+            self.trimids,\
+            self.rms_approx=pickle.load(fh)
 
     def stage_2(config=''):
         """
@@ -528,10 +530,15 @@ class scouse(object):
                 SAA=saa_dict[saa_list[key,0]]
                 # obtain the correct model from modelstore
                 modeldict=self.modelstore[key]
-                # convert the modelstore dictionary into an saamodel object
-                model=saamodel(modeldict)
-                # add this to the SAA
-                SAA.add_saamodel(model)
+                # if there are any zero component fits then mark these as
+                # SAA.to_be_fit==False
+                if not modeldict['fitconverge']:
+                    setattr(SAA, 'to_be_fit', False)
+                else:
+                    # convert the modelstore dictionary into an saamodel object
+                    model=saamodel(modeldict)
+                    # add this to the SAA
+                    SAA.add_saamodel(model)
 
         # Wrapping up
         endtime = time.time()

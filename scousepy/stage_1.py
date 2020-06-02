@@ -174,6 +174,9 @@ def generate_SAAs(scouseobject, coverageobject):
             if scouseobject.verbose:
                 progress_bar.update()
 
+        if scouseobject.verbose:
+            progress_bar.close()
+
 def create_saa(input):
     """
     Method used to create a spectral averaging area. Parallelised.

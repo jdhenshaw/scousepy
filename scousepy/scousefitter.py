@@ -34,7 +34,7 @@ class ScouseFitter(object):
                        fitcount=None,
                        x=None,y=None,rms=None,
                        SNR=3,minSNR=1,maxSNR=30,
-                       kernelsize=10,minkernel=1,maxkernel=30,
+                       kernelsize=3,minkernel=1,maxkernel=30,
                        outputfile=None,
                        xarrkwargs={},unit={}):
 
@@ -948,9 +948,10 @@ def get_model_info(self):
     """
     Framework for model solution dictionary
     """
-    if self.dsp.ncomps != 0:
+    if self.decomposer.modeldict is not None:
         modeldict=self.decomposer.modeldict
     else:
+        modeldict={}
         modeldict['fittype']=None
         modeldict['parnames']=['amplitude','shift','width']
         modeldict['ncomps']=0
@@ -963,7 +964,7 @@ def get_model_info(self):
         modeldict['redchisq']=0.0
         modeldict['AIC']=0.0
         modeldict['fitconverge']=False
-        modeldict['method']=decomposer.method
+        modeldict['method']=self.decomposer.method
 
     modeldict['SNR']=self.SNR
     modeldict['kernelsize']=self.kernelsize
@@ -1088,6 +1089,8 @@ def update_plot_model(self,update=False):
     GUI setup
     """
     if self.dsp.ncomps < 10:
+        update_text(self.text_fitinformation,'pyspeckit fit information: ')
+
         if self.modeldict['fitconverge']:
             update_text(self.text_converge,"Fit has converged...", color='limegreen')
         else:
@@ -1100,7 +1103,7 @@ def update_plot_model(self,update=False):
                 for i in range(len(self.plot_model)):
                     self.plot_model[i].pop(0).remove()
 
-        if self.dsp.ncomps == 0:
+        if not self.modeldict['fitconverge']:
             self.plot_res,=plot_residuals(self,self.specy,self.residkwargs)
             self.plot_tot,=plot_model(self,np.zeros_like(self.specy),'total model',self.totmodkwargs)
         else:

@@ -32,7 +32,7 @@ class ScouseCoverage(object):
         # For moments
         self.scouseobject=scouseobject
         self.verbose=verbose
-        self.mask_below=1.0
+        self.mask_below=0.0
         self.cube=scouseobject.cube
         self.xmin = 0
         self.xmax = self.cube.shape[2]

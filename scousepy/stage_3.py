@@ -59,7 +59,7 @@ def initialise_fitting(scouseobject):
                     # parameters for the individual_spectrum class
                     index=indices_flat[k]
                     coordinates=np.array([indices[k,1],indices[k,0]])
-                    spectrum=scouseobject.cube[:,indices[k,0],indices[k,1]]
+                    spectrum=scouseobject.cube[:,indices[k,0],indices[k,1]].value
                     # create the spectrum
                     indivspec=individual_spectrum(coordinates,spectrum,index=index,
                                         scouseobject=scouseobject, saa_dict_index=i,
@@ -72,6 +72,9 @@ def initialise_fitting(scouseobject):
                     indivspec_list.append(indivspec)
                     if scouseobject.verbose:
                         progress_bar.update()
+
+    if scouseobject.verbose:
+        progress_bar.close()
 
     return indivspec_list
 
