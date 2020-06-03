@@ -87,8 +87,8 @@ class scouse(object):
         self.fitcounts6 = 0
         self.blockcount = 0
         self.blocksize = None
-        self.check_spec_indices = None
-        self.check_block_indices = None
+        self.check_spec_indices = []
+        self.check_block_indices = []
         self.completed_stages = []
 
     def load_cube(self, fitsfile=None, cube=None):
@@ -763,6 +763,7 @@ class scouse(object):
                                                   np.size(self.check_block_indices), \
                                                   np.size(self.check_spec_indices)])
 
+        self.check_spec_indices = np.asarray([index for index in self.check_spec_indices if np.isfinite(index)])
         self.completed_stages.append('s5')
 
         # Save the scouse object automatically - create a backup if the user
@@ -867,6 +868,7 @@ class scouse(object):
         # Firstly check the check_spec_indices against the blocks and remove any
         # duplicates
         self.check_spec_indices = check_blocks(self)
+        self.check_spec_indices = np.asarray([index for index in self.check_spec_indices if np.isfinite(index)])
 
         # Give the user the option of fitting only blocks or individal spectra
         fit_blocks=True; fit_indiv=True
