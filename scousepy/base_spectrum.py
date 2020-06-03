@@ -107,6 +107,8 @@ def get_rms(self, scouse, flux):
     spectrum = flux
     if not np.isnan(spectrum).any() and not (spectrum > 0).all():
         rms = calc_rms(spectrum)
+        if np.isnan(rms):
+            rms=scouse.rms_approx
     else:
         rms = scouse.rms_approx
 
