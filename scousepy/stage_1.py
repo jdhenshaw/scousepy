@@ -66,11 +66,10 @@ def compute_noise(scouseobject):
         stopcount+=1
         specidx+=1
 
-    rms = np.nanmedian(rmsList)
-
-    if np.isnan(rms):
-        raise ValueError("RMS was NaN, which is not allowed.")
+    if np.all(~np.isfinite(np.asarray(rmsList))):
+        raise ValueError("All RMS are NaN, which is not allowed.")
     else:
+        rms = np.nanmedian(rmsList)
         return rms
 
 def calc_rms(spectrum):
