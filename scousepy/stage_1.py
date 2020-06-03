@@ -66,9 +66,12 @@ def compute_noise(scouseobject):
         stopcount+=1
         specidx+=1
 
-    rms = np.median(rmsList)
+    rms = np.nanmedian(rmsList)
 
-    return rms
+    if np.isnan(rms):
+        raise ValueError("RMS was NaN, which is not allowed.")
+    else:
+        return rms
 
 def calc_rms(spectrum):
     """
@@ -83,6 +86,16 @@ def calc_rms(spectrum):
 
     # Find all negative values
     negative_indices = (spectrum < 0.0)
+
+    if negative_indices.sum() < 2:
+        # spectrum is not continuum subtracted, maybe?
+        # first baseline-subtract the spectrum conservatively
+        # (note that this is a reassignment operation, it doesn't change the
+        # data)
+        spectrum = spectrum - np.percentile(spectrum, 25)
+        negative_indices = (spectrum < 0.0)
+        assert negative_indices.sum() >= 2
+
     spectrum_negative_values = spectrum[negative_indices]
     reflected_noise = np.concatenate((spectrum[negative_indices],
                                                abs(spectrum[negative_indices])))
@@ -506,7 +519,7 @@ def plot_wsaa(dict, momzero, wsaa, dir, filename):
                              dict[i][j].coordinates[0] - w/2.),\
                              w , w , facecolor='None',
                              edgecolor=cols[i], lw=0.2, alpha=0.25))
-                             
+
     plt.savefig(dir+'/'+filename+'_coverage.pdf', dpi=600,bbox_inches='tight')
     plt.draw()
     plt.show()
