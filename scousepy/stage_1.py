@@ -179,8 +179,14 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
     #idnan = (~np.isfinite(slabarr))
     #negative_inf = -1e10
     #slabarr[idnan] = negative_inf
-    idxmax = maskslab.argmax(axis=0)
-    peakmap = maskslab.max(axis=0)
+    try:
+        idxmax = maskslab.argmax(axis=0)
+    except ValueError:
+        idxmax = maskslab.argmax(axis=0, how='ray')
+    try:
+        peakmap = maskslab.max(axis=0)
+    except:
+        peakmap = maskslab.max(axis=0, how='slice')
     #idxmax = np.nanargmax(slabarr, axis=0)
     momnine = slab.spectral_axis[idxmax].value
     momnine[~np.isfinite(peakmap)] = np.nan
