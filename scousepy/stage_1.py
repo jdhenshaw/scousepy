@@ -188,7 +188,7 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
     except:
         peakmap = maskslab.max(axis=0, how='slice')
     #idxmax = np.nanargmax(slabarr, axis=0)
-    momnine = slab.spectral_axis[idxmax].value
+    momnine = maskslab.spectral_axis[idxmax].value
     momnine[~np.isfinite(peakmap)] = np.nan
     #momnine[~maskslab.mask.include().any(axis=0)] = np.nan
     idnan = (np.isfinite(momtwo.value)==0)
