@@ -160,20 +160,6 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
             scouseobject.cube.unit)).spectral_slab(scouseobject.ppv_vol[0]*u.km/u.s,
             scouseobject.ppv_vol[1]*u.km/u.s)
 
-        # Momnine follows CASAs naming system. I'm not sure why I did this - its
-        # not really a moment but oh well
-        momnine = np.empty(np.shape(momone))
-        momnine.fill(np.nan)
-        slabarr = np.copy(slab.unmasked_data[:].value)
-        idnan = (~np.isfinite(slabarr))
-        negative_inf = -1e10
-        slabarr[idnan] = negative_inf
-        idxmax = np.nanargmax(slabarr, axis=0)
-        momnine = slab.spectral_axis[idxmax].value
-        momnine[~maskslab.mask.include().any(axis=0)] = np.nan
-        idnan = (np.isfinite(momtwo.value)==0)
-        momnine[idnan] = np.nan
-        momnine = momnine * u.km/u.s
 
     # If no velocity limits are imposed
     else:
@@ -187,18 +173,21 @@ def get_moments(scouseobject, write_moments, dir, filename, verbose):
         maskslab = scouseobject.cube.with_mask(scouseobject.cube > u.Quantity(
             scouseobject.mask_below, scouseobject.cube.unit))
 
-        momnine = np.empty(np.shape(momone))
-        momnine.fill(np.nan)
-        slabarr = np.copy(slab.unmasked_data[:].value)
-        idnan = (~np.isfinite(slabarr))
-        negative_inf = -1e10
-        slabarr[idnan] = negative_inf
-        idxmax = np.nanargmax(slabarr, axis=0)
-        momnine = slab.spectral_axis[idxmax].value
-        momnine[~maskslab.mask.include().any(axis=0)] = np.nan
-        idnan = (np.isfinite(momtwo.value)==0)
-        momnine[idnan] = np.nan
-        momnine = momnine * u.km/u.s
+    momnine = np.empty(np.shape(momone))
+    momnine.fill(np.nan)
+    #slabarr = np.copy(slab.unmasked_data[:].value)
+    #idnan = (~np.isfinite(slabarr))
+    #negative_inf = -1e10
+    #slabarr[idnan] = negative_inf
+    idxmax = maskslab.argmax(axis=0)
+    peakmap = maskslab.max(axis=0)
+    #idxmax = np.nanargmax(slabarr, axis=0)
+    momnine = slab.spectral_axis[idxmax].value
+    momnine[~np.isfinite(peakmap)] = np.nan
+    #momnine[~maskslab.mask.include().any(axis=0)] = np.nan
+    idnan = (np.isfinite(momtwo.value)==0)
+    momnine[idnan] = np.nan
+    momnine = momnine * u.km/u.s
 
     # Write moments
     if write_moments:
