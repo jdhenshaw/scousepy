@@ -1055,16 +1055,18 @@ def compute_moments(self):
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
 
-    slabarr = np.copy(spectral_slab.unmasked_data[:].value)
-    idnan = (~np.isfinite(slabarr))
-    negative_inf = -1e10
-    slabarr[idnan] = negative_inf
-
-    idxmax = np.nanargmax(slabarr, axis=0)
-    momnine = spectral_slab.spectral_axis[idxmax].value
-    momnine[~spectral_slab.mask.include().any(axis=0)] = np.nan
-    idnan = (np.isfinite(momtwo.value)==0)
-    momnine[idnan] = np.nan
+    try:
+        idxmax = maskslab.argmax(axis=0)
+    except ValueError:
+        idxmax = maskslab.argmax(axis=0, how='ray')
+    try:
+        peakmap = maskslab.max(axis=0)
+    except:
+        peakmap = maskslab.max(axis=0, how='slice')
+    bad = ~np.isfinite(peakmap) | ~np.isfinite(idxmax) | ~np.isfinite(momtwo.value)
+    idxmax[bad] = 0
+    momnine = maskslab.spectral_axis[idxmax.astype('int')].value
+    momnine[bad] = np.nan
     momnine = momnine * u.km/u.s
 
     mask=np.zeros_like(momzero.value, dtype='bool')

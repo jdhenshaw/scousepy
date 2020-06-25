@@ -29,22 +29,23 @@ def model_selection(scouseobject):
     for key in scouseobject.indiv_dict.keys():
         indivspec = scouseobject.indiv_dict[key]
         models = indivspec.model_from_parent
-        findduds = [True if model is None else False for model in models]
-        if np.any(np.asarray(findduds)):
-            idx = np.squeeze(np.where(np.asarray(findduds) == True))
-            if np.size(idx)>1:
-                for j in range(len(idx)):
-                    dud = models[idx[j]]
-                    models.remove(dud)
-            else:
-                dud = models[idx]
-                models.remove(dud)
 
+        models = [model for model in models if model is not None]
+
+        # if there are models with solutions available
         if np.size(models) != 0:
-            aic = [model.AIC for model in models]
-            idx = np.squeeze(np.where(aic == np.min(aic)))
-            bfmodel = models[idx]
-            models.remove(bfmodel)
+            aic = [model.AIC for model in models if ~np.isnan(model.AIC)]
+            # sometimes the AIC can be nan - in these cases remove the model
+            if np.size(aic)==0:
+                modeldict = create_a_dud(indivspec)
+                bfmodel = indivmodel(modeldict)
+            # in all other cases select the model with the lowest aic as our best
+            # fitting solution
+            else:
+                idx = np.squeeze(np.where(aic == np.min(aic)))
+                bfmodel = models[idx]
+
+        # if not then mark the spectrum as a dud
         else:
             modeldict = create_a_dud(indivspec)
             bfmodel = indivmodel(modeldict)
