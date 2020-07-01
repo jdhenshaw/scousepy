@@ -80,6 +80,10 @@ class ScouseCoverage(object):
         rcParams['ytick.major.width']=1.    ## major tick width in points
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
+        # remove some matplotlib keyboard shortcuts to prevent meltdown
+        plt.rcParams['keymap.quit'].remove('q')
+        plt.rcParams['keymap.quit_all'].remove('Q')
+        
         # compute moments
         self.moments = compute_moments(self)
         # compute measures of spectral complexity
@@ -1056,16 +1060,16 @@ def compute_moments(self):
     momnine.fill(np.nan)
 
     try:
-        idxmax = maskslab.argmax(axis=0)
+        idxmax = spectral_slab.argmax(axis=0)
     except ValueError:
-        idxmax = maskslab.argmax(axis=0, how='ray')
+        idxmax = spectral_slab.argmax(axis=0, how='ray')
     try:
-        peakmap = maskslab.max(axis=0)
+        peakmap = spectral_slab.max(axis=0)
     except:
-        peakmap = maskslab.max(axis=0, how='slice')
+        peakmap = spectral_slab.max(axis=0, how='slice')
     bad = ~np.isfinite(peakmap) | ~np.isfinite(idxmax) | ~np.isfinite(momtwo.value)
     idxmax[bad] = 0
-    momnine = maskslab.spectral_axis[idxmax.astype('int')].value
+    momnine = spectral_slab.spectral_axis[idxmax.astype('int')].value
     momnine[bad] = np.nan
     momnine = momnine * u.km/u.s
 

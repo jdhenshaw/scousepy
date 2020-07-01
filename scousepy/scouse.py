@@ -276,6 +276,9 @@ class scouse(object):
         self.tol=None
         self.njobs=None
 
+        # stage 5 -- scousepy
+        self.check_spec_indices=[]
+
         # self.stagedirs = []
         # self.cube = None
         # self.config_file=None
@@ -690,7 +693,7 @@ class scouse(object):
         else:
             import pickle
             with open(fn, 'rb') as fh:
-                self.indiv_dict = pickle.load(fh)
+                self.completed_stages, self.indiv_dict = pickle.load(fh)
 
     def stage_4(config=''):
         """
@@ -742,6 +745,7 @@ class scouse(object):
             if 's4' in self.completed_stages:
                 print(colors.fg._lightgreen_+"Best-fitting solutions already selected. "+colors._endc_)
                 print('')
+                return self
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -778,9 +782,7 @@ class scouse(object):
     def load_stage_4(self, fn):
         return self.load_indiv_dicts(fn, stage='s4')
 
-    def stage_5(self, blocksize = 6, plot_residuals=False, figsize=[10,10],
-                verbose=False, autosave=True, bitesize=False, repeat=False,
-                newfile=None):
+    def stage_5(config='', bitesize=False, verbose=True):
         """
         Stage 5
 
@@ -813,100 +815,96 @@ class scouse(object):
             True then scouse will simply append '.bk' to the old s5 output.
 
         """
-        if not bitesize:
-            self.check_spec_indices = []
-            self.check_block_indices = []
+        # import
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+        from scousepy.scousefitchecker import ScouseFitChecker
 
-        self.blocksize = blocksize
+        # Check input
+        if os.path.exists(config):
+            self=scouse(config=config)
+            stages=['stage_1','stage_2','stage_3']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
 
-        s5dir = os.path.join(self.outputdirectory, 'stage_5')
-        self.stagedirs.append(s5dir)
-        # create the stage_5 directory
-        mkdir_s5(self.outputdirectory, s5dir)
+        # check if stages 1, 2, 3 and 4 have already been run
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            import_from_config(self, self.coverage_config_file_path)
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
+            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+            if self.fitcount is not None:
+                if not np.all(self.fitcount):
+                    print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
+                    return
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
+            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
+        if os.path.exists(self.outputdirectory+self.filename+'/stage_5/s5.scousepy'):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s5', step='load')
+            self.load_stage_5(self.outputdirectory+self.filename+'/stage_5/s5.scousepy')
+            if not bitesize:
+                print(colors.fg._lightgreen_+"Fit check already complete. Use bitsize=True to re-enter model checker. "+colors._endc_)
+                print('')
+                return self
+
+        # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        self.load_cube(fitsfile=fitsfile)
+
+        #----------------------------------------------------------------------#
+        # Main routine
+        #----------------------------------------------------------------------#
 
         starttime = time.time()
 
-        if verbose:
-            progress_bar = print_to_terminal(stage='s5', step='start')
+        if np.size(self.check_spec_indices)==0:
+            if verbose:
+                 progress_bar = print_to_terminal(stage='s5', step='start')
 
-        # Begin interactive plotting
-        interactive_state = plt.matplotlib.rcParams['interactive']
+        # Interactive coverage generator
+        fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices)
+        fitcheckerobject.show()
 
-        # First create an interactive plot displaying the main diagnostics of
-        # 'goodness of fit'. The user can use this to select regions which look
-        # bad and from there, select spectra to refit.
-        dd = DiagnosticImageFigure(self, blocksize=blocksize, savedir=s5dir,
-                                   repeat=repeat, verbose=verbose)
-        dd.show_first()
+        if bitesize:
+            self.check_spec_indices=self.check_spec_indices+fitcheckerobject.check_spec_indices
+            self.check_spec_indices=list(set(self.check_spec_indices))
+        else:
+            self.check_spec_indices=fitcheckerobject.check_spec_indices
 
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=DeprecationWarning)
-            while not dd.done:
-                try:
-                    # using just a few little bits of plt.pause below
-                    dd.fig.canvas.draw()
-                    dd.fig.canvas.start_event_loop(0.1)
-                    time.sleep(0.1)
-                except KeyboardInterrupt:
-                    break
-
-        plt.matplotlib.rcParams['interactive'] = interactive_state
-
-        # These are provided by the user during the interactive selection stage
-        check_spec_indices = dd.check_spec_indices
-        check_block_indices = dd.check_block_indices
-
-        # For staged_checking - check and flatten
-        self.check_spec_indices, self.check_block_indices = \
-                check_and_flatten(self, check_spec_indices, check_block_indices)
-        self.check_spec_indices = np.asarray(self.check_spec_indices)
-        self.check_block_indices = np.asarray(self.check_block_indices)
-
+        # Wrapping up
         endtime = time.time()
-        if verbose:
-            progress_bar = print_to_terminal(stage='s5', step='end', \
-                                             t1=starttime, t2=endtime, \
-                                             var=[np.size(self.check_spec_indices)+\
-                                                 (np.size(self.check_block_indices)*\
-                                                 (self.blocksize**2)),
-                                                  np.size(self.check_block_indices), \
-                                                  np.size(self.check_spec_indices)])
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s5', step='end',
+                                             t1=starttime, t2=endtime,
+                                             var=self.check_spec_indices)
 
         self.completed_stages.append('s5')
 
-        # Save the scouse object automatically - create a backup if the user
-        # wishes to iterate over s5 + s6
-        if autosave:
-            if repeat:
-                if newfile is not None:
-                    with open(self.outputdirectory+'/stage_5/'+newfile,'wb') as fh:
-                        pickle.dump((self.check_spec_indices,
-                                     self.check_block_indices,
-                                     self.blocksize), fh)
-                else:
-                    os.rename(self.outputdirectory+'/stage_5/s5.scousepy', \
-                              self.outputdirectory+'/stage_5/s5.scousepy.bk')
-                    with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
-                        pickle.dump((self.check_spec_indices,
-                                     self.check_block_indices,
-                                     self.blocksize), fh)
-            else:
-                with open(self.outputdirectory+'/stage_5/s5.scousepy', 'wb') as fh:
-                    pickle.dump((self.check_spec_indices,
-                                 self.check_block_indices,
-                                 self.blocksize), fh)
+        # Save the scouse object automatically
+        if self.autosave:
+            import pickle
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_5/s5.scousepy'):
+                os.rename(self.outputdirectory+self.filename+'/stage_5/s5.scousepy',self.outputdirectory+self.filename+'/stage_5/s5.scousepy.bk')
 
-        # close all figures before moving on
-        # (only needed for plt.ion() case)
-        plt.close('all')
+            with open(self.outputdirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,self.check_spec_indices), fh, protocol=proto)
 
         return self
 
     def load_stage_5(self, fn):
+        import pickle
         with open(fn, 'rb') as fh:
-            self.check_spec_indices, self.check_block_indices, \
-            self.blocksize = pickle.load(fh)
-        self.completed_stages.append('s5')
+            self.completed_stages, self.check_spec_indices = pickle.load(fh)
 
     def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
                 plot_residuals=False, verbose=False, autosave=True,

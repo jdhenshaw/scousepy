@@ -168,17 +168,32 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             progress_bar=[]
 
     if stage=='s5':
+        if step=='load':
+            print('')
+            print(colors.fg._lightblue_+"loading s5.scousepy...  "+colors._endc_)
+            print('')
+            progress_bar=[]
         if step=='start':
             print("")
             print(colors.fg._lightblue_+"Beginning stage_5 analysis..."+colors._endc_)
             print("")
             progress_bar=[]
-        if step=='end':
+        if step=='diagnosticsinit':
+            print('Creating diagnostic maps...')
             print("")
-            if var == 1:
+            progress_bar=[]
+        if step=='diagnosticsload':
+            print('Diagnostic maps already created. Loading...')
+            print("")
+            progress_bar=[]
+        if step=='diagnostics':
+            if length != None:
+                progress_bar = tqdm(total=length, position=0, leave=True)
+        if step=='end':
+            if np.size(var) == 1:
                 print("A single spectrum has been chosen for inspection.")
             else:
-                print("A total of {0} spectra have been chosen for inspection\nThis includes {1} block(s) and {2} individual pixel(s).".format(var[0], var[1], var[2]))
+                print("A total of {0} spectra have been chosen for inspection".format(np.size(var)))
             print("")
             print('scousepy stage 5 completed in: {0} minutes'.format((t2-t1)/60.))
             print("")

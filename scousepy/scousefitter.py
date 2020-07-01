@@ -236,6 +236,10 @@ class ScouseFitter(object):
         rcParams['ytick.major.width']=1.    ## major tick width in points
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
+        # remove some matplotlib keyboard shortcuts to prevent meltdown
+        plt.rcParams['keymap.quit'].remove('q')
+        plt.rcParams['keymap.quit_all'].remove('Q')
+        
         # compute derivative spectroscopy for spectrum in memory
         self.dsp = compute_dsp(self)
 
