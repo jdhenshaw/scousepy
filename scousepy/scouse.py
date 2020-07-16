@@ -142,7 +142,7 @@ class scouse(object):
                 wsaa, ppv_vol=[None, None, None, None, None, None],
                 mask_below=0.0, cube=None, verbose = False, outputdir=None,
                 write_moments=False, save_fig=True, training_set=False,
-                samplesize=10, refine_grid=False, nrefine=3.0, autosave=True,
+                samplesize=10, refine_grid=False, nrefine=3, autosave=True,
                 fittype='gaussian'):
         """
         Stage 1
@@ -192,7 +192,7 @@ class scouse(object):
             The number of SAAs that will make up your training set.
         refine_grid : bool, optional
             If true, scouse will refine the SAA size.
-        nrefine : float, optional
+        nrefine : int, optional
             The number of refinements of the SAA size.
         autosave : bool, optional
             Save the output at each stage of the process.
@@ -264,7 +264,7 @@ class scouse(object):
             else:
                 mom_zero = momzero.value
 
-            nref = self.nrefine
+            nref = int(self.nrefine)
             for i, w in enumerate(self.wsaa, start=0):
                 # Create a dictionary to house the SAAs
                 self.saa_dict[i] = {}
@@ -293,7 +293,7 @@ class scouse(object):
                                                             redefine=True)
                 else:
                     _cc, _ss, _ids, _frac = cc, ss, ids, frac
-                nref -= 1.0
+                nref -= 1
 
                 if self.training_set:
                     # Randomly select saas to be fit

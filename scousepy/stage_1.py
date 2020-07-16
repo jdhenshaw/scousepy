@@ -232,7 +232,7 @@ def get_coverage(momzero, spacing):
 
     return cov_y, cov_x
 
-def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose, \
+def define_coverage(cube, momzero, momzero_mod, wsaa, nrefine, verbose,
                     redefine=False, refine_grid=False):
     """
     Returns locations of SAAs and computes a spatially-averaged spectrum.
@@ -537,9 +537,14 @@ def generate_steps(scouseobject, delta_v):
         array of the delta v values computed above
     """
     median = np.nanmedian(delta_v)
-    step_values = np.logspace(np.log10(median), \
-                              np.log10(np.nanmax(delta_v)), \
-                              scouseobject.nrefine )
+    if hasattr(np, 'geomspace'):
+        step_values = np.geomspace(median, np.nanmax(delta_v),
+                                   int(scouseobject.nrefine))
+    else:
+        step_values = np.logspace(np.log10(median),
+                                  np.log10(np.nanmax(delta_v)),
+                                  int(scouseobject.nrefine)
+                                  )
     return list(step_values)
 
 def refine_momzero(scouseobject, momzero, delta_v, minval, maxval):
