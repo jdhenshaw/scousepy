@@ -7,176 +7,151 @@ Copyright (c) 2016-2018 Jonathan D. Henshaw
 CONTACT: henshaw@mpia.de
 
 """
-
 import numpy as np
-from .stage_1 import calc_rms
-import numpy as np
-from astropy.stats import median_absolute_deviation
 
-class BaseSpectrum(object):
-    def __init__(self, coords, spectrum, idx=None, scouse=None, sample=False):
-        """
-        Stores all the information regarding individual spectra. These
-        properties are shared
-        """
-
-        self._index = idx
-        self._coordinates = np.array(coords, dtype='int')
-        self._spectrum = spectrum
-        self._rms = get_rms(self, scouse)
-        self._model_parent = None
-        self._model_spatial = None
-        self._model_dud = None
-        self._models = None
-        self._model = None
-
-    @property
-    def spectrum(self):
-        return self._spectrum
-
-    @property
-    def index(self):
-        """
-        Returns the index of the spectrum
-        """
-        return self._index
-
-    @property
-    def coordinates(self):
-        """
-        Returns the coordinates of the spectrum
-        """
-        return self._coordinates
-
-    @property
-    def rms(self):
-        """
-        Returns the spectral rms.
-        """
-        return self._rms
-
-    @property
-    def model_parent(self):
-        """
-        Returns the best-fitting model derived from the parent SAA model.
-        """
-        return self._model_parent
-
-    @property
-    def model_spatial(self):
-        """
-        Returns the best-fitting model which incorporates spatial fitting.
-        """
-        return self._model_spatial
-
-    @property
-    def model_dud(self):
-        """
-        Returns the dud
-        """
-        return self._model_dud
-
-    @property
-    def models(self):
-        """
-        Returns the list of available models
-        """
-        return self._models
-
-    @property
-    def model(self):
-        """
-        Returns the best-fitting model model to the data
-        """
-        return self._model
-
-    @property
-    def decision(self):
-        """
-        Returns the decision made in s6 for statistics
-        """
-        return self._decision
-
-class saa(BaseSpectrum):
+class saa(object):
     """
     Stores all the information regarding individual spectral averaging areas
+    (SAA)
+
+    Parameters
+    ----------
+    coordinates : array
+        The coordinates of the SAA in pixel units. In (x,y).
+    spectrum : array
+        The spectrum
+    index : number
+        The index of the spectral averaging area (used as a key for saa_dict)
+    to_be_fit : bool
+        Indicating whether or not the SAA is to be fit or not
+    scouseobject : instance of the scouse class
+
+    Attributes
+    ----------
+    index : number
+        The index of the SAA
+    coordinates : array
+        The coordinates of the SAA in pixel units
+    spectrum : array
+        The spectrum
+    rms : number
+        An estimate of the rms
+    indices : array
+        The indices of individual pixels located within the SAA
+    indices_flat : array
+        The same indices but flattened according to the shape of the cube
+    to_be_fit : bool
+        Indicating whether or not the SAA is to be fit or not
+    individual_spectra : dictionary
+        This is a dictionary which will contain a number of instances of the
+        "individual_spectrum" class. individual spectra are initially housed
+        in the saa object. After the fitting has completed these will be
+        moved into a single dictionary and this dictionary will be removed
+
     """
-    def __init__(self, coords, spectrum, idx=None, scouse=None, sample=False):
-        super(saa, self).__init__(coords, spectrum, idx=idx, scouse=scouse)
-        self._ytrim = trim_spectrum(self, scouse)
-        self._indices = None
-        self._indiv_spectra = None
-        self._sample = sample
-        self._cube_shape = scouse.cube.shape
-        self.params=None
+    def __init__(self, coordinates, spectrum, index=None, to_be_fit=False, scouseobject=None):
 
-    @classmethod
-    def from_indiv_spectrum(cls, indiv_spectrum, scouse, sample=False):
-        return cls(coords=indiv_spectrum.coordinates,
-                   flux=indiv_spectrum.flux,
-                   scouse=scouse,
-                   idx=indiv_spectrum.index,
-                   sample=sample
-                  )
-
-    @property
-    def ytrim(self):
-        """
-        Returns the spectrum.
-        """
-        return self._ytrim
-
-    @property
-    def indices(self):
-        """
-        Returns the individual indices contained within the spectral
-        averaging area.
-        """
-        return self._indices
-
-    @property
-    def indices_flat(self):
-        """
-        Returns the flattened individual indices contained within the spectral
-        averaging area.
-        """
-        return np.ravel_multi_index(self.indices.T, self._cube_shape[1:])
-
-    @property
-    def to_be_fit(self):
-        """
-        Indicates whether or not the spectrum is to be fit (used for training
-        set generation)
-        """
-        return self._sample
-
-    @property
-    def indiv_spectra(self):
-        """
-        Returns a dictionary containing the models to the individual spectra
-        contained within the SAA
-        """
-        return self._indiv_spectra
+        self.index=index
+        self.coordinates=coordinates
+        self.spectrum=spectrum
+        self.rms=get_rms(self,scouseobject)
+        self.indices=None
+        self.indices_flat=None
+        self.to_be_fit=to_be_fit
+        self.model=None
+        self.individual_spectra=None
 
     def __repr__(self):
         """
         Return a nice printable format for the object.
         """
-        return "< scousepy Spectral Averaging Area SAA {0} >".format(self.index, self.coordinates)
+        return "< scousepy SAA; index={0} >".format(self.index)
 
-class individual_spectrum(BaseSpectrum):
-
-    def __init__(self, *args, **kwargs):
-        super(individual_spectrum, self).__init__(*args, **kwargs)
-
-        self._decision = 'original'
-
-    @property
-    def decision(self):
+    def add_indices(self, indices, shape):
         """
-        Returns the decision made in s6 for statistics
+        Adds indices contained within the SAA
+
+        Parameters
+        ----------
+        indices : ndarray
+            An array containing the indices that are to be added to the SAA
+        shape : ndarray
+            X, Y shape of the data cube. Used to flatten the indices
+
         """
-        return self._decision
+        self.indices=np.array(indices, dtype='int')
+        self.indices_flat=np.ravel_multi_index(indices.T, shape)
+
+    def add_saamodel(self, model):
+        """
+        Adds model solution as described by saa model to the SAA
+
+        Parameters
+        ----------
+        model : instance of the saamodel class
+
+        """
+        self.model=model
+
+
+class individual_spectrum(object):
+    """
+    Stores all the information regarding individual spectra
+
+    Parameters
+    ----------
+    coordinates : array
+        The coordinates of the spectrum in pixel units. In (x,y).
+    spectrum : array
+        The spectrum
+    index : number
+        The flattened index of the spectrum
+    scouseobject : instance of the scouse class
+    saa_dict_index : number
+        Index of the saa_dict. This will be used along with saaindex to find the
+        parent model solution to provide initial guesses for the fitter
+    saaindex : number
+        Index of the SAA. Used to locate a given spectrum's parent SAA
+
+    Attributes
+    ----------
+    template : instance of pyspeckit's Spectrum class
+        A template spectrum updated during fitting
+    model : instance of the indivmodel class
+        The final best-fitting model solution as determined in stage 4
+    model_from_parent : instance of the indivmodel class
+        The best-fitting solution as determined from using the SAA model as
+        input guesses
+    model_from_dspec : instance of the indivmodel class
+        The best-fitting model solution derived from derivative spectroscopy
+    model_from_spatial : instance of the indivmodel class
+        The best-fitting model solution derived from spatial fitting
+    model_from_manual : instance of the indivmodel class
+        The best-fitting model solution as fit manually during stage 6 of the
+        process
+    decision : string
+        The decision made during stage 6 of the process, i.e. if the spectrum
+        was refit,
+    """
+
+    def __init__(self, coordinates, spectrum, index=None, scouseobject=None,
+                 saa_dict_index=None, saaindex=None):
+
+        self.index=index
+        self.coordinates=coordinates
+        self.spectrum=spectrum
+        self.rms=get_rms(self, scouseobject)
+        self.saa_dict_index=saa_dict_index
+        self.saaindex=saaindex
+        self.template=None
+        self.guesses_from_parent=None
+        self.guesses_updated=None
+        self.model=None
+        self.model_from_parent=None
+        self.model_from_dspec=None
+        self.model_from_spatial=None
+        self.model_from_manual=None
+        self.decision=None
 
     def __repr__(self):
         """
@@ -184,101 +159,171 @@ class individual_spectrum(BaseSpectrum):
         """
         return "<< scousepy individual spectrum; index={0} >>".format(self.index)
 
-def get_rms(self, scouse):
+    def add_model(self, model):
+        """
+        Adds model solution
+
+        Parameters
+        ----------
+        model : instance of the indivmodel class
+
+        """
+
+        if model.method=='parent':
+            self.model_from_parent=model
+        elif model.method=='dspec':
+            self.model_from_dspec=model
+        elif model.method=='spatial':
+            self.model_from_spatial=model
+        elif model.method=='manual':
+            self.model_from_manual=model
+        else:
+            pass # error here?
+
+def get_rms(self, scouseobject):
     """
-    Calculates rms value
+    Calculates rms value. Used by both saa and individual_spectrum classes
+
+    Parameters
+    ----------
+    scouseobject : instance of the scouse class
+
     """
+    from .stage_1 import calc_rms
+    # make sure there are no NaNs and that the spectrum isn't all +ve - e.g.
+    # dodgy baselines
     if not np.isnan(self.spectrum).any() and not (self.spectrum > 0).all():
         rms = calc_rms(self.spectrum)
     else:
-        rms = scouse.rms_approx
+        # if the spectrum violates these conditions then simply set the rms to
+        # the value measured over the entire cube
+        rms = scouseobject.rms_approx
 
     return rms
 
-def trim_spectrum(self, scouse):
+class basemodel(object):
     """
-    Trims a spectrum according to the user inputs
-    """
-    return self.spectrum[scouse.trimids]
+    Base model for scouse. These properties are shared by both SAA model
+    solutions and individual spectra solutions
 
-def add_model(self, model):
-    """
-    Adds best-fitting model information to the SAA
-    """
-    self._model = model
+    Attributes
+    ----------
+    fittype : string
+        Model used during fitting (e.g. Gaussian)
+    parnames : list
+        A list containing the parameter names in the model (corresponds to those
+        used in pyspeckit)
+    ncomps : Number
+        Number of components in the model solution
+    params : list
+        The parameter estimates
+    errors : list
+        The uncertainties on each measured parameter
+    rms : Number
+        The measured rms value
+    residstd : Number
+        The standard deviation of the residuals
+    chisq : Number
+        The chi squared value
+    dof : Number
+        The number of degrees of freedom
+    redchisq : Number
+        The reduced chi squared value
+    AIC : Number
+        The akaike information criterion
+    fitconverge : bool
+        Indicates whether or not the fit has converged
 
-def add_ids(self, ids):
     """
-    Adds indices contained within the SAA
-    """
-    self._indices = np.array(ids, dtype='int')
 
-def add_indiv_spectra(self, dict):
-    """
-    Adds indices contained within the SAA
-    """
-    self._indiv_spectra = dict
+    def __init__(self):
 
-def merge_models(self, merge_spec):
-    """
-    Merges merge_spec models into self
-    """
-    main_models = self.models
-    merge_models = merge_spec.models
-    allmodels = []
-    allmodels.append(main_models)
-    allmodels.append(merge_models)
-    self._models = [model for mergemods in allmodels for model in mergemods]
+        self.fittype=None
+        self.parnames=None
+        self.ncomps=None
+        self.params=None
+        self.errors=None
+        self.rms=None
+        self.residstd=None
+        self.chisq=None
+        self.dof=None
+        self.redchisq=None
+        self.AIC=None
+        self.fitconverge=None
 
-def clean_up(self):
+class saamodel(basemodel):
     """
-    Cleans model solutions
-    """
-    self._indiv_spectra = None
+    This houses the model information for spectral averaging areas. It uses
+    the base model but includes some parameters that are unique to SAAs.
 
-def add_model_parent(self, model):
-    """
-    Adds best-fitting model information to the spectrum - note this only adds
-    the model derived from the SAA
-    """
-    self._model_parent = model
+    Parameters
+    ----------
+    modeldict : dictionary
+        This is a dictionary containing the model parameters that we want to
+        add to the SAA. This is output from scousefitter.
 
-def add_model_spatial(self, model):
-    """
-    Adds best-fitting model information to the spectrum - note this only adds
-    the model derived from the SAA
-    """
-    self._model_spatial = model
+    Attributes
+    ----------
+    SNR : number
+        This is the signal-to-noise ratio set during the fitting process in
+        scousefitter
+    kernelsize : number
+        This is the size of the kernel used for the derivative spectroscopy
+        method
+    manual : bool
+        This indicates whether a manual fit was performed
 
-def add_model_dud(self, model):
     """
-    We want to add a dud to every spectrum
-    """
-    self._model_dud = model
+    def __init__(self, modeldict):
+        super(basemodel, self).__init__()
 
-def add_bf_model(self, model):
-    """
-    Selected best fit model solution
-    """
-    self._model = model
+        self.SNR=None
+        self.kernelsize=None
+        self.manual=None
 
-def update_model_list(self, models):
-    """
-    Compiles all models
-    """
-    self._model_parent = None
-    self._model_dud = None
-    self._model_spatial = None
-    self._models = models
+        self.set_attributes(modeldict)
 
-def update_model_list_remdup(self, models):
-    """
-    updates model list following removal of duplicates
-    """
-    self._models = models
+    def __repr__(self):
+        """
+        Return a nice printable format for the object.
+        """
+        return "< scousepy saamodel_solution; fittype={0}; ncomps={1} >".format(self.fittype, self.ncomps)
 
-def add_decision(self, decision):
+    def set_attributes(self, modeldict):
+        """
+        Sets the attributes of the SAA model
+        """
+        for parameter, value in modeldict.items():
+            setattr(self, parameter, value)
+
+class indivmodel(basemodel):
     """
-    Updates the spectrum with decision made in s6
+    This houses the model information for individual spectra. It uses the base
+    model and includes some parameters that are unique to individual spectra.
+
+    Parameters
+    ----------
+    modeldict : dictionary
+        This is a dictionary containing the model parameters that we want to
+        add to the individual spectrum.
+
     """
-    self._decision = decision
+    def __init__(self, modeldict):
+        super(basemodel, self).__init__()
+
+        self.method=None
+
+        self.set_attributes(modeldict)
+
+    def __repr__(self):
+        """
+        Return a nice printable format for the object.
+        """
+        return "< scousepy model_solution; fittype={0}; ncomps={1} >".format(self.fittype, self.ncomps)
+
+    def set_attributes(self, modeldict):
+        """
+        Sets the attributes of the SAA model
+        """
+        for parameter, value in modeldict.items():
+            setattr(self, parameter, value)

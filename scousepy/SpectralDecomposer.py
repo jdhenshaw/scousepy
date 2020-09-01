@@ -82,6 +82,7 @@ class Decomposer(object):
         self.residuals_shown=False
         self.guesses=None
         self.happy=False
+        self.conditions=None
 
     def fit_spectrum_with_guesses(self, guesses, fittype='gaussian'):
         """
@@ -490,9 +491,17 @@ class Decomposer(object):
         """
         Computes the AIC value
         """
-        from astropy.stats import akaike_info_criterion as aic
-        logl = self.pskspectrum.specfit.fitter.logp(self.pskspectrum.xarr, self.pskspectrum.data, self.pskspectrum.error)
-        return aic(logl, int(self.pskspectrum.specfit.npeaks)+(int(self.pskspectrum.specfit.npeaks)*3.), len(self.pskspectrum.xarr))
+        from astropy.stats import akaike_info_criterion_lsq as aic
+
+        mod = np.zeros([len(self.pskspectrum.xarr), int(self.pskspectrum.specfit.npeaks)])
+        for k in range(int(self.pskspectrum.specfit.npeaks)):
+            modparams = self.pskspectrum.specfit.modelpars[(k*len(self.pskspectrum.specfit.fitter.parnames)):(k*len(self.pskspectrum.specfit.fitter.parnames))+len(self.pskspectrum.specfit.fitter.parnames)]
+            mod[:,k] = self.pskspectrum.specfit.get_model_frompars(self.pskspectrum.xarr, modparams)
+        totmod = np.nansum(mod, axis=1)
+        res=self.pskspectrum.data-totmod
+        ssr=np.sum((res)**2.0)
+
+        return aic(ssr, (int(self.pskspectrum.specfit.npeaks)*len(self.pskspectrum.specfit.fitter.parnames)), len(self.pskspectrum.xarr))
 
     def check_against_parent(self):
         """
@@ -514,6 +523,8 @@ class Decomposer(object):
                             self.validfit = True
                         else:
                             self.check_distinct()
+
+        self.conditions=condition_passed
 
     def check_ncomps(self, condition_passed):
         """
@@ -554,10 +565,11 @@ class Decomposer(object):
         idx=np.asscalar(idx[0])
 
         nparams=np.size(self.modeldict['parnames'])
+        ncomponents=np.size(self.guesses_updated)/nparams
 
         # Now check all components to see if they are above the rms threshold
-        for i in range(self.modeldict['ncomps']):
-            if (self.modeldict['params'][int(i*nparams)+idx] < self.rms*self.tol[1]):
+        for i in range(int(ncomponents)):
+            if (self.guesses_updated[int(i*nparams)+idx] < self.rms*self.tol[1]):
                 self.guesses_updated[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
         violating_comps = (self.guesses_updated==0.0)

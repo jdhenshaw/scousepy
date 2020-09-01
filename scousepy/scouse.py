@@ -26,12 +26,6 @@ import random
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_3 import *
-from .stage_4 import *
-#from .stage_5 import interactive_plot, DiagnosticImageFigure
-#from .stage_6 import *
-#from .io import *
-#from .saa_description import saa, add_ids
-#from .solution_description import fit
 
 from .colors import *
 
@@ -462,7 +456,7 @@ class scouse(object):
         from .io import import_from_config
         from .verbose_output import print_to_terminal
         from scousepy.scousefitter import ScouseFitter
-        from .model_housing2 import saamodel
+        from .model_housing import saamodel
         from .stage_2 import generate_saa_list
 
         # Check input
@@ -518,7 +512,7 @@ class scouse(object):
         fitterobject=ScouseFitter(self.modelstore, method='scouse',
                                 spectra=saa_list[:,0],
                                 scouseobject=self,
-                                SAA_dict=self.saa_dict,
+                                fit_dict=self.saa_dict,
                                 parent=saa_list[:,1],
                                 fitcount=self.fitcount,
                                 )
@@ -664,6 +658,18 @@ class scouse(object):
             progress_bar = print_to_terminal(stage='s3', step='compileend',
                                         t1=starttimecompile, t2=endtimecompile)
 
+        # model selection
+        starttimemodelselection = time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='modelselectstart')
+        # select the best model out of those available - i.e. that with the
+        # lowest aic value
+        model_selection(self)
+        endtimemodelselection = time.time()
+        if self.verbose:
+            progress_bar = print_to_terminal(stage='s3', step='modelselectend',
+                        t1=starttimemodelselection, t2=endtimemodelselection)
+
         # Wrapping up
         endtime = time.time()
         if self.verbose:
@@ -685,104 +691,7 @@ class scouse(object):
             self.completed_stages,\
             self.indiv_dict = pickle.load(fh)
 
-    def load_indiv_dicts(self, fn, stage):
-        if stage=='s6':
-            import pickle
-            with open(fn, 'rb') as fh:
-                self.indiv_dict, self.fitcounts6 = pickle.load(fh)
-        else:
-            import pickle
-            with open(fn, 'rb') as fh:
-                self.completed_stages, self.indiv_dict = pickle.load(fh)
-
-    def stage_4(config=''):
-        """
-        Stage 4
-
-        Select the best fits out of those performed in stage 3.
-
-        Parameters
-        ----------
-        config : string
-            Path to the configuration file. This must be provided.
-
-        """
-
-        # import
-        from .io import import_from_config
-        from .verbose_output import print_to_terminal
-
-        # Check input
-        if os.path.exists(config):
-            self=scouse(config=config)
-            stages=['stage_1','stage_2','stage_3']
-            for stage in stages:
-                import_from_config(self, config, config_key=stage)
-        else:
-            print('')
-            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
-                                  "1: Check the path and re-run. \n"+
-                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
-            print('')
-            return
-
-        # check if stages 1, 2, 3 and 4 have already been run
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
-            import_from_config(self, self.coverage_config_file_path)
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
-            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
-            if self.fitcount is not None:
-                if not np.all(self.fitcount):
-                    print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
-                    return
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
-            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
-            if self.verbose:
-                progress_bar = print_to_terminal(stage='s4', step='load')
-            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
-            if 's4' in self.completed_stages:
-                print(colors.fg._lightgreen_+"Best-fitting solutions already selected. "+colors._endc_)
-                print('')
-                return self
-
-        # load the cube
-        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
-        self.load_cube(fitsfile=fitsfile)
-
-        #----------------------------------------------------------------------#
-        # Main routine
-        #----------------------------------------------------------------------#
-
-        starttime = time.time()
-
-        if self.verbose:
-            progress_bar = print_to_terminal(stage='s4', step='start')
-
-        # select the best model out of those available - i.e. that with the
-        # lowest aic value
-        model_selection(self)
-
-        # Wrapping up
-        endtime = time.time()
-        if self.verbose:
-            progress_bar = print_to_terminal(stage='s4', step='end',
-                                             t1=starttime, t2=endtime)
-        self.completed_stages.append('s4')
-
-        # Save the scouse object automatically
-        if self.autosave:
-            import pickle
-            with open(self.outputdirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages,self.indiv_dict), fh, protocol=proto)
-
-        return self
-
-    def load_stage_4(self, fn):
-        return self.load_indiv_dicts(fn, stage='s4')
-
-    def stage_5(config='', bitesize=False, verbose=True):
+    def stage_4(config='', bitesize=False, verbose=True):
         """
         Stage 5
 
@@ -847,11 +756,9 @@ class scouse(object):
         if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
             self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
         if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
-            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_5/s5.scousepy'):
             if self.verbose:
-                progress_bar = print_to_terminal(stage='s5', step='load')
-            self.load_stage_5(self.outputdirectory+self.filename+'/stage_5/s5.scousepy')
+                progress_bar = print_to_terminal(stage='s4', step='load')
+            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
             if not bitesize:
                 print(colors.fg._lightgreen_+"Fit check already complete. Use bitsize=True to re-enter model checker. "+colors._endc_)
                 print('')
@@ -869,7 +776,7 @@ class scouse(object):
 
         if np.size(self.check_spec_indices)==0:
             if verbose:
-                 progress_bar = print_to_terminal(stage='s5', step='start')
+                 progress_bar = print_to_terminal(stage='s4', step='start')
 
         # Interactive coverage generator
         fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices)
@@ -881,244 +788,46 @@ class scouse(object):
         else:
             self.check_spec_indices=fitcheckerobject.check_spec_indices
 
+        for key in self.indiv_dict.keys():
+            print(key, self.indiv_dict[key])
+
+        print('')
+
+        sorteddict={}
+        for sortedkey in sorted(self.indiv_dict.keys()):
+            sorteddict[sortedkey]=self.indiv_dict[sortedkey]
+
+        self.indiv_dict=sorteddict
+
+        for key in self.indiv_dict.keys():
+            print(key, self.indiv_dict[key])
+
+        print('')
+
         # Wrapping up
         endtime = time.time()
         if self.verbose:
-            progress_bar = print_to_terminal(stage='s5', step='end',
+            progress_bar = print_to_terminal(stage='s4', step='end',
                                              t1=starttime, t2=endtime,
                                              var=self.check_spec_indices)
 
-        self.completed_stages.append('s5')
+        self.completed_stages.append('s4')
 
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_5/s5.scousepy'):
-                os.rename(self.outputdirectory+self.filename+'/stage_5/s5.scousepy',self.outputdirectory+self.filename+'/stage_5/s5.scousepy.bk')
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
+                os.rename(self.outputdirectory+self.filename+'/stage_4/s4.scousepy',self.outputdirectory+self.filename+'/stage_4/s4.scousepy.bk')
 
-            with open(self.outputdirectory+self.filename+'/stage_5/s5.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages,self.check_spec_indices), fh, protocol=proto)
+            with open(self.outputdirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,self.check_spec_indices,self.indiv_dict), fh, protocol=proto)
 
         return self
 
-    def load_stage_5(self, fn):
+    def load_stage_4(self, fn):
         import pickle
         with open(fn, 'rb') as fh:
-            self.completed_stages, self.check_spec_indices = pickle.load(fh)
-
-    def stage_6(self, plot_neighbours=False, radius_pix=1, figsize=[10,10],
-                plot_residuals=False, verbose=False, autosave=True,
-                blocks_only=False, indiv_only=False, bitesize=False, nspec=None,
-                write_ascii=False, repeat=None, newfile=None,
-                njobs=1 ):
-        """
-        Stage 6
-
-        Take a closer look at the spectra selected in s5
-
-        Parameters
-        ----------
-        plot_neighbours : bool, optional
-            Plots the neighbouring pixels before refitting, for context/a
-            reminder as to why it was selected in the first place.
-        radius_pix : int, optional
-            Combined with plot_neighbours - select how many neighbours you want
-            to plot.
-        figsize : list
-            Figure plot size.
-        plot_residuals : bool, optional
-            If true, scouse will display the residuals as well as the best
-            fitting solution.
-        verbose : bool, optional
-            Verbose output.
-        autosave : bool, optional
-            Autoaves the scouse output.
-        blocks_only : bool, optional
-            Allows the user to fit only the blocks.
-        indiv_only : bool, optional
-            Allows the user to fit only the individual spectra.
-        bitesize : bool, optional
-            Allows the user to fit the individual spectra in chunks.
-        nspec : int, optional
-            The number of spectra to be fit during bitesize fitting.
-        write_ascii : bool, optional
-            Outputs an ascii table containing the best fitting solutions to the
-            individual spectra.
-        repeat : bool, optional
-            Sometimes you may want to run stage 6 multiple times. Combined with
-            newfile, this allows you to. If you are repeating the process, set
-            to true.
-        newfile : bool, optional
-            If true, scouse will write the output to a new file rather than
-            overwriting the previous one.
-        njobs : int, optional
-            Used for parallelised fitting. The parallelisation is a bit crummy
-            at the minute - I need to work on this.
-
-        """
-        # temporary fix: eventually, this should look like stage 2, with
-        # interactive figures
-        interactive_state = plt.matplotlib.rcParams['interactive']
-        plt.ion()
-
-        s6dir = os.path.join(self.outputdirectory, 'stage_6')
-        self.stagedirs.append(s6dir)
-        # create the stage_6 directory
-        mkdir_s6(self.outputdirectory, s6dir)
-
-        starttime = time.time()
-
-        if verbose:
-            progress_bar = print_to_terminal(stage='s6', step='start')
-
-        # Firstly check the check_spec_indices against the blocks and remove any
-        # duplicates
-        self.check_spec_indices = check_blocks(self)
-
-        # Give the user the option of fitting only blocks or individal spectra
-        fit_blocks=True; fit_indiv=True
-        if blocks_only:
-            fit_indiv=False
-        elif indiv_only:
-            fit_blocks=False
-
-        # bitesize fitting preparation
-        if bitesize:
-            if self.fitcounts6 != 0.0:
-                lower = int(self.fitcounts6)
-                upper = int(lower+nspec)
-            else:
-                lower = 0
-                upper = int(lower+nspec)
-
-        # Set ranges for bitesize fitting
-        if not bitesize:
-            fitrange=np.arange(0,int(np.size(self.check_spec_indices)))
-        else:
-            if upper>=np.size(self.check_spec_indices):
-                if lower >= np.size(self.check_spec_indices):
-                    fitrange=[]
-                else:
-                    fitrange=np.arange(int(lower),\
-                                       int(np.size(self.check_spec_indices)))
-            else:
-                fitrange=np.arange(int(lower),int(upper))
-
-        if fit_indiv:
-            # determine how many fits we will actually be performing
-            n_to_fit = np.size(fitrange)
-
-            if n_to_fit <= 0:
-                raise ValueError(colors.fg._red_+"No spectra are selected to be "+
-                                 "fit. Re-fitting individual spectra has "+
-                                 "completed."+colors._endc_)
-
-            # Loop through the spectra that are to be fit
-            for i_,i in enumerate(fitrange):
-                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-                print(colors.fg._lightgrey_+"Checking {0} out of {1}".format(i_+1, n_to_fit)+colors._endc_)
-                print(colors.fg._lightgrey_+"====================================================="+colors._endc_)
-
-                # Here we will fit the individual spectra that have been
-                # selected for refitting
-
-                key = self.check_spec_indices[i]
-
-                # This first of all plots the neighbouring pixels - this can be
-                # useful if you forget why you selected that spectrum in the
-                # first place - it helps to provide a bit of context
-                if plot_neighbours:
-                    # Find the neighbours
-                    indices_adjacent = neighbours(self.cube.shape[1:],
-                                                  int(key), radius_pix)
-                    # plot the neighbours
-                    plot_neighbour_pixels(self, indices_adjacent, figsize)
-
-                # This will plot the current model solution as well as all
-                # possible alternatives. The user should either select one of
-                # these or press enter to enter the manual fitting mode
-                models, selection = plot_alternatives(self, key, figsize, \
-                                                  plot_residuals=plot_residuals)
-                update_models(self, key, models, selection)
-
-                self.fitcounts6+=1
-
-        if fit_blocks:
-            # Stage 5 gives the user the option to select all pixels within a
-            # block for refitting - this first of all generates a pseudo-SAA
-            # from the block, we then manually fit. This solution is then
-            # applied to all spectra contained within the block.
-            block_dict={}
-            # cycle through all the blocks
-            for blocknum in self.check_block_indices:
-                # create an empty spectrum
-                spec = np.zeros(self.cube.shape[0])
-                # get all of the individual pixel indices contained within that
-                # block
-                block_indices = get_block_indices(self, blocknum)
-                # turn the flattened indices into 2D indices such that we can
-                # find the spectra in the cube
-                coords = gen_2d_coords(self,block_indices)
-                # create an SAA
-                SAA = gen_pseudo_SAA(self, coords, block_dict, blocknum, spec)
-                # prepare the spectra for fitting
-                initialise_indiv_spectra_s6(self, SAA, njobs)
-                # Manual fitting of the blocks
-                manually_fit_blocks(self, block_dict, blocknum)
-                self.blockcount+=1
-            # automated fitting of block spectra
-            auto_fit_blocks(self, block_dict, njobs, self.blocksize, \
-                            verbose=verbose)
-
-        if write_ascii and (self.fitcounts6==int(np.size(self.check_spec_indices))) \
-           and (self.blockcount == int(np.size(self.check_block_indices))):
-            output_ascii_indiv(self, s6dir)
-
-        if (self.fitcounts6 == int(np.size(self.check_spec_indices))) \
-           and (self.blockcount == int(np.size(self.check_block_indices))):
-            self.fitcounts6 = 0
-
-        endtime = time.time()
-        if verbose:
-            progress_bar = print_to_terminal(stage='s6', step='end',
-                                             t1=starttime, t2=endtime)
-
-        # Save the scouse object automatically - create a backup if the user
-        # wishes to iterate over s5 + s6
-        if autosave:
-            if repeat:
-                if newfile is not None:
-                    with open(self.outputdirectory+'/stage_6/'+newfile, 'wb') as fh:
-                        pickle.dump((self.indiv_dict, self.fitcounts6), fh)
-                else:
-                    os.rename(self.outputdirectory+'/stage_6/s6.scousepy', \
-                              self.outputdirectory+'/stage_6/s6.scousepy.bk')
-                    with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
-                        pickle.dump((self.indiv_dict, self.fitcounts6), fh)
-            else:
-                with open(self.outputdirectory+'/stage_6/s6.scousepy', 'wb') as fh:
-                    pickle.dump((self.indiv_dict, self.fitcounts6), fh)
-
-        self.completed_stages.append('s6')
-
-        # reset the interactive state to whatever it was before
-        plt.matplotlib.rcParams['interactive'] = interactive_state
-
-        # close all figures before moving on
-        # (only needed for plt.ion() case)
-        plt.close('all')
-
-        return self
-
-    def load_stage_6(self, fn):
-        return self.load_indiv_dicts(fn, stage='s6')
-
-    def __repr__(self):
-        """
-        Return a nice printable format for the object.
-        """
-
-        return "< scousepy object; stages_completed={} >".format(self.completed_stages)
+            self.completed_stages, self.check_spec_indices, self.indiv_dict = pickle.load(fh)
 
 #==============================================================================#
 # io

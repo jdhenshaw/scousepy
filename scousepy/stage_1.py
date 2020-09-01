@@ -196,7 +196,7 @@ def create_saa(input):
     """
     import matplotlib.patches as patches
     import matplotlib.path as path
-    from .model_housing2 import saa
+    from .model_housing import saa
 
     # unpack the input
     j, w, maploc, coverage, momentmask, scouseobject=input

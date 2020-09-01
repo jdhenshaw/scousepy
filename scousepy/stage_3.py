@@ -29,7 +29,7 @@ def initialise_fitting(scouseobject):
         A list of all spectra to be fit
 
     """
-    from .model_housing2 import individual_spectrum
+    from .model_housing import individual_spectrum
     from .verbose_output import print_to_terminal
     import time
 
@@ -126,7 +126,7 @@ def autonomous_decomposition(scouseobject, indivspec_list):
 
     """
     from tqdm import tqdm
-    from .model_housing2 import individual_spectrum
+    from .model_housing import individual_spectrum
     from .verbose_output import print_to_terminal
 
     indivspec_list_completed=[]
@@ -205,7 +205,7 @@ def decomposition_method(input):
 
     """
     from .SpectralDecomposer import Decomposer
-    from .model_housing2 import indivmodel
+    from .model_housing import indivmodel
 
     # unpack the inputs
     spectral_axis,specids,fittype,tol,res,indivspec = input
@@ -226,6 +226,7 @@ def decomposition_method(input):
     guesses_parent=indivspec.guesses_from_parent
     # fit the spectrum
     Decomposer.fit_spectrum_from_parent(decomposer,guesses,guesses_parent,tol,res,fittype=fittype,)
+
     # # generate a model
     if decomposer.validfit:
         model=indivmodel(decomposer.modeldict)
@@ -331,6 +332,7 @@ def compilation_method(input):
         # convert to arrays
         aic_subarr_completed=np.asarray(aic_sublist_completed)
         indivspec_subarr_completed = np.asarray(indivspec_sublist_completed)
+
         # if in all cases the spectrum could not be fit and therefore
         # model_from_parent==None in all cases just take the first and
         # update
@@ -348,13 +350,17 @@ def compilation_method(input):
 
         else:
             # find the unique (non-nan) aic values
-            uniqvals, uniqids = np.unique(aic_subarr_completed[~np.isnan(aic_subarr_completed)], return_index=True)
+            uniqvals, uniqids = np.unique(aic_subarr_completed, return_index=True)
+            # at this point there may still be nans in the aic array
+            idnotnan=np.where(~np.isnan(uniqvals))[0]
+            # remove these but retain the reference to the original array
+            uniqvals=uniqvals[idnotnan]
+            uniqids=uniqids[idnotnan]
 
             # create a list of models and saa pointers for the unique values
             saa_dict_index=[indivspec.saa_dict_index for indivspec in indivspec_subarr_completed[uniqids]]
             saaindex=[indivspec.saaindex for indivspec in indivspec_subarr_completed[uniqids]]
             model_from_parent=[indivspec.model_from_parent for indivspec in indivspec_subarr_completed[uniqids]]
-
             # select the first model from the list
             indivspec=indivspec_subarr_completed[uniqids[0]]
             # add the information to this
@@ -363,3 +369,69 @@ def compilation_method(input):
             setattr(indivspec, 'model_from_parent', model_from_parent)
 
     return indivspec
+
+def model_selection(scouseobject):
+    """
+    Selects the best model out of those fitted - that with the smallest aic
+    value
+
+    Parameters
+    ----------
+    scouseobject : Instance of the scousepy class
+
+    """
+    from .verbose_output import print_to_terminal
+    from .model_housing import indivmodel
+
+    if scouseobject.verbose:
+        progress_bar = print_to_terminal(stage='s3', step='selectmodsstart',length=len(scouseobject.indiv_dict.keys()))
+
+    for key in scouseobject.indiv_dict.keys():
+        indivspec = scouseobject.indiv_dict[key]
+        models = indivspec.model_from_parent
+
+        models = [model for model in models if model is not None]
+
+        # if there are models with solutions available
+        if np.size(models) != 0:
+            aic = [model.AIC for model in models if ~np.isnan(model.AIC)]
+            # sometimes the AIC can be nan - in these cases remove the model
+            if np.size(aic)==0:
+                modeldict = create_a_dud(indivspec)
+                bfmodel = indivmodel(modeldict)
+            # in all other cases select the model with the lowest aic as our best
+            # fitting solution
+            else:
+                idx = np.squeeze(np.where(aic == np.min(aic)))
+                bfmodel = models[idx]
+
+        # if not then mark the spectrum as a dud
+        else:
+            modeldict = create_a_dud(indivspec)
+            bfmodel = indivmodel(modeldict)
+
+        setattr(indivspec, 'model', bfmodel)
+
+        if scouseobject.verbose:
+            progress_bar.update()
+
+def create_a_dud(indivspec):
+    """
+    Creates a dud spectrum - used if no best fitting solution can be found
+    """
+    modeldict={}
+    modeldict['fittype']=None
+    modeldict['parnames']=['amplitude','shift','width']
+    modeldict['ncomps']=0
+    modeldict['params']=[0.0,0.0,0.0]
+    modeldict['errors']=[0.0,0.0,0.0]
+    modeldict['rms']=indivspec.rms
+    modeldict['residstd']= np.nanstd(indivspec.spectrum)
+    modeldict['chisq']=0.0
+    modeldict['dof']=0.0
+    modeldict['redchisq']=0.0
+    modeldict['AIC']=0.0
+    modeldict['fitconverge']=False
+    modeldict['method']='dud'
+
+    return modeldict

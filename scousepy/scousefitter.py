@@ -25,9 +25,9 @@ class ScouseFitter(object):
                        method='scouse',
                        spectra=None,
                        scouseobject=None,
-                       SAA_dict=None,
+                       fit_dict=None,
                        parent=None,
-                       scouse_single=False,
+                       scouse_stage_6=False,
                        individual=None,
                        cube=None,
                        fittype='gaussian',
@@ -58,7 +58,7 @@ class ScouseFitter(object):
         scouseobject : scouse class object
             For scouse framework only. Instance of the scouse object.
 
-        SAA_dict : dictionary
+        fit_dict : dictionary
             For scouse framework only. Dictionary of SAAs. Used to
             retrieve spectra.
 
@@ -114,9 +114,9 @@ class ScouseFitter(object):
         self.method=method
         self.spectra=spectra
         self.scouseobject=scouseobject
-        self.SAA_dict=SAA_dict
+        self.fit_dict=fit_dict
         self.parent=parent
-        self.scouse_single=scouse_single
+        self.scouse_stage_6=scouse_stage_6
         self.individual=individual
         self.cube=cube
         self.fittype=fittype
@@ -130,6 +130,7 @@ class ScouseFitter(object):
         self.minkernel=minkernel
         self.maxkernel=maxkernel
         self.outputfile=outputfile
+        self.models={}
 
         # Prepare the fitter according to method selection
         if method=='scouse':
@@ -141,40 +142,36 @@ class ScouseFitter(object):
             self.unit=self.scouseobject.cube.header['BUNIT']
 
             # For scouse fitting
-            if scouse_single:
-                # TODO: This is to be used during stage 6?
-                pass
+            if (scouseobject is None) or (spectra is None):
+                # make sure that the scouse object has been sent
+                ValueError(colors.fg._red_+"Please include both the scousepy object and the spectra to be fit."+colors._endc_)
             else:
-                if (scouseobject is None) or (spectra is None):
-                    # make sure that the scouse object has been sent
-                    ValueError(colors.fg._red_+"Please include both the scousepy object and the spectra to be fit."+colors._endc_)
-                else:
-                    # Create an array of indices for the spectra to be fitted.
-                    self.indexlist=np.arange(0,int(np.size(self.spectra)))
+                # Create an array of indices for the spectra to be fitted.
+                self.indexlist=np.arange(0,int(np.size(self.spectra)))
 
-                    # index of the first spectrum to be fit. First establish if
-                    # any of the spectra have been fitted aleady.
-                    if np.any(self.fitcount):
-                        # Check to see if all of the spectra have been fitted.
-                        if np.all(self.fitcount):
-                            print('')
-                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                            print('')
-                            # exit if fitting has been completed
-                            return
-                        else:
-                            # pick up from where you left off
-                            self.index=np.where(self.fitcount==False)[0][0]
+                # index of the first spectrum to be fit. First establish if
+                # any of the spectra have been fitted aleady.
+                if np.any(self.fitcount):
+                    # Check to see if all of the spectra have been fitted.
+                    if np.all(self.fitcount):
+                        print('')
+                        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                        print('')
+                        # exit if fitting has been completed
+                        return
                     else:
-                        # start at the beginning
-                        self.index=0
+                        # pick up from where you left off
+                        self.index=np.where(self.fitcount==False)[0][0]
+                else:
+                    # start at the beginning
+                    self.index=0
 
-                    # retrieve the scouse spectrum from the scouse dictionary
-                    self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
-                    # get the x,y,rms values
-                    get_spectral_info(self)
-                    # initiate the decomposer
-                    self.initiate_decomposer()
+                # retrieve the scouse spectrum from the scouse dictionary
+                self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
+                # get the x,y,rms values
+                get_spectral_info(self)
+                # initiate the decomposer
+                self.initiate_decomposer()
 
         # Cube fitting
         elif method=='cube':
@@ -239,7 +236,7 @@ class ScouseFitter(object):
         # remove some matplotlib keyboard shortcuts to prevent meltdown
         plt.rcParams['keymap.quit'].remove('q')
         plt.rcParams['keymap.quit_all'].remove('Q')
-        
+
         # compute derivative spectroscopy for spectrum in memory
         self.dsp = compute_dsp(self)
 
@@ -260,8 +257,8 @@ class ScouseFitter(object):
                                   transform=self.spectrum_window.transAxes,
                                   fontsize=8, ha='right')
         # plot the spectrum and the smoothed spectrum
-        self.plot_spectrum,=plot_spectrum(self,self.specy,label='spec')
-        self.plot_smooth,=plot_spectrum(self,self.ysmooth,label='smoothed spec',lw=1.5,ls=':',color='k')
+        self.plot_spectrum,=plot_spectrum(self,self.specx,self.specy,label='spec')
+        self.plot_smooth,=plot_spectrum(self,self.specx,self.ysmooth,label='smoothed spec',lw=1.5,ls=':',color='k')
         # plot the signal to noise threshold
         self.plot_SNR,=plot_snr(self,linestyle='--',color='k',label='SNR*rms')
         # plot the predicted peak locations
@@ -312,8 +309,14 @@ class ScouseFitter(object):
         self.totmodkwargs={'color':'magenta','ls':'-','lw':1}
 
         # Fit the spectrum according to dspec guesses
-        if self.dsp.ncomps != 0:
+        if not self.scouse_stage_6 and self.dsp.ncomps != 0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+
+        # if stage 6 is being run we don't want to fit we want to populate a
+        # dictionary of pre-existing models
+        if self.scouse_stage_6:
+            populate_models(self)
+
         # Add the best-fitting solution and useful parameters to a dictionary
         self.modeldict=get_model_info(self)
         # Recreate the model
@@ -459,8 +462,11 @@ class ScouseFitter(object):
             index=int(i)
             # check against modelstore to see if there is a solution
             if not index in self.modelstore.keys():
-                # get the relevant spectrum
-                self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
+                if self.method=='scouse':
+                    # get the relevant spectrum
+                    self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
+                else:
+                    self.index=index
                 # get the spectral information
                 get_spectral_info(self)
                 # initiate the decomposer
@@ -518,6 +524,8 @@ class ScouseFitter(object):
         Closes the plot window
         """
         import matplotlib.pyplot as plt
+        plt.rcParams['keymap.quit'].append('q')
+        plt.rcParams['keymap.quit_all'].append('Q')
         plt.close('all')
 
     def change_text(self, text):
@@ -563,8 +571,9 @@ class ScouseFitter(object):
              0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
         ymin=np.min(self.specy)-0.2*np.max(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
-        self.plot_spectrum=plot_spectrum(self,self.specy,update=True,plottoupdate=self.plot_spectrum)
-        self.plot_smooth=plot_spectrum(self,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
+        self.plot_spectrum=plot_spectrum(self,self.specx,self.specy,update=True,plottoupdate=self.plot_spectrum)
+        self.plot_smooth=plot_spectrum(self,self.specx,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
+        self.plot_SNR.set_xdata([np.min(self.specx),np.max(self.specx)])
         self.plot_SNR.set_ydata([self.SNR*self.specrms,self.SNR*self.specrms])
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
@@ -642,6 +651,7 @@ class ScouseFitter(object):
              0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
         ymin=np.min(self.specy)-0.2*np.max(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
+        self.plot_SNR.set_xdata([np.min(self.specx),np.max(self.specx)])
         self.plot_SNR.set_ydata([self.SNR*self.specrms,self.SNR*self.specrms])
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
@@ -678,7 +688,7 @@ class ScouseFitter(object):
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
-        self.plot_smooth=plot_spectrum(self,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
+        self.plot_smooth=plot_spectrum(self,self.specx,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update deriv plot
@@ -835,7 +845,10 @@ def retrieve_spectrum(self,spectrum_index,index):
     Retrieves the spectrum
     """
     if self.method=='scouse':
-        return self.SAA_dict[self.parent[index]][self.spectra[index]]
+        if self.scouse_stage_6:
+            return self.fit_dict[self.spectra[index]]
+        else:
+            return self.fit_dict[self.parent[index]][self.spectra[index]]
     else:
         pass
 
@@ -1012,15 +1025,19 @@ def setup_information_window(self):
                                  transform=self.information_window.transAxes,
                                  fontsize=10, fontweight='bold')
 
-def plot_spectrum(self,y,update=False,plottoupdate=None,**kwargs):
+def plot_spectrum(self,x,y,update=False,plottoupdate=None,**kwargs):
     """
     GUI setup
     """
     if update:
+        self.spectrum_window.set_xlim(np.nanmin(x),np.nanmax(x))
+        plottoupdate.set_xdata(x)
         plottoupdate.set_ydata(y)
         return plottoupdate
     else:
-        return self.spectrum_window.plot(self.specx,y,drawstyle='steps',**kwargs)
+        self.spectrum_window.set_xlim(np.nanmin(x),np.nanmax(x))
+        plot=self.spectrum_window.plot(self.specx,y,drawstyle='steps',**kwargs)
+        return plot
 
 def plot_snr(self,**kwargs):
     """
@@ -1110,6 +1127,7 @@ def update_plot_model(self,update=False):
         if not self.modeldict['fitconverge']:
             self.plot_res,=plot_residuals(self,self.specy,self.residkwargs)
             self.plot_tot,=plot_model(self,np.zeros_like(self.specy),'total model',self.totmodkwargs)
+            self.plot_model=[]
         else:
             #plot residuals
             self.plot_res,=plot_residuals(self,self.res,self.residkwargs)

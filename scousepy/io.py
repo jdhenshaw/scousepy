@@ -44,8 +44,6 @@ def create_directory_structure(scousedir):
         mkdirectory(os.path.join(scousedir, 'stage_2'))
         mkdirectory(os.path.join(scousedir, 'stage_3'))
         mkdirectory(os.path.join(scousedir, 'stage_4'))
-        mkdirectory(os.path.join(scousedir, 'stage_5'))
-        mkdirectory(os.path.join(scousedir, 'stage_6'))
         mkdirectory(os.path.join(scousedir, 'config_files'))
     else:
         pass
