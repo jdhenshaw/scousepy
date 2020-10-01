@@ -1063,12 +1063,12 @@ def compute_moments(self):
     #et2=time.time()
     #print(et2-st2)
     #st3=time.time()
-    momthree = np.cbrt(spectral_slab.moment(axis=0, order=3).value)/momtwo.value**(3./2.)#spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False)#
+    momthree = spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False, fill=np.nan)#np.cbrt(spectral_slab.moment(axis=0, order=3).value)/momtwo.value**(3./2.)#
     #et3=time.time()
     #print(et3-st3)
     #st4=time.time()
 
-
+    #print(momthree)
     #print('')
     #spectral_slab_trim=spectral_slab[:,0,0]
     #print(spectral_slab[:,0,0].filled_data)
@@ -1079,11 +1079,13 @@ def compute_moments(self):
     #print(kurtosis(spectral_slab_trim, axis=0, fisher=False, nan_policy='omit'))
     #print('')
     #print(spectral_slab.mask.include()[:,0,0])
-    momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False,fill=np.nan)
+    #momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False,fill=np.nan)
     #print(momfour[0,0])
     #print(momfour_)
     #print('')
-    #momfour = ((spectral_slab.moment(axis=0, order=4).value)/(spectral_slab.moment(axis=0, order=2).value)**2)#spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False)
+    #momfour = ((spectral_slab.moment(axis=0, order=4).value)/(spectral_slab.moment(axis=0, order=2).value)**2)#
+    momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False, fill=np.nan)
+    #print(momfour)
     #print(momfour[1,0])
 
     #sys.exit()
@@ -1092,8 +1094,8 @@ def compute_moments(self):
     #print(et4-st4)
     #print(momtwo)
     # convert to normal numpy arrays from masked arrays
-    #momthree=momthree.filled(fill_value=np.nan)
-    #momfour=momfour.filled(fill_value=np.nan)
+    momthree=momthree.filled(fill_value=np.nan)
+    momfour=momfour.filled(fill_value=np.nan)
     #st9=time.time()
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
