@@ -1049,52 +1049,52 @@ def compute_moments(self):
     # slab
     spectral_slab = cube.with_mask(cubemask).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
     # moments
-    import time
-    st0=time.time()
+    #import time
+    #st0=time.time()
     momzero = spectral_slab.moment0(axis=0)
-    et0=time.time()
-    print(et0-st0)
-    st1=time.time()
+    #et0=time.time()
+    #print(et0-st0)
+    #st1=time.time()
     momone = spectral_slab.moment1(axis=0)
-    et1=time.time()
-    print(et1-st1)
-    st2=time.time()
+    #et1=time.time()
+    #print(et1-st1)
+    #st2=time.time()
     momtwo = spectral_slab.linewidth_sigma()
-    et2=time.time()
-    print(et2-st2)
-    st3=time.time()
+    #et2=time.time()
+    #print(et2-st2)
+    #st3=time.time()
     momthree = np.cbrt(spectral_slab.moment(axis=0, order=3).value)/momtwo.value**(3./2.)#spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False)#
-    et3=time.time()
-    print(et3-st3)
-    st4=time.time()
+    #et3=time.time()
+    #print(et3-st3)
+    #st4=time.time()
 
 
-    print('')
-    spectral_slab_trim=spectral_slab[:,0,0]
-    print(spectral_slab[:,0,0].filled_data)
-    momfour_=[kurtosis(spectral_slab[:,j,i][spectral_slab[:,j,i]>self.mask_below] , axis=0, fisher=False, nan_policy='omit') for j in range(spectral_slab.shape[1]) for i in range(spectral_slab.shape[2])]
-    momfour=np.reshape(momfour_, spectral_slab.shape[1:])
-    momfour[np.isnan(momzero.value)]=np.nan
-    print(momfour)
+    #print('')
+    #spectral_slab_trim=spectral_slab[:,0,0]
+    #print(spectral_slab[:,0,0].filled_data)
+    #momfour_=[kurtosis(spectral_slab[:,j,i][spectral_slab[:,j,i]>self.mask_below] , axis=0, fisher=False, nan_policy='omit') for j in range(spectral_slab.shape[1]) for i in range(spectral_slab.shape[2])]
+    #momfour=np.reshape(momfour_, spectral_slab.shape[1:])
+    #momfour[np.isnan(momzero.value)]=np.nan
+    #print(momfour)
     #print(kurtosis(spectral_slab_trim, axis=0, fisher=False, nan_policy='omit'))
-    print('')
+    #print('')
     #print(spectral_slab.mask.include()[:,0,0])
-    momfour_=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False,fill=np.nan)
+    momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False,fill=np.nan)
     #print(momfour[0,0])
-    print(momfour_)
-    print('')
+    #print(momfour_)
+    #print('')
     #momfour = ((spectral_slab.moment(axis=0, order=4).value)/(spectral_slab.moment(axis=0, order=2).value)**2)#spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False)
     #print(momfour[1,0])
 
     #sys.exit()
     #print(momfour/momfour2)
-    et4=time.time()
-    print(et4-st4)
+    #et4=time.time()
+    #print(et4-st4)
     #print(momtwo)
     # convert to normal numpy arrays from masked arrays
     #momthree=momthree.filled(fill_value=np.nan)
     #momfour=momfour.filled(fill_value=np.nan)
-    st9=time.time()
+    #st9=time.time()
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
 
@@ -1111,8 +1111,8 @@ def compute_moments(self):
     momnine = spectral_slab.spectral_axis[idxmax.astype('int')].value
     momnine[bad] = np.nan
     momnine = momnine * u.km/u.s
-    et9=time.time()
-    print(et9-st9)
+    #et9=time.time()
+    #print(et9-st9)
     mask=np.zeros_like(momzero.value, dtype='bool')
     mask[~np.isnan(momzero.value)]=1
 
