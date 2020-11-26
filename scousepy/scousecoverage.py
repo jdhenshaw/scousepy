@@ -66,11 +66,11 @@ class ScouseCoverage(object):
         rcParams['font.family']= 'Arial'
         rcParams['font.size']= 9
         rcParams['lines.linewidth']= 1.     ## line width in points
-        rcParams['axes.labelsize'] =18  ## fontsize of the x any y labels
-        rcParams['xtick.labelsize']=16 ## fontsize of the tick labels
-        rcParams['ytick.labelsize'] =16 ## fontsize of the tick labels
-        rcParams['xtick.major.pad']=8   ## distance to major tick label in points
-        rcParams['ytick.major.pad']=8    ## distance to major tick label in points
+        rcParams['axes.labelsize'] =10  ## fontsize of the x any y labels
+        rcParams['xtick.labelsize']=10 ## fontsize of the tick labels
+        rcParams['ytick.labelsize'] =10 ## fontsize of the tick labels
+        rcParams['xtick.major.pad']=4   ## distance to major tick label in points
+        rcParams['ytick.major.pad']=4    ## distance to major tick label in points
         rcParams['xtick.major.size'] =4    ## major tick size in points
         rcParams['xtick.minor.size' ]=2     ## minor tick size in points
         rcParams['xtick.major.width'] =1.    ## major tick width in points
@@ -79,6 +79,8 @@ class ScouseCoverage(object):
         rcParams['ytick.minor.size' ]=2      ## minor tick size in points
         rcParams['ytick.major.width']=1.    ## major tick width in points
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
+        rcParams['xtick.direction']='in'
+        rcParams['ytick.direction']='in'
 
         # remove some matplotlib keyboard shortcuts to prevent meltdown
         plt.rcParams['keymap.quit'].remove('q')
