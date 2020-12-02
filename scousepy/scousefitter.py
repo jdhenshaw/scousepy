@@ -36,7 +36,7 @@ class ScouseFitter(object):
                        SNR=3,minSNR=1,maxSNR=30,
                        kernelsize=3,minkernel=1,maxkernel=30,
                        outputfile=None,
-                       xarrkwargs={},unit={}):
+                       xarrkwargs={},unit=''):
 
         """
 
