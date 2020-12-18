@@ -234,8 +234,10 @@ class ScouseFitter(object):
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # remove some matplotlib keyboard shortcuts to prevent meltdown
-        plt.rcParams['keymap.quit'].remove('q')
-        plt.rcParams['keymap.quit_all'].remove('Q')
+        if 'q' in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].remove('q')
+        if 'Q' in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].remove('Q')
 
         # compute derivative spectroscopy for spectrum in memory
         self.dsp = compute_dsp(self)
@@ -524,8 +526,12 @@ class ScouseFitter(object):
         Closes the plot window
         """
         import matplotlib.pyplot as plt
-        plt.rcParams['keymap.quit'].append('q')
-        plt.rcParams['keymap.quit_all'].append('Q')
+
+        if 'q' not in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].append('q')
+        if 'Q' not in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].append('Q')
+
         plt.close('all')
 
     def change_text(self, text):
@@ -726,8 +732,9 @@ class ScouseFitter(object):
         lookup_handle : matplotlib legend handles
 
         """
-        for artist in legend.texts + legend.legendHandles:
-            artist.set_picker(10) # 10 points tolerance
+        for artist in legend.legendHandles:
+            artist.set_picker(True)
+            artist.set_pickradius(10) # 10 points tolerance
 
         self.fig.canvas.mpl_connect('pick_event', lambda event: self.on_pick_legend(event, lookup_artist, lookup_handle) )
         self.fig.canvas.mpl_connect('button_press_event', lambda event: self.on_click_legend(event, lookup_artist, lookup_handle))
@@ -863,7 +870,16 @@ def get_spectral_info(self):
     else:
         self.specx = self.individual[self.index,0,:]
         self.specy = self.individual[self.index,1,:]
-        self.specrms = calc_rms(self.individual[self.index,1,:])
+
+        from scousepy.noisy import getnoise
+        noisy=getnoise(self.specx, self.specy)
+        if np.isfinite(noisy.rms):
+            self.specrms = noisy.rms
+        else:
+            self.specrms = 0.0
+            print('')
+            print(colors.fg._yellow_+"Warning: Could not compute rms. "+noisy.flag+". "+colors._endc_)
+
 
 def calc_rms(spectrum):
     """

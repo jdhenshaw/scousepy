@@ -13,6 +13,7 @@ _ncpus=1
 try:
     # May raise ImportError
     import multiprocessing
+    multiprocessing.set_start_method('fork')
     _multi=True
 
     # May raise NotImplementedError
@@ -92,7 +93,8 @@ def run_tasks(procs, err_q, out_q, num):
 
   try:
       # Remove extra dimension added by array_split
-      return list(numpy.concatenate(results))
+      results=numpy.array([numpy.asarray(res, dtype='object') for res in results], dtype='object')
+      return numpy.concatenate(results)
   except ValueError:
       return list(results)
 
@@ -107,6 +109,7 @@ def parallel_map(function, sequence, numcores=None):
   :param sequence: iterable sequence
   :param numcores: number of cores to use
   """
+
   if not callable(function):
     raise TypeError("input function '%s' is not callable" %
               repr(function))
@@ -145,11 +148,11 @@ def parallel_map(function, sequence, numcores=None):
     log.info("Reduced number of cores to {0}".format(size))
     numcores = size
 
+  sequence=numpy.asarray(sequence,dtype='object')
   # group sequence into numcores-worth of chunks
   sequence = numpy.array_split(sequence, numcores)
 
-  procs = [multiprocessing.Process(target=worker,
-           args=(function, ii, chunk, out_q, err_q, lock))
+  procs = [multiprocessing.Process(target=worker,args=(function, ii, chunk, out_q, err_q, lock))
          for ii, chunk in enumerate(sequence)]
 
   return run_tasks(procs, err_q, out_q, numcores)

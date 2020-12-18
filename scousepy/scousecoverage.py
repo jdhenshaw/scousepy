@@ -83,8 +83,10 @@ class ScouseCoverage(object):
         rcParams['ytick.direction']='in'
 
         # remove some matplotlib keyboard shortcuts to prevent meltdown
-        plt.rcParams['keymap.quit'].remove('q')
-        plt.rcParams['keymap.quit_all'].remove('Q')
+        if 'q' in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].remove('q')
+        if 'Q' in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].remove('Q')
 
         # compute moments
         self.moments = compute_moments(self)
@@ -328,9 +330,11 @@ class ScouseCoverage(object):
         Closes the plot window
         """
         import matplotlib.pyplot as plt
-        plt.rcParams['keymap.quit'].append('q')
-        plt.rcParams['keymap.quit_all'].append('Q')
-        plt.close('all')
+        if 'q' not in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].append('q')
+        if 'Q' not in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].append('Q')
+        plt.close(self.fig)
 
     def coverage_complete(self, event):
         """
@@ -1012,12 +1016,12 @@ def setup_map_window(self):
     Setup the map window for plotting
     """
     try:
-        from wcsaxes import WCSAxes
+        from astropy.visualization.wcsaxes import WCSAxes
         self._wcaxes_imported = True
     except ImportError:
         self._wcaxes_imported = False
         if self.moments[0].wcs is not None:
-            warnings.warn("`WCSAxes` package required for wcs coordinate display.")
+            warnings.warn("`WCSAxes` required for wcs coordinate display.")
 
     newaxis=[self.blank_window_ax[0]+0.03, self.blank_window_ax[1]+0.03, self.blank_window_ax[2]-0.06,self.blank_window_ax[3]-0.045]
 

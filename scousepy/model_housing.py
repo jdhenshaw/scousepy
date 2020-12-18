@@ -189,11 +189,11 @@ def get_rms(self, scouseobject):
     scouseobject : instance of the scouse class
 
     """
-    from .stage_1 import calc_rms
-    # make sure there are no NaNs and that the spectrum isn't all +ve - e.g.
-    # dodgy baselines
-    if not np.isnan(self.spectrum).any() and not (self.spectrum > 0).all():
-        rms = calc_rms(self.spectrum)
+    from scousepy.noisy import getnoise
+    noisy=getnoise(scouseobject.x, self.spectrum)
+
+    if np.isfinite(noisy.rms):
+        rms = noisy.rms
     else:
         # if the spectrum violates these conditions then simply set the rms to
         # the value measured over the entire cube

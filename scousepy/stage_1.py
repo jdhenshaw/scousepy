@@ -29,6 +29,7 @@ def compute_noise(scouseobject):
     """
 
     import random
+    from scousepy.noisy import getnoise
 
     keep = scouseobject.cube.mask.include().any(axis=0)
 
@@ -51,15 +52,13 @@ def compute_noise(scouseobject):
 
         _spectrum = scouseobject.cube[:, locations[0, specidx],
                                                     locations[1, specidx]].value
-        if not np.any(np.isfinite(_spectrum)):
-            continue
 
-        _spectrum = _spectrum[np.isfinite(_spectrum)]
-
-        rmsVal = calc_rms(_spectrum[~np.isnan(_spectrum)])
-        rmsList.append(rmsVal)
-        stopcount+=1
-        specidx+=1
+        noisy=getnoise(scouseobject.cube.spectral_axis.value, _spectrum)
+        rmsVal = noisy.rms
+        if np.isfinite(rmsVal):
+            rmsList.append(rmsVal)
+            stopcount+=1
+            specidx+=1
 
     rms = np.nanmedian(rmsList)
 
@@ -154,7 +153,9 @@ def generate_SAAs(scouseobject, coverageobject):
         inputlist=[[j]+[w, maploc, coverage, coverageobject.moments[6], scouseobject] for j in range(len(coverage[:,0]))]
 
         if scouseobject.njobs > 1:
-            results = parallel_map(create_saa, inputlist, numcores=scouseobject.njobs)
+            # if __name__ == 'scousepy.stage_1':
+            #     print(__name__)
+                results = parallel_map(create_saa, inputlist, numcores=scouseobject.njobs)
         else:
             if scouseobject.verbose:
                 results=[create_saa(input) for input in tqdm(inputlist)]
@@ -318,12 +319,12 @@ def plot_coverage(scouseobject, coverageobject, covplotfilename):
 
     fig = plt.figure(figsize=(14, 8))
     try:
-        from wcsaxes import WCSAxes
+        from astropy.visualization.wcsaxes import WCSAxes
         _wcaxes_imported = True
     except ImportError:
         _wcaxes_imported = False
         if coverageobject.moments[0].wcs is not None:
-            warnings.warn("`WCSAxes` package required for wcs coordinate display.")
+            warnings.warn("`WCSAxes` required for wcs coordinate display.")
 
     blank_window_ax=[0.1,0.1,0.8,0.8]
     newaxis=[blank_window_ax[0]+0.03, blank_window_ax[1]+0.03, blank_window_ax[2]-0.06,blank_window_ax[3]-0.045]

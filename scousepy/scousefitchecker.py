@@ -97,8 +97,10 @@ class ScouseFitChecker(object):
         rcParams['ytick.minor.width']= 1.    ## minor tick width in points
 
         # remove some matplotlib keyboard shortcuts to prevent meltdown
-        plt.rcParams['keymap.quit'].remove('q')
-        plt.rcParams['keymap.quit_all'].remove('Q')
+        if 'q' in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].remove('q')
+        if 'Q' in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].remove('Q')
 
         # compute diagnostics
         self.diagnostics = compute_diagnostic_plots(self)
@@ -262,8 +264,10 @@ class ScouseFitChecker(object):
         Closes the plot window
         """
         import matplotlib.pyplot as plt
-        plt.rcParams['keymap.quit'].append('q')
-        plt.rcParams['keymap.quit_all'].append('Q')
+        if 'q' not in plt.rcParams['keymap.quit']:
+            plt.rcParams['keymap.quit'].append('q')
+        if 'Q' not in plt.rcParams['keymap.quit_all']:
+            plt.rcParams['keymap.quit_all'].append('Q')
         plt.close('all')
 
     def check_complete(self, event):
@@ -292,83 +296,81 @@ class ScouseFitChecker(object):
         """
         # create a list containing all axes
         axislist=[self.map_window]+self.spec_grid_window
-        if self.fig.canvas.manager.toolbar._active is None:
 
-            # retrieve the index of the axis that has been clicked
-            i = 0
-            axisNr = None
-            for axis in axislist:
-                if axis == event.inaxes:
-                    axisNr=i
-                    break
-                i+=1
+        # retrieve the index of the axis that has been clicked
+        i = 0
+        axisNr = None
+        for axis in axislist:
+            if axis == event.inaxes:
+                axisNr=i
+                break
+            i+=1
 
-            # make sure the click is registered
-            eventdata=np.asarray([event.xdata, event.ydata])
-            if not None in eventdata:
-                # identify the location of the click
-                self.xpos,self.ypos=int(event.xdata+0.5), int(event.ydata+0.5)
+        # make sure the click is registered
+        eventdata=np.asarray([event.xdata, event.ydata])
+        if not None in eventdata:
+            # identify the location of the click
+            self.xpos,self.ypos=int(event.xdata+0.5), int(event.ydata+0.5)
 
-                # What happens depends on which axis has been selected
-                if axisNr == 0:
-                    # left mouse click
-                    if event.button == 1:
-                        # get the flattened indices of the pixel and its neighbours
-                        self.keys=get_neighbours(self)
+            # What happens depends on which axis has been selected
+            if axisNr == 0:
+                # left mouse click
+                if event.button == 1:
+                    # get the flattened indices of the pixel and its neighbours
+                    self.keys=get_neighbours(self)
 
-                        # if the map is selected then we are going to plot
-                        # some spectra
-                        plot_spectra(self)
+                    # if the map is selected then we are going to plot
+                    # some spectra
+                    plot_spectra(self)
 
-                # else if one of the spectra are selected then store the
-                # information and identify the spectrum as one to be
-                # checked during stage 6
-                elif axisNr in np.arange(1,np.size(axislist)):
-                    self.select_spectra(event, axisNr)
+            # else if one of the spectra are selected then store the
+            # information and identify the spectrum as one to be
+            # checked during stage 6
+            elif axisNr in np.arange(1,np.size(axislist)):
+                self.select_spectra(event, axisNr)
 
-                else:
-                    pass
-                self.fig.canvas.draw()
+            else:
+                pass
+            self.fig.canvas.draw()
 
     def keyentry(self, event):
         # create a list containing all axes
         axislist=[self.map_window]+self.spec_grid_window
-        if self.fig.canvas.manager.toolbar._active is None:
 
-            # retrieve the index of the axis that has been clicked
-            i = 0
-            axisNr = None
-            for axis in axislist:
-                if axis == event.inaxes:
-                    axisNr=i
-                    break
-                i+=1
+        # retrieve the index of the axis that has been clicked
+        i = 0
+        axisNr = None
+        for axis in axislist:
+            if axis == event.inaxes:
+                axisNr=i
+                break
+            i+=1
 
-            # make sure the key entry is registered
-            eventdata=np.asarray([event.xdata, event.ydata])
-            if not None in eventdata:
-                # identify the location of the click
-                self.xpos,self.ypos=int(event.xdata+0.5), int(event.ydata+0.5)
-                # What happens depends on which axis has been selected
-                if axisNr == 0:
-                    # enter key
-                    if event.key == 'enter':
-                        # get the flattened indices of the pixel and its neighbours
-                        self.keys=get_neighbours(self)
-                        # if the map is selected then we are going to plot
-                        # some spectra
-                        plot_spectra(self)
+        # make sure the key entry is registered
+        eventdata=np.asarray([event.xdata, event.ydata])
+        if not None in eventdata:
+            # identify the location of the click
+            self.xpos,self.ypos=int(event.xdata+0.5), int(event.ydata+0.5)
+            # What happens depends on which axis has been selected
+            if axisNr == 0:
+                # enter key
+                if event.key == 'enter':
+                    # get the flattened indices of the pixel and its neighbours
+                    self.keys=get_neighbours(self)
+                    # if the map is selected then we are going to plot
+                    # some spectra
+                    plot_spectra(self)
 
-                # else if one of the spectra are selected then store the
-                # information and identify the spectrum as one to be
-                # checked during stage 6
-                elif axisNr in np.arange(1,np.size(axislist)):
-                    self.select_spectra(event, axisNr)
+            # else if one of the spectra are selected then store the
+            # information and identify the spectrum as one to be
+            # checked during stage 6
+            elif axisNr in np.arange(1,np.size(axislist)):
+                self.select_spectra(event, axisNr)
 
-                else:
-                    pass
+            else:
+                pass
 
-                self.fig.canvas.draw()
+            self.fig.canvas.draw()
 
     def update_vmin(self,pos=None):
         """
@@ -504,13 +506,13 @@ class ScouseFitChecker(object):
                 #              self.check_spec_indices.remove(key)
 
                 # select all
-                elif (event.key=='a'):
-                    for axid, _key in enumerate(self.keys):
-                        if ~np.isnan(_key):
-                            self.spec_grid_window[axid].patch.set_facecolor('red')
-                            self.spec_grid_window[axid].patch.set_alpha(0.1)
-                            if _key not in self.check_spec_indices:
-                                self.check_spec_indices.append(_key)
+                # elif (event.key=='a'):
+                #     for axid, _key in enumerate(self.keys):
+                #         if ~np.isnan(_key):
+                #             self.spec_grid_window[axid].patch.set_facecolor('red')
+                #             self.spec_grid_window[axid].patch.set_alpha(0.1)
+                #             if _key not in self.check_spec_indices:
+                #                 self.check_spec_indices.append(_key)
 
                 # remove all
                 # elif (event.key=='backspace') or (event.key=='escape'):
@@ -693,8 +695,9 @@ class ScouseFitChecker(object):
         lookup_handle : matplotlib legend handles
 
         """
-        for artist in legend.texts + legend.legendHandles:
-            artist.set_picker(10) # 10 points tolerance
+        for artist in legend.legendHandles:
+            artist.set_picker(True)
+            artist.set_pickradius(10) # 10 points tolerance
 
         self.fig.canvas.mpl_connect('pick_event', lambda event: self.on_pick_legend(event, lookup_artist, lookup_handle) )
         self.fig.canvas.mpl_connect('button_press_event', lambda event: self.on_click_legend(event, lookup_artist, lookup_handle))
@@ -950,12 +953,12 @@ def setup_map_window(self):
     Setup the map window for plotting
     """
     try:
-        from wcsaxes import WCSAxes
+        from astropy.visualization.wcsaxes import WCSAxes
         self._wcaxes_imported = True
     except ImportError:
         self._wcaxes_imported = False
-        if self.scouseobject.cube.wcs is not None:
-            warnings.warn("`WCSAxes` package required for wcs coordinate display.")
+        if self.moments[0].wcs is not None:
+            warnings.warn("`WCSAxes` required for wcs coordinate display.")
 
     newaxis=[self.blank_window_ax[0]+0.03, self.blank_window_ax[1]+0.03, self.blank_window_ax[2]-0.06,self.blank_window_ax[3]-0.045]
 
@@ -1052,13 +1055,15 @@ def load_maps(self):
     return [fits.getdata(savedir+'stage_4_'+mapname+'.fits') for mapname in self.maps]
 
 def get_cmap(self):
+    import matplotlib as mpl
+    import copy
     import matplotlib.pyplot as plt
     if self.diagnostic==3:
-        self.cmap=plt.cm.viridis
+        self.cmap=copy.copy(mpl.cm.get_cmap("viridis"))
         self.cmap.set_bad(color='lightgrey')
         self.cmap.set_under('w')
     else:
-        self.cmap=plt.cm.viridis
+        self.cmap=copy.copy(mpl.cm.get_cmap("viridis"))
         self.cmap.set_bad(color='lightgrey')
 
 def plot_map(self, map, update=False):
@@ -1133,7 +1138,7 @@ def setup_spec_window(self):
     self.blank_window.text(1.625,1.20,'Select spectra', ha='center')
     self.blank_window.text(1.625,1.15,"To select single: Left click or press 'enter'", ha='center')
     #self.blank_window.text(1.6,1.10,"To de-select: Right click or press 'r' or 'd'", ha='center')
-    self.blank_window.text(1.625,1.10,"To select all: press 'a'", ha='center')
+    #self.blank_window.text(1.625,1.10,"To select all: press 'a'", ha='center')
     return axlist
 
 def plot_spectra(self):

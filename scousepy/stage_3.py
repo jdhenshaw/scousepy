@@ -139,6 +139,7 @@ def autonomous_decomposition(scouseobject, indivspec_list):
 
     # loop over the list of spectra removing elements along the way as they
     # are successfully modelled.
+
     while np.size(np.asarray(indivspec_list) != 0.0):
         inputlist=[scouseobjectlist+[indivspec] for indivspec in indivspec_list]
 
@@ -261,6 +262,7 @@ def compile_spectra(scouseobject, indivspec_list_completed):
 
     # start by getting all of the indices
     indexarr=np.asarray([indivspec.index for indivspec in indivspec_list_completed])
+
     # get the unique ones
     indexarr_unique=np.sort(np.unique(indexarr))
 
