@@ -206,19 +206,27 @@ class ScouseCoverage(object):
         self.mom2=make_button(self,self.mom2_ax,"moment 2",lambda event: self.update_map(event, map=2),color='0.75',hovercolor='0.95')
         end=start+size+space
 
-        start=end
-        self.mom3_ax=self.fig.add_axes([start, 0.14, size, 0.05])
-        self.mom3=make_button(self,self.mom3_ax,"moment 3",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
-        end=start+size+space
-
-        start=end
-        self.mom4_ax=self.fig.add_axes([start, 0.14, size, 0.05])
-        self.mom4=make_button(self,self.mom4_ax,"moment 4",lambda event: self.update_map(event, map=4),color='0.75',hovercolor='0.95')
-        end=start+size+space
+        # start=end
+        # self.mom3_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        # self.mom3=make_button(self,self.mom3_ax,"moment 3",lambda event: self.update_map(event, map=3),color='0.75',hovercolor='0.95')
+        # end=start+size+space
+        #
+        # start=end
+        # self.mom4_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        # self.mom4=make_button(self,self.mom4_ax,"moment 4",lambda event: self.update_map(event, map=4),color='0.75',hovercolor='0.95')
+        # end=start+size+space
 
         start=end
         self.mom9_ax=self.fig.add_axes([start, 0.14, size, 0.05])
         self.mom9=make_button(self,self.mom9_ax,"vel @ peak",lambda event: self.update_map(event, map=5),color='0.75',hovercolor='0.95')
+        end=start+size+space
+
+        start=end
+        end=start+size+space
+
+        start=end
+        self.mommask_ax=self.fig.add_axes([start, 0.14, size, 0.05])
+        self.mommask=make_button(self,self.mommask_ax,"mask",lambda event: self.update_map(event, map=6), color='lightblue',hovercolor='aliceblue')
         end=start+size+space
 
         #==================#
@@ -299,7 +307,11 @@ class ScouseCoverage(object):
             if self.speccomplexity=='momdiff':
                 update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
             elif self.speccomplexity=='kurtosis':
-                update_text(self.text_complexity, 'complexity measure: kurtosis')
+                print('')
+                print(colors.fg._yellow_+"Warning: Kurtosis option is not available yet. Setting to default.  "+colors._endc_)
+                print('')
+                #update_text(self.text_complexity, 'complexity measure: kurtosis')
+                update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
             else:
                 update_text(self.text_complexity, 'complexity measure: '+str(self.speccomplexity))
         else:
@@ -375,7 +387,7 @@ class ScouseCoverage(object):
         """
         # Get the map
         self.moment=map
-        if (map==3) or (map==4):
+        if (map==3) or (map==4) or (map==6):
             maptoplot=self.moments[self.moment]
         else:
             maptoplot=self.moments[self.moment].value
@@ -399,7 +411,7 @@ class ScouseCoverage(object):
         """
         # compute moments
         self.moments = compute_moments(self)
-        if (self.moment==3) or (self.moment==4):
+        if (self.moment==3) or (self.moment==4) or (self.moment==6):
             maptoplot=self.moments[self.moment]
         else:
             maptoplot=self.moments[self.moment].value
@@ -632,7 +644,12 @@ class ScouseCoverage(object):
         ----------
         label : radio button label
         """
-        self.speccomplexity=label
+        if label=='$|m_1$-$v_p|$':
+            self.speccomplexity='momdiff'
+        elif label=='kurtosis':
+            self.speccomplexity='kurtosis'
+        else:
+            self.speccomplexity=label
 
     def run_coverage(self, event):
         """
@@ -671,7 +688,11 @@ class ScouseCoverage(object):
             if self.speccomplexity=='momdiff':
                 update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
             elif self.speccomplexity=='kurtosis':
-                update_text(self.text_complexity, 'complexity measure: kurtosis')
+                print('')
+                print(colors.fg._yellow_+"Warning: Kurtosis option is not available yet. Setting to default. "+colors._endc_)
+                print('')
+                #update_text(self.text_complexity, 'complexity measure: kurtosis')
+                update_text(self.text_complexity, 'complexity measure: $|m_1$-$v_p|$')
             else:
                 update_text(self.text_complexity, 'complexity measure: '+str(self.speccomplexity))
         else:
@@ -1030,6 +1051,8 @@ def setup_map_window(self):
         map_window = self.fig.add_axes(ax_image)
         x = map_window.coords[0]
         y = map_window.coords[1]
+        x.set_axislabel('  ')
+        y.set_axislabel('  ')
         x.set_ticklabel(exclude_overlapping=True)
         y.set_ticklabel(rotation=90,verticalalignment='bottom', horizontalalignment='left',exclude_overlapping=True)
     else:
@@ -1055,54 +1078,16 @@ def compute_moments(self):
     # slab
     spectral_slab = cube.with_mask(cubemask).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
     # moments
-    #import time
-    #st0=time.time()
     momzero = spectral_slab.moment0(axis=0)
-    #et0=time.time()
-    #print(et0-st0)
-    #st1=time.time()
     momone = spectral_slab.moment1(axis=0)
-    #et1=time.time()
-    #print(et1-st1)
-    #st2=time.time()
     momtwo = spectral_slab.linewidth_sigma()
-    #et2=time.time()
-    #print(et2-st2)
-    #st3=time.time()
-    momthree = spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False, fill=np.nan)#np.cbrt(spectral_slab.moment(axis=0, order=3).value)/momtwo.value**(3./2.)#
-    #et3=time.time()
-    #print(et3-st3)
-    #st4=time.time()
 
-    #print(momthree)
-    #print('')
-    #spectral_slab_trim=spectral_slab[:,0,0]
-    #print(spectral_slab[:,0,0].filled_data)
-    #momfour_=[kurtosis(spectral_slab[:,j,i][spectral_slab[:,j,i]>self.mask_below] , axis=0, fisher=False, nan_policy='omit') for j in range(spectral_slab.shape[1]) for i in range(spectral_slab.shape[2])]
-    #momfour=np.reshape(momfour_, spectral_slab.shape[1:])
-    #momfour[np.isnan(momzero.value)]=np.nan
-    #print(momfour)
-    #print(kurtosis(spectral_slab_trim, axis=0, fisher=False, nan_policy='omit'))
-    #print('')
-    #print(spectral_slab.mask.include()[:,0,0])
-    #momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False,fill=np.nan)
-    #print(momfour[0,0])
-    #print(momfour_)
-    #print('')
-    #momfour = ((spectral_slab.moment(axis=0, order=4).value)/(spectral_slab.moment(axis=0, order=2).value)**2)#
-    momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False, fill=np.nan)
-    #print(momfour)
-    #print(momfour[1,0])
+    # momthree = spectral_slab.apply_numpy_function(skew, axis=0, nan_policy='omit',reduce=False, fill=np.nan)
+    # momfour=spectral_slab.apply_numpy_function(kurtosis, axis=0, fisher=False, nan_policy='omit',reduce=False, fill=np.nan)
+    # # convert to normal numpy arrays from masked arrays
+    # momthree=momthree.filled(fill_value=np.nan)
+    # momfour=momfour.filled(fill_value=np.nan)
 
-    #sys.exit()
-    #print(momfour/momfour2)
-    #et4=time.time()
-    #print(et4-st4)
-    #print(momtwo)
-    # convert to normal numpy arrays from masked arrays
-    momthree=momthree.filled(fill_value=np.nan)
-    momfour=momfour.filled(fill_value=np.nan)
-    #st9=time.time()
     momnine = np.empty(np.shape(momone))
     momnine.fill(np.nan)
 
@@ -1119,12 +1104,12 @@ def compute_moments(self):
     momnine = spectral_slab.spectral_axis[idxmax.astype('int')].value
     momnine[bad] = np.nan
     momnine = momnine * u.km/u.s
-    #et9=time.time()
-    #print(et9-st9)
-    mask=np.zeros_like(momzero.value, dtype='bool')
+
+    mask=np.zeros_like(momzero.value)
     mask[~np.isnan(momzero.value)]=1
 
-    moments=[momzero, momone, momtwo, momthree, momfour, momnine, mask]
+    #moments=[momzero, momone, momtwo, momthree, momfour, momnine, mask]
+    moments=[momzero, momone, momtwo, momzero, momzero, momnine, mask]
     return moments
 
 def trim_cube(self):
@@ -1140,7 +1125,8 @@ def compute_spectral_complexity(self):
     updated with more functions.
     """
     momdiff_map=compute_momdiff(self.moments[1],self.moments[5])
-    kurtosis_map=self.moments[4]
+    #kurtosis_map=self.moments[4]
+    kurtosis_map=momdiff_map#self.moments[4]
     return [momdiff_map, kurtosis_map]
 
 def compute_momdiff(mom1,vcent):
