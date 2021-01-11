@@ -236,6 +236,7 @@ class scouse(object):
         self.completed_stages = []
 
         # stage 1 -- user
+        self.mask_coverage=None
         self.write_moments=None
         self.save_fig=None
         # stage 1 -- scousepy coverage

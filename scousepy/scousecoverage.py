@@ -31,6 +31,11 @@ class ScouseCoverage(object):
 
         # For moments
         self.scouseobject=scouseobject
+        if self.scouseobject.mask_coverage==None:
+            self.mask_provided=False
+        else:
+            self.mask_provided=True
+            self.user_mask=get_mask(self)
         self.verbose=verbose
         self.mask_below=0.0
         self.cube=scouseobject.cube
@@ -704,6 +709,27 @@ class ScouseCoverage(object):
         # update plot
         self.fig.canvas.draw()
 
+def get_mask(self):
+    """
+    Used to obtain the mask if the user provides a mask file
+
+    """
+    from astropy.io import fits
+    try:
+        maskfits=fits.open(self.scouseobject.mask_coverage)
+        self._mask_found=True
+        user_mask=maskfits[0].data
+        user_mask[(~np.isfinite(user_mask))]=0
+        user_mask[(user_mask!=0)]=1
+
+    except IOError:
+        print(colors.fg._lightred_+"File not found. Please check filepath in scousepy.config. Continuing without mask.  "+colors._endc_)
+        print('')
+        self._mask_found=False
+        user_mask=None
+
+    return user_mask
+
 def compute_coverage(self):
     """
     Calculate the coverage. Sets up a grid of SAAs whose spacing is defined by
@@ -1073,8 +1099,16 @@ def compute_moments(self):
         self.coverage_map=None
     # Trim the cube
     cube=trim_cube(self)
+
     # Mask the cube
     cubemask = (cube > u.Quantity(self.mask_below,cube.unit))
+
+    # if a mask has already been input by the user then combine masks
+    if self._mask_found:
+        cubemask_user = np.repeat(self.user_mask[np.newaxis, :, :], cube.shape[0], axis=0)
+        cubemask=cubemask.include()*cubemask_user
+        cubemask=cubemask.astype('bool')
+
     # slab
     spectral_slab = cube.with_mask(cubemask).spectral_slab(self.velmin*u.km/u.s,self.velmax*u.km/u.s)
     # moments

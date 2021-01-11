@@ -127,6 +127,10 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
         ]
 
     stage_1 = [
+        ('mask_coverage', {
+            'default': 'None',
+            'description': "optional input fits file containing a mask used to define the coverage",
+            'simple': False}),
         ('write_moments', {
             'default': 'True',
             'description': "save moment maps as FITS files [True/False]",
