@@ -73,16 +73,22 @@ def make_string(st):
     newstring="\'" + str(st) + "\'"
     return newstring
 
-def generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description):
+def generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description, coverage=False):
     """
     Creates the configuration table for scousepy
 
     Parameters
     ----------
-    outputdir : string
-        output directory
     filename : string
         output filename of the config file
+    datadirectory : string
+        directory containing the datacube
+    outputdir : string
+        output directory
+    configdir : string
+        directory containing the config files
+    config_filename : string
+        filename of the configuration file
     description : bool
         whether or not to include the description of each parameter
 
@@ -95,42 +101,99 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
 
     config_file = str('# ScousePy config file\n\n')
 
-    default = [
-        ('datadirectory', {
-            'default': make_string(datadirectory),
-            'description': "location of the FITS data cube you would like to decompose",
-            'simple': True}),
-        ('filename', {
-            'default': make_string(filename),
-            'description': "name of the FITS data cube (without extension)",
-            'simple': True}),
-        ('outputdirectory', {
-            'default': make_string(outputdir),
-            'description': "output directory for data products",
-            'simple': True}),
-        ('fittype', {
-            'default': make_string('gaussian'),
-            'description': "decomposition model (default=Gaussian)",
-            'simple': True}),
-        ('njobs', {
-            'default': '3',
-            'description': "Number of CPUs used for parallel processing",
-            'simple': True}),
-        ('verbose', {
-            'default': 'True',
-            'description': "print messages to the terminal [True/False]",
-            'simple': True}),
-        ('autosave', {
-            'default': 'True',
-            'description': "autosave output from individual steps [True/False]",
-            'simple': True}),
-        ]
+    if not coverage:
+        default = [
+            ('datadirectory', {
+                'default': make_string(datadirectory),
+                'description': "location of the FITS data cube you would like to decompose",
+                'simple': True}),
+            ('filename', {
+                'default': make_string(filename),
+                'description': "name of the FITS data cube (without extension)",
+                'simple': True}),
+            ('outputdirectory', {
+                'default': make_string(outputdir),
+                'description': "output directory for data products",
+                'simple': True}),
+            ('fittype', {
+                'default': make_string('gaussian'),
+                'description': "decomposition model (default=Gaussian)",
+                'simple': True}),
+            ('njobs', {
+                'default': '3',
+                'description': "Number of CPUs used for parallel processing",
+                'simple': True}),
+            ('verbose', {
+                'default': 'True',
+                'description': "print messages to the terminal [True/False]",
+                'simple': True}),
+            ('autosave', {
+                'default': 'True',
+                'description': "autosave output from individual steps [True/False]",
+                'simple': True}),
+            ]
+
+    else:
+        default = [
+            ('nrefine', {
+                'default': '1',
+                'description': "number of refinement steps",
+                'simple': True}),
+            ('mask_below', {
+                'default': '0.0',
+                'description': "mask data below this value",
+                'simple': True}),
+            ('mask_coverage', {
+                'default': 'None',
+                'description': "optional input filepath to a fits file containing a mask used to define the coverage",
+                'simple': False}),
+            ('x_range', {
+                'default': "[None, None]",
+                'description': "data x range in pixels",
+                'simple': False}),
+            ('y_range', {
+                'default': "[None, None]",
+                'description': "data y range in pixels",
+                'simple': False}),
+            ('vel_range', {
+                'default': "[None, None]",
+                'description': "data velocity range in cube units",
+                'simple': False}),
+            ('wsaa', {
+                'default': '[3]',
+                'description': "width of the spectral averaging areas",
+                'simple': True}),
+            ('fillfactor', {
+                'default': "[0.5]",
+                'description': "fractional limit below which SAAs are rejected",
+                'simple': True}),
+            ('samplesize', {
+                'default': '0',
+                'description': "sample size for randomly selecting SAAs",
+                'simple': True}),
+            ('covmethod', {
+                'default': make_string('regular'),
+                'description': "method used to define the coverage [regular/random]",
+                'simple': True}),
+            ('spacing', {
+                'default': make_string('nyquist'),
+                'description': "method setting spacing of SAAs [nyquist/regular]",
+                'simple': True}),
+            ('speccomplexity', {
+                'default': make_string('momdiff'),
+                'description': "method defining spectral complexity",
+                'simple': True}),
+            ('totalsaas', {
+                'default': 'None',
+                'description': "total number of SAAs",
+                'simple': False}),
+            ('totalspec', {
+                'default': 'None',
+                'description': "total number of spectra within the coverage",
+                'simple': False}),
+            ]
 
     stage_1 = [
-        ('mask_coverage', {
-            'default': 'None',
-            'description': "optional input fits file containing a mask used to define the coverage",
-            'simple': False}),
         ('write_moments', {
             'default': 'True',
             'description': "save moment maps as FITS files [True/False]",
@@ -167,20 +230,21 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
                                   all_keywords=True,
                                   description=description)
 
-    config_file.append('\n\n[stage_1]')
-    config_file = append_keywords(config_file, dct_stage_1,
-                                  all_keywords=True,
-                                  description=description)
+    if not coverage:
+        config_file.append('\n\n[stage_1]')
+        config_file = append_keywords(config_file, dct_stage_1,
+                                      all_keywords=True,
+                                      description=description)
 
-    config_file.append('\n\n[stage_2]')
-    config_file = append_keywords(config_file, dct_stage_2,
-                                  all_keywords=True,
-                                  description=description)
+        config_file.append('\n\n[stage_2]')
+        config_file = append_keywords(config_file, dct_stage_2,
+                                      all_keywords=True,
+                                      description=description)
 
-    config_file.append('\n\n[stage_3]')
-    config_file = append_keywords(config_file, dct_stage_3,
-                                  all_keywords=True,
-                                  description=description)
+        config_file.append('\n\n[stage_3]')
+        config_file = append_keywords(config_file, dct_stage_3,
+                                      all_keywords=True,
+                                      description=description)
 
     with open(os.path.join(configdir, config_filename), 'w') as file:
         for line in config_file:
@@ -251,6 +315,7 @@ def output_moments(cube_header, moments, dir, filename):
     header=moments[0].header
 
     for i in range(len(moments)-1):
+
         if i == 0:
             myunit=unit+str(' km s-1')
         elif (i==1) or (i==2) or (i==5):
@@ -266,8 +331,11 @@ def output_moments(cube_header, moments, dir, filename):
             name='_velatpeak'
             fits.writeto(dir+filename+name+'.fits', moments[i].value, header, overwrite=True)
         else:
-            name='_mom'+str(i)
-            fits.writeto(dir+filename+name+'.fits', moments[i], header, overwrite=True)
+            pass
+            # FOR NOW MOM 3 and 4 ARE REMOVED
+
+            #name='_mom'+str(i)
+            #fits.writeto(dir+filename+name+'.fits', moments[i], header, overwrite=True)
 
 def output_ascii_saa(self, outputdir):
     """

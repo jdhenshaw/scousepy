@@ -27,43 +27,96 @@ class ScouseCoverage(object):
         Creates an astropy table containing the coverage information
 
     """
-    def __init__(self, scouseobject=None, create_config_file=True, verbose=True):
+    def __init__(self, scouseobject=None, create_config_file=True, verbose=True, interactive=True):
 
         # For moments
         self.scouseobject=scouseobject
-        if self.scouseobject.mask_coverage==None:
+        self.verbose=verbose
+        self.interactive=interactive
+
+        # config file location
+        from .io import import_from_config
+        config_filename_coverage='coverage.config'
+        scousedir=os.path.join(self.scouseobject.outputdirectory, self.scouseobject.filename)
+        configdir=os.path.join(scousedir+'/config_files')
+        configpath_coverage=os.path.join(scousedir+'/config_files', config_filename_coverage)
+
+        # check to see if the config file exists. If it does load in the params
+        # if not then set some defaults
+        if os.path.exists(configpath_coverage):
+            import_from_config(self, configpath_coverage)
+            # Set these manually
+            if (self.x_range[0] is None) or (self.x_range[0] < 0):
+                self.xmin = 0
+            else:
+                self.xmin = self.x_range[0]
+            if (self.y_range[0] is None) or (self.y_range[0] < 0):
+                self.ymin = 0
+            else:
+                self.ymin = self.y_range[0]
+            if (self.vel_range[0] is None) or (self.vel_range[0] < self.scouseobject.cube.spectral_axis[0].value):
+                self.velmin = np.around(np.nanmin(self.scouseobject.cube.spectral_axis.value),decimals=2)
+            else:
+                self.velmin = self.vel_range[0]
+
+            if (self.x_range[1] is None) or (self.x_range[1] > self.scouseobject.cube.shape[2]):
+                self.xmax = self.scouseobject.cube.shape[2]
+            else:
+                self.xmax = self.x_range[1]
+            if (self.y_range[1] is None) or (self.y_range[1] > self.scouseobject.cube.shape[1]):
+                self.ymax = self.scouseobject.cube.shape[1]
+            else:
+                self.ymax = self.y_range[1]
+            if (self.vel_range[1] is None) or (self.vel_range[1] > self.scouseobject.cube.spectral_axis[-1].value):
+                self.velmax = np.around(np.nanmax(self.scouseobject.cube.spectral_axis.value),decimals=2)
+            else:
+                self.velmax = self.vel_range[1]
+
+        else:
+            self.nrefine=1
+            self.mask_below=0.0
+            self.mask_coverage=None
+            self.xmin = 0
+            self.xmax = self.scouseobject.cube.shape[2]
+            self.ymin = 0
+            self.ymax = self.scouseobject.cube.shape[1]
+            self.velmin = np.around(np.nanmin(self.scouseobject.cube.spectral_axis.value),decimals=2)
+            self.velmax = np.around(np.nanmax(self.scouseobject.cube.spectral_axis.value),decimals=2)
+            self.wsaa=[3]
+            self.fillfactor=[0.5]
+            self.samplesize=10
+            self.covmethod='regular'
+            self.spacing='nyquist'
+            self.speccomplexity='momdiff'
+            self.totalsaas=None
+            self.totalspec=None
+
+        if np.size(self.wsaa)>1:
+            self.refine_grid=True
+        else:
+            self.refine_grid=False
+
+        if self.mask_coverage==None:
             self.mask_provided=False
+            self._mask_found=False
         else:
             self.mask_provided=True
             self.user_mask=get_mask(self)
-        self.verbose=verbose
-        self.mask_below=0.0
-        self.cube=scouseobject.cube
-        self.xmin = 0
-        self.xmax = self.cube.shape[2]
-        self.ymin = 0
-        self.ymax = self.cube.shape[1]
-        self.velmin = np.around(np.nanmin(self.cube.spectral_axis.value),decimals=2)
-        self.velmax = np.around(np.nanmax(self.cube.spectral_axis.value),decimals=2)
 
         # For coverage
-        self.wsaa=[3]
-        self.fillfactor=[0.5]
-        self.covmethod='regular'
-        self.samplesize=10
-        self.spacing='nyquist'
         self.spacingvalue=None
-        self.speccomplexity='momdiff'
-        self.refine_grid=False
         self.coverage=[]
         self.coverage_path=[]
         self.coverage_map=None
-        self.totalsaas=None
-        self.totalspec=None
         self.create_config_file=create_config_file
         self.config_file=None
+        self.sortedids=[0]
 
-        # imports
+        # compute moments
+        self.moments = compute_moments(self)
+        # compute measures of spectral complexity
+        self.complexity_maps = compute_spectral_complexity(self)
+
         import matplotlib.pyplot as plt
         import matplotlib.image as mpimg
         from matplotlib import rcParams
@@ -92,11 +145,6 @@ class ScouseCoverage(object):
             plt.rcParams['keymap.quit'].remove('q')
         if 'Q' in plt.rcParams['keymap.quit_all']:
             plt.rcParams['keymap.quit_all'].remove('Q')
-
-        # compute moments
-        self.moments = compute_moments(self)
-        # compute measures of spectral complexity
-        self.complexity_maps = compute_spectral_complexity(self)
 
         plt.ioff()
         #================#
@@ -146,7 +194,7 @@ class ScouseCoverage(object):
         masktop=top
         self.text_mask=self.fig.text(mid,top,'mask below',ha='center',va='center')
         self.textbox_maskbelow_ax=self.fig.add_axes([mid-textboxwidth/2., masktop-3*smallspace, textboxwidth, textboxheight])
-        self.textbox_maskbelow=make_textbox(self.textbox_maskbelow_ax,'',str(self.xmin),lambda text: self.change_text(text,_type='mask'))
+        self.textbox_maskbelow=make_textbox(self.textbox_maskbelow_ax,'',str(self.mask_below),lambda text: self.change_text(text,_type='mask'))
         maskbottom=masktop-4*smallspace
 
         # Controls for setting xlimits
@@ -334,6 +382,13 @@ class ScouseCoverage(object):
         #================
         self.continue_ax=self.fig.add_axes([0.875, 0.24, 0.05, 0.05])
         self.continue_button=make_button(self,self.continue_ax,"continue",self.coverage_complete, color='lightblue',hovercolor='aliceblue')
+
+        if not self.interactive:
+            # run the coverage but do not display the plot
+            self.run_coverage(None)
+            # complete the coverage task
+            self.coverage_complete(None)
+
 
     def show(self):
         """
@@ -555,16 +610,22 @@ class ScouseCoverage(object):
             if np.size(value)>1:
                 # Create a list of wsaa values
                 self.wsaa=list(value)
+
                 # check if they are descending
                 check_descending=all(earlier >= later for earlier, later in zip(self.wsaa, self.wsaa[1:]))
+
+                self.fillfactor=[self.fillfactor[i] for i in self.sortedids]
                 # if not then sort them so that they are
                 if not check_descending:
+                    self.sortedids=sorted(range(np.size(self.wsaa)), key=lambda k: self.wsaa[k], reverse=True)
                     self.wsaa.sort(reverse=True)
+                else:
+                    self.sortedids=range(np.size(self.wsaa))
 
                 # compare the size of the fillfactor list to the wsaa list
                 if np.size(self.wsaa)==np.size(self.fillfactor):
                     # if they are the same create the fillfactor list accordingly
-                    self.fillfactor=[self.fillfactor[i] for i in range(np.size(self.wsaa))]
+                    self.fillfactor=[self.fillfactor[i] for i in self.sortedids]
                 else:
                     # if not then just use the first value in the fillfactor list
                     self.fillfactor=[self.fillfactor[0] for i in range(np.size(self.wsaa))]
@@ -584,8 +645,7 @@ class ScouseCoverage(object):
             if np.size(self.wsaa)>1:
                 # compare the size of the fillfactor list to the wsaa list
                 if np.size(value)==np.size(self.wsaa):
-                    # if they are the same create the fillfactor list accordingly
-                    self.fillfactor=[value[i] for i in range(np.size(self.wsaa))]
+                    self.fillfactor=[value[i] for i in self.sortedids]
                 else:
                     # if not then just use the first value in the fillfactor list
                     self.fillfactor=[value[0] for i in range(np.size(self.wsaa))]
@@ -716,7 +776,7 @@ def get_mask(self):
     """
     from astropy.io import fits
     try:
-        maskfits=fits.open(self.scouseobject.mask_coverage)
+        maskfits=fits.open(self.mask_coverage)
         self._mask_found=True
         user_mask=maskfits[0].data
         user_mask[(~np.isfinite(user_mask))]=0
@@ -950,6 +1010,8 @@ def plot_coverage(self):
     _colors = ['dodgerblue','indianred','springgreen','yellow','magenta','cyan']
 
     # Cycle through each coverage
+    # sortedids=sorted(range(np.size(self.wsaa)), key=lambda k: self.wsaa[k], reverse=True)
+    # print(sortedids)
     for i in range(len(self.wsaa)):
         saas=[]
         coverage=self.coverage[i]
@@ -1072,7 +1134,7 @@ def setup_map_window(self):
 
     newaxis=[self.blank_window_ax[0]+0.03, self.blank_window_ax[1]+0.03, self.blank_window_ax[2]-0.06,self.blank_window_ax[3]-0.045]
 
-    if self.cube.wcs is not None and self._wcaxes_imported:
+    if self.scouseobject.cube.wcs is not None and self._wcaxes_imported:
         ax_image = WCSAxes(self.fig, newaxis, wcs=self.moments[0].wcs, slices=('x','y'))
         map_window = self.fig.add_axes(ax_image)
         x = map_window.coords[0]
@@ -1300,6 +1362,9 @@ def make_config_file(self, description=True):
         ('mask_below', {
             'default': self.mask_below,
             'description': "mask data below this value"}),
+        ('mask_coverage', {
+            'default': make_string(self.mask_coverage),
+            'description': "optional input filepath to a fits file containing a mask used to define the coverage"}),
         ('x_range', {
             'default': [self.xmin, self.xmax],
             'description': "data x range in pixels"}),

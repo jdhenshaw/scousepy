@@ -236,7 +236,6 @@ class scouse(object):
         self.completed_stages = []
 
         # stage 1 -- user
-        self.mask_coverage=None
         self.write_moments=None
         self.save_fig=None
         # stage 1 -- scousepy coverage
@@ -298,7 +297,7 @@ class scouse(object):
         #
 
     @staticmethod
-    def stage_1(config=''):
+    def stage_1(config='', interactive=True):
         """
         Identify the spatial area over which the fitting will be implemented.
 
@@ -306,6 +305,9 @@ class scouse(object):
         ----------
         config : string
             Path to the configuration file. This must be provided.
+        interactive : bool, optional
+            Default is to run coverage with interactive GUI, but this can be
+            bypassed in favour of using the config file
 
         Notes
         -----
@@ -360,8 +362,10 @@ class scouse(object):
             old_log = log.level
             log.setLevel('ERROR')
             # Interactive coverage generator
-            coverageobject=ScouseCoverage(scouseobject=self,verbose=self.verbose)
-            coverageobject.show()
+            coverageobject=ScouseCoverage(scouseobject=self,verbose=self.verbose,
+                                            interactive=interactive)
+            if interactive:
+                 coverageobject.show()
             # write out the config file for the coverage
             self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
             with open(self.coverage_config_file_path, 'w') as file:
@@ -835,8 +839,7 @@ class scouse(object):
 # io
 #==============================================================================#
 
-    def run_setup(filename, datadirectory, outputdir=None,
-                  config_filename='scousepy.config', description=True,
+    def run_setup(filename, datadirectory, outputdir=None, description=True,
                   verbose=True):
         """
         Generates a scousepy configuration file
@@ -849,8 +852,6 @@ class scouse(object):
             Directory containing the datacube
         outputdir : string, optional
             Alternate output directory. Deflault is datadirectory
-        config_filename : string, optional
-            output filename for the configuration file
         description : bool, optional
             whether or not a description of each parameter is included in the
             configuration file
@@ -865,9 +866,13 @@ class scouse(object):
         if outputdir is None:
             outputdir=datadirectory
 
+        config_filename='scousepy.config'
+        config_filename_coverage='coverage.config'
+
         scousedir=os.path.join(outputdir, filename)
         configdir=os.path.join(scousedir+'/config_files')
         configpath=os.path.join(scousedir+'/config_files', config_filename)
+        configpath_coverage=os.path.join(scousedir+'/config_files', config_filename_coverage)
 
         if verbose:
             progress_bar = print_to_terminal(stage='init', step='init')
@@ -880,6 +885,7 @@ class scouse(object):
             if not os.path.exists(scousedir):
                 create_directory_structure(scousedir)
                 generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description)
+                generate_config_file(filename, datadirectory, outputdir, configdir, config_filename_coverage, description, coverage=True)
                 if verbose:
                     progress_bar = print_to_terminal(stage='init', step='makingconfig')
             else:
