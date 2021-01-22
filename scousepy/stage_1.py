@@ -199,15 +199,27 @@ def create_saa(input):
     import matplotlib.path as path
     from .model_housing import saa
 
+    import time
+    st=time.time()
     # unpack the input
     j, w, maploc, coverage, momentmask, scouseobject=input
     # generate the masks
     saamask=generate_saamask(coverage[j,:],w,maploc,momentmask.shape)
     cubemask=generate_cubemask(scouseobject.cube.shape[1:],scouseobject.x_range,scouseobject.y_range,saamask,momentmask)
+
     # mask the cube using the cubemask
-    masked_saacube=scouseobject.cube.with_mask(cubemask)
-    # generate the average spectrum
-    saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2)).value
+    # this combined with nanmean was _slow_ - going to use a different approach
+    #masked_saacube=scouseobject.cube.with_mask(cubemask)
+
+    idy,idx=np.where(cubemask)
+    if np.size(idx)==0:
+        saaspectrum=np.ones(scouseobject.cube.shape[0])*np.nan
+    else:
+        minidx,maxidx,minidy,maxidy=np.nanmin(idx),np.nanmax(idx),np.nanmin(idy),np.nanmax(idy)
+        # mask the cube using indices instead
+        masked_saacube=scouseobject.cube[:,minidy:maxidy+1,minidx:maxidx+1]
+        # generate the average spectrum
+        saaspectrum=np.nanmean(masked_saacube.filled_data[:], axis=(1,2)).value
 
     if coverage[j,2]==1:
         to_be_fit=True

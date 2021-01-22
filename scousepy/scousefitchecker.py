@@ -82,11 +82,11 @@ class ScouseFitChecker(object):
         rcParams['font.family']= 'Arial'
         rcParams['font.size']= 9
         rcParams['lines.linewidth']= 1.     ## line width in points
-        rcParams['axes.labelsize'] =18  ## fontsize of the x any y labels
+        rcParams['axes.labelsize'] =10  ## fontsize of the x any y labels
         rcParams['xtick.labelsize']=10 ## fontsize of the tick labels
         rcParams['ytick.labelsize'] =10 ## fontsize of the tick labels
-        rcParams['xtick.major.pad']=8   ## distance to major tick label in points
-        rcParams['ytick.major.pad']=8    ## distance to major tick label in points
+        rcParams['xtick.major.pad']=4   ## distance to major tick label in points
+        rcParams['ytick.major.pad']=4    ## distance to major tick label in points
         rcParams['xtick.major.size'] =4    ## major tick size in points
         rcParams['xtick.minor.size' ]=2     ## minor tick size in points
         rcParams['xtick.major.width'] =1.    ## major tick width in points
@@ -970,6 +970,8 @@ def setup_map_window(self):
         map_window = self.fig.add_axes(ax_image)
         x = map_window.coords[0]
         y = map_window.coords[1]
+        x.set_axislabel('  ')
+        y.set_axislabel('  ')
         x.set_ticklabel(exclude_overlapping=True)
         y.set_ticklabel(rotation=90,verticalalignment='bottom', horizontalalignment='left',exclude_overlapping=True)
     else:

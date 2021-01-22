@@ -1012,6 +1012,7 @@ def plot_coverage(self):
     # Cycle through each coverage
     # sortedids=sorted(range(np.size(self.wsaa)), key=lambda k: self.wsaa[k], reverse=True)
     # print(sortedids)
+
     for i in range(len(self.wsaa)):
         saas=[]
         coverage=self.coverage[i]
@@ -1190,7 +1191,7 @@ def compute_moments(self):
     try:
         idxmax = spectral_slab.argmax(axis=0)
     except ValueError:
-        idxmax = spectral_slab.argmax(axis=0, how='ray')
+        idxmax = spectral_slab.argmax(axis=0, how='slice')
     try:
         peakmap = spectral_slab.max(axis=0)
     except:
@@ -1258,12 +1259,14 @@ def generate_steps(map, nsteps):
         number of steps of refinement
     """
     median = np.nanmedian(map)
+    top=np.nanpercentile(map, 97)
     step_values = np.logspace(np.log10(median), \
-                              np.log10(np.nanmax(map)), \
+                              np.log10(top), \
                               nsteps )
-
     step_values = list(step_values)
     step_values.insert(0, 0.0)
+    step_values[-1]=np.nanmax(map)
+
     return step_values
 
 def create_masks(mommask, map, nmasks, step_values):
@@ -1295,6 +1298,7 @@ def create_masks(mommask, map, nmasks, step_values):
         mask=mommask*mask
         # add the mask to the list
         masks.append(mask)
+
     return masks
 
 def combine_masks(idx, masks):

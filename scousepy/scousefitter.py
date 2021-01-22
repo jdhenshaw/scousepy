@@ -168,6 +168,9 @@ class ScouseFitter(object):
 
                 # retrieve the scouse spectrum from the scouse dictionary
                 self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
+                print('')
+                print(self.my_spectrum.index)
+                print('')
                 # get the x,y,rms values
                 get_spectral_info(self)
                 # initiate the decomposer
@@ -564,6 +567,9 @@ class ScouseFitter(object):
         self.index=value
         # get the relevant spectrum
         self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
+        print('')
+        print(self.my_spectrum.index)
+        print('')
         # get the spectral information
         get_spectral_info(self)
 

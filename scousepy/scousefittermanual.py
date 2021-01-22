@@ -232,10 +232,26 @@ class ScouseFitterManual(object):
         else:
             return True
 
+    # def get_aic(self):
+    #     from astropy.stats import akaike_info_criterion as aic
+    #     logl = self.spectrum.specfit.fitter.logp(self.spectrum.xarr, self.spectrum.data, self.spectrum.error)
+    #     return aic(logl, int(self.spectrum.specfit.npeaks)+(int(self.spectrum.specfit.npeaks)*3.), len(self.spectrum.xarr))
+
     def get_aic(self):
-        from astropy.stats import akaike_info_criterion as aic
-        logl = self.spectrum.specfit.fitter.logp(self.spectrum.xarr, self.spectrum.data, self.spectrum.error)
-        return aic(logl, int(self.spectrum.specfit.npeaks)+(int(self.spectrum.specfit.npeaks)*3.), len(self.spectrum.xarr))
+        """
+        Computes the AIC value
+        """
+        from astropy.stats import akaike_info_criterion_lsq as aic
+
+        mod = np.zeros([len(self.spectrum.xarr), int(self.spectrum.specfit.npeaks)])
+        for k in range(int(self.spectrum.specfit.npeaks)):
+            modparams = self.spectrum.specfit.modelpars[(k*len(self.spectrum.specfit.fitter.parnames)):(k*len(self.spectrum.specfit.fitter.parnames))+len(self.spectrum.specfit.fitter.parnames)]
+            mod[:,k] = self.spectrum.specfit.get_model_frompars(self.spectrum.xarr, modparams)
+        totmod = np.nansum(mod, axis=1)
+        res=self.spectrum.data-totmod
+        ssr=np.sum((res)**2.0)
+
+        return aic(ssr, (int(self.spectrum.specfit.npeaks)*len(self.spectrum.specfit.fitter.parnames)), len(self.spectrum.xarr))
 
     def printable_format(self):
         """

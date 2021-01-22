@@ -130,7 +130,7 @@ class individual_spectrum(object):
         The best-fitting model solution as fit manually during stage 6 of the
         process
     decision : string
-        The decision made during stage 6 of the process, i.e. if the spectrum
+        The decision made during stage 4 of the process, i.e. if the spectrum
         was refit,
     """
 

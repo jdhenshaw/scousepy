@@ -766,7 +766,7 @@ class scouse(object):
                 progress_bar = print_to_terminal(stage='s4', step='load')
             self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
             if not bitesize:
-                print(colors.fg._lightgreen_+"Fit check already complete. Use bitsize=True to re-enter model checker. "+colors._endc_)
+                print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
                 print('')
                 return self
 
@@ -794,10 +794,10 @@ class scouse(object):
         else:
             self.check_spec_indices=fitcheckerobject.check_spec_indices
 
-        for key in self.indiv_dict.keys():
-            print(key, self.indiv_dict[key])
+        # for key in self.indiv_dict.keys():
+        #     print(key, self.indiv_dict[key])
 
-        print('')
+        # print('')
 
         sorteddict={}
         for sortedkey in sorted(self.indiv_dict.keys()):
@@ -805,10 +805,10 @@ class scouse(object):
 
         self.indiv_dict=sorteddict
 
-        for key in self.indiv_dict.keys():
-            print(key, self.indiv_dict[key])
+        # for key in self.indiv_dict.keys():
+        #     print(key, self.indiv_dict[key])
 
-        print('')
+        # print('')
 
         # Wrapping up
         endtime = time.time()
@@ -972,4 +972,8 @@ class scouse(object):
         Computes some statistics for the fitting process
         """
         from .statistics import stats
-        return stats(scouse=self)
+        # load the cube
+        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        self.load_cube(fitsfile=fitsfile)
+
+        return stats(scouseobject=self)

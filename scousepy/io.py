@@ -73,7 +73,7 @@ def make_string(st):
     newstring="\'" + str(st) + "\'"
     return newstring
 
-def generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description, coverage=False):
+def generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description, coverage=False, dict=None, covdict=None):
     """
     Creates the configuration table for scousepy
 
@@ -192,6 +192,7 @@ def generate_config_file(filename, datadirectory, outputdir, configdir, config_f
                 'description': "total number of spectra within the coverage",
                 'simple': False}),
             ]
+
 
     stage_1 = [
         ('write_moments', {
