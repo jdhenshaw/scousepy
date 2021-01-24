@@ -728,7 +728,8 @@ class ScouseCoverage(object):
         # First if there is already a coverage map displayed - remove this
         if self.coverage_map is not None:
             for i in range(np.size(self.coverage_map)):
-                self.coverage_map[i].remove()
+                if self.coverage_map[i] is not None:
+                    self.coverage_map[i].remove()
             self.coverage_map=None
 
         # calculate the coverage
@@ -1041,6 +1042,8 @@ def plot_coverage(self):
 
             # add this to the list and plot it
             _coverage_map.append(self.map_window.add_patch(saapatch))
+        else:
+            _coverage_map.append(None)
 
     return _coverage_map
 
@@ -1069,9 +1072,12 @@ def get_total_spec(self):
     # Now work out which of these points are located within the coverage map
     for i in range(len(self.wsaa)):
         coverage_map=self.coverage_map[i]
-        mypath=coverage_map.get_path()
-        includedspectra=mypath.contains_points(points)
-        total.append(np.sum(includedspectra))
+        if coverage_map is not None:
+            mypath=coverage_map.get_path()
+            includedspectra=mypath.contains_points(points)
+            total.append(np.sum(includedspectra))
+        else:
+            total.append(0.0)
     return total
 
 def select_random_sample(self):

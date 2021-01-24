@@ -168,9 +168,7 @@ class ScouseFitter(object):
 
                 # retrieve the scouse spectrum from the scouse dictionary
                 self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
-                print('')
-                print(self.my_spectrum.index)
-                print('')
+
                 # get the x,y,rms values
                 get_spectral_info(self)
                 # initiate the decomposer
@@ -567,9 +565,7 @@ class ScouseFitter(object):
         self.index=value
         # get the relevant spectrum
         self.my_spectrum=retrieve_spectrum(self,self.spectra,self.index)
-        print('')
-        print(self.my_spectrum.index)
-        print('')
+
         # get the spectral information
         get_spectral_info(self)
 
@@ -1014,9 +1010,20 @@ def get_aic(self):
     """
     Computes the AIC value
     """
-    from astropy.stats import akaike_info_criterion as aic
-    logl = self.spectrum.specfit.fitter.logp(self.spectrum.xarr, self.spectrum.data, self.spectrum.error)
-    return aic(logl, int(self.spectrum.specfit.npeaks)+(int(self.spectrum.specfit.npeaks)*3.), len(self.spectrum.xarr))
+    from astropy.stats import akaike_info_criterion_lsq as aic
+
+    mod = np.zeros([len(self.spectrum.xarr), int(self.spectrum.specfit.npeaks)])
+    for k in range(int(self.spectrum.specfit.npeaks)):
+        modparams = self.spectrum.specfit.modelpars[(k*len(self.spectrum.specfit.fitter.parnames)):(k*len(self.spectrum.specfit.fitter.parnames))+len(self.spectrum.specfit.fitter.parnames)]
+        mod[:,k] = self.spectrum.specfit.get_model_frompars(self.spectrum.xarr, modparams)
+    totmod = np.nansum(mod, axis=1)
+    res=self.spectrum.data-totmod
+    ssr=np.sum((res)**2.0)
+
+    return aic(ssr, (int(self.spectrum.specfit.npeaks)*len(self.spectrum.specfit.fitter.parnames)), len(self.spectrum.xarr))
+    #
+    # logl = self.spectrum.specfit.fitter.logp(self.spectrum.xarr, self.spectrum.data, self.spectrum.error)
+    # return aic(logl, int(self.spectrum.specfit.npeaks)+(int(self.spectrum.specfit.npeaks)*3.), len(self.spectrum.xarr))
 
 def setup_plot_window(self,ax,ymin=None,ymax=None):
     """
