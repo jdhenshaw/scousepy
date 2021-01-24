@@ -362,10 +362,11 @@ def plot_coverage(scouseobject, coverageobject, covplotfilename):
 
     # Cycle through and plot the coverage
     for i in range(len(coverageobject.wsaa)):
-        c=_colors[i]
-        mypath=coverageobject.coverage_path[i]
-        # create the patch
-        saapatch = patches.PathPatch(mypath,alpha=0.4, facecolor=c, edgecolor='black')
-        map_window.add_patch(saapatch)
+        if coverageobject.coverage_path[i] is not None:
+            c=_colors[i]
+            mypath=coverageobject.coverage_path[i]
+            # create the patch
+            saapatch = patches.PathPatch(mypath,alpha=0.4, facecolor=c, edgecolor='black')
+            map_window.add_patch(saapatch)
 
     plt.savefig(covplotfilename, dpi=300,bbox_inches='tight')

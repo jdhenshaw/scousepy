@@ -1044,6 +1044,7 @@ def plot_coverage(self):
             _coverage_map.append(self.map_window.add_patch(saapatch))
         else:
             _coverage_map.append(None)
+            self.coverage_path.append(None)
 
     return _coverage_map
 
