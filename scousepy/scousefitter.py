@@ -34,7 +34,7 @@ class ScouseFitter(object):
                        fitcount=None,
                        x=None,y=None,rms=None,
                        SNR=3,minSNR=1,maxSNR=30,
-                       kernelsize=3,minkernel=1,maxkernel=30,
+                       alpha=3,minalpha=1,maxalpha=30,
                        outputfile=None,
                        xarrkwargs={},unit=''):
 
@@ -96,16 +96,16 @@ class ScouseFitter(object):
             Maximum SNR. Used for plotting. Can be adjusted and will change the
             slider values.
 
-        kernelsize : number
-            Initial kernel size used for derivative spectroscopy automated
+        alpha : number
+            Initial alpha size used for derivative spectroscopy automated
             fitting. Provided in integer number of channels over which to smooth.
 
-        minkernel : number
-            Minimum kernel size. Used for plotting. Can be adjusted and will
+        minalpha : number
+            Minimum alpha size. Used for plotting. Can be adjusted and will
             change the slider values.
 
-        maxkernel : number
-            Maximum kernel size. Used for plotting. Can be adjusted and will
+        maxalpha : number
+            Maximum alpha size. Used for plotting. Can be adjusted and will
             change the slider values.
 
         """
@@ -126,9 +126,9 @@ class ScouseFitter(object):
         self.SNR=SNR
         self.minSNR=minSNR
         self.maxSNR=maxSNR
-        self.kernelsize=kernelsize
-        self.minkernel=minkernel
-        self.maxkernel=maxkernel
+        self.alpha=alpha
+        self.minalpha=minalpha
+        self.maxalpha=maxalpha
         self.outputfile=outputfile
         self.models={}
 
@@ -259,7 +259,7 @@ class ScouseFitter(object):
         self.spectrum_window.text(0.99, 0.05, 'select legend items to toggle',
                                   transform=self.spectrum_window.transAxes,
                                   fontsize=8, ha='right')
-        # plot the spectrum and the smoothed spectrum
+        # plot the spectrum and the smoothed spectrum_index
         self.plot_spectrum,=plot_spectrum(self,self.specx,self.specy,label='spec')
         self.plot_smooth,=plot_spectrum(self,self.specx,self.ysmooth,label='smoothed spec',lw=1.5,ls=':',color='k')
         # plot the signal to noise threshold
@@ -292,7 +292,7 @@ class ScouseFitter(object):
         self.information_window_ax=[0.05, 0.08, 0.9, 0.35]
         setup_information_window(self)
         self.text_snr=print_information(self,0.01,0.84,'SNR: '+str(self.SNR), fontsize=10)
-        self.text_kernel=print_information(self,0.01,0.76,'kernel size: '+str(self.kernelsize),fontsize=10)
+        self.text_alpha=print_information(self,0.01,0.76,'alpha size: '+str(self.alpha),fontsize=10)
         self.text_fitinformation=print_information(self,0.01,0.68,'pyspeckit fit information: ', fontsize=10, fontweight='bold')
         self.text_converge=print_information(self, 0.15,0.68, '', fontsize=10, color='green', fontweight='bold')
         self.text_ncomp=print_information(self,0.01,0.6,'number of components: '+str(self.ncomps),fontsize=10)
@@ -375,8 +375,8 @@ class ScouseFitter(object):
         self.slider_snr_ax=self.fig.add_axes([0.0875, 0.91, 0.3, 0.02])
         self.slider_snr=make_slider(self.slider_snr_ax,"SNR",self.minSNR,self.maxSNR,self.update_SNR,valinit=self.SNR, valfmt="%i")
 
-        self.slider_kernel_ax=self.fig.add_axes([0.4875, 0.91, 0.3, 0.02])
-        self.slider_kernel=make_slider(self.slider_kernel_ax,"kernel",self.minkernel,self.maxkernel,self.update_kernelsize,valinit=self.kernelsize, valfmt="%i")
+        self.slider_alpha_ax=self.fig.add_axes([0.4875, 0.91, 0.3, 0.02])
+        self.slider_alpha=make_slider(self.slider_alpha_ax,"alpha",self.minalpha,self.maxalpha,self.update_alpha,valinit=self.alpha, valfmt="%i")#, valfmt="%.2f")
 
     def show(self):
         """
@@ -665,7 +665,7 @@ class ScouseFitter(object):
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
-        update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
+        update_text(self.text_alpha, 'alpha size: '+str(self.alpha))
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
@@ -682,17 +682,17 @@ class ScouseFitter(object):
         # update plot
         self.fig.canvas.draw()
 
-    def update_kernelsize(self,pos=None):
+    def update_alpha(self,pos=None):
         """
-        This controls what happens if the kernelsize slider is updated
+        This controls what happens if the alpha slider is updated
 
         Parameters:
         -----------
         pos : position on the slider
 
         """
-        # new kernel size
-        self.kernelsize=int(round(pos))
+        # new alpha size
+        self.alpha=np.around(pos, decimals=2)
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
@@ -706,7 +706,7 @@ class ScouseFitter(object):
         plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
-        update_text(self.text_kernel, 'Kernel size: '+str(self.kernelsize))
+        update_text(self.text_alpha, 'alpha size: '+str(self.alpha))
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
@@ -939,7 +939,7 @@ def compute_dsp(self):
     Computes derivative spectroscopy and sets some global values
     """
     from scousepy.dspec import DSpec
-    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,kernelsize=self.kernelsize)
+    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,alpha=self.alpha)
     self.ysmooth = dsp.ysmooth
     self.d1 = dsp.d1
     self.d2 = dsp.d2
@@ -1002,7 +1002,7 @@ def get_model_info(self):
         modeldict['method']=self.decomposer.method
 
     modeldict['SNR']=self.SNR
-    modeldict['kernelsize']=self.kernelsize
+    modeldict['alpha']=self.alpha
 
     return modeldict
 
@@ -1138,13 +1138,13 @@ def update_plot_model(self,update=False):
     """
     GUI setup
     """
-    if self.dsp.ncomps < 10:
+    if self.dsp.ncomps < 8:
         update_text(self.text_fitinformation,'pyspeckit fit information: ')
 
         if self.modeldict['fitconverge']:
             update_text(self.text_converge,"Fit has converged...", color='limegreen')
         else:
-            update_text(self.text_converge,"Fit has not converged...try increasing the SNR and/or the kernel size.", color='red')
+            update_text(self.text_converge,"Fit has not converged...try increasing the SNR and/or the alpha size.", color='red')
 
         if update:
             self.plot_res.remove()
@@ -1167,7 +1167,7 @@ def update_plot_model(self,update=False):
                 self.plot_model_indiv=plot_model(self,self.mod[:,k],'comp '+str(k),self.modelkwargs)
                 self.plot_model.append(self.plot_model_indiv)
     else:
-        update_text(self.text_fitinformation,'pyspeckit fit information: >10 components detected, autofitting may be slow. Use "fit (dspec)" button to fit')
+        update_text(self.text_fitinformation,'pyspeckit fit information: >8 components detected, autofitting may be slow. Use "fit (dspec)" button to fit or fit manually')
 
     # plot a legend
     self.spectrum_legend = self.spectrum_window.legend(loc=2,frameon=False,fontsize=8)
@@ -1260,7 +1260,7 @@ def get_headings(self, dict):
     # and get the parameter names
     headings_non_specific = ['index', 'ncomps', 'rms', 'residstd',
                              'chisq','dof', 'redchisq', 'AIC',
-                             'fitconverge','SNR', 'kernelsize',
+                             'fitconverge','SNR', 'alpha',
                              'method' ]
     #These ones depend on the model used by pyspeckit
     headings_params = dict['parnames']
@@ -1277,12 +1277,12 @@ def get_soln_desc(key,idx,dict):
     Returns the solution in the format:
 
     ncomps, param1, err1, .... paramn, errn, rms, residstd, chi2, dof, chi2red,
-    aic, fitconverge, snr, kernelsize, method
+    aic, fitconverge, snr, alpha, method
     """
     params_non_specific = [key, dict['ncomps'], dict['rms'],
                            dict['residstd'],dict['chisq'],dict['dof'],
                            dict['redchisq'], dict['AIC'], dict['fitconverge'],
-                           dict['SNR'], dict['kernelsize'],dict['method'] ]
+                           dict['SNR'], dict['alpha'],dict['method'] ]
 
     parlow = int((idx*len(dict['parnames'])))
     parhigh = int((idx*len(dict['parnames']))+len(dict['parnames']))

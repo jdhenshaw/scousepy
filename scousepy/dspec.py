@@ -1,8 +1,9 @@
 import numpy as np
 from astropy.convolution import convolve, Gaussian1DKernel, Box1DKernel
+from .tvregdiff import TVRegDiff
 
 class DSpec(object):
-    def __init__(self,x,y,noise,SNR=3,kernelsize=3,method='gauss'):
+    def __init__(self,x,y,noise,SNR=3,alpha=0.2,method='gauss',gradmethod='convolve'):
         """
 
         """
@@ -10,15 +11,12 @@ class DSpec(object):
         self.y = y
         self.noise = noise
 
-        self.kernelsize = kernelsize
+        self.alpha = alpha
         self.SNR = SNR
         self.kernel = get_kernel(self, method=method)
         self.ysmooth = convolvespec(self)
 
-        self.d1 = compute_gradient(self.ysmooth, self.x[1]-self.x[0])
-        self.d2 = compute_gradient(self.d1, self.x[1]-self.x[0])
-        self.d3 = compute_gradient(self.d2, self.x[1]-self.x[0])
-        self.d4 = compute_gradient(self.d3, self.x[1]-self.x[0])
+        self.d1, self.d2, self.d3, self.d4 = compute_gradients(self, gradmethod=gradmethod)
 
         self.conditionmask,self.ncomps = get_components(self)
         self.peaks = get_peaks(self)
@@ -34,20 +32,35 @@ class DSpec(object):
 
 def get_kernel(self, method='gauss'):
     if method=='gauss':
-        return Gaussian1DKernel(self.kernelsize)
+        return Gaussian1DKernel(self.alpha)
     elif method=='box':
-        return Box1DKernel(self.kernelsize)
+        return Box1DKernel(self.alpha)
     else:
         raise ValueError("Method not recognised. Please use method='gauss' or method='box' ")
 
 def convolvespec(self,):
     return convolve(self.y, self.kernel)
 
-def compute_gradient(y,inc):
+def compute_gradients(self, gradmethod='tvregdiff'):
     """
-    may need to trim the edges
+
     """
-    return np.gradient(y)/inc
+
+    inc=self.x[1]-self.x[0]
+    if gradmethod=='tvregdiff':
+        d1=TVRegDiff(self.y, 1, self.alpha, ep=0.1, dx=inc, plotflag=False, diagflag=False,scale='large')
+        d2=TVRegDiff(d1, 1, self.alpha, ep=0.1, dx=inc, plotflag=False, diagflag=False,scale='large')
+        d3=TVRegDiff(d2, 1, self.alpha, ep=0.1, dx=inc, plotflag=False, diagflag=False,scale='large')
+        d4=TVRegDiff(d3, 1, self.alpha, ep=0.1, dx=inc, plotflag=False, diagflag=False,scale='large')
+    elif gradmethod=='convolve':
+        d1 = np.gradient(self.ysmooth)/inc
+        d2 = np.gradient(d1)/inc
+        d3 = np.gradient(d2)/inc
+        d4 = np.gradient(d3)/inc
+    else:
+        pass
+
+    return d1,d2,d3,d4
 
 def get_components(self, positives=True):
     """
@@ -97,7 +110,7 @@ def get_widths(self, positives=True):
         id = np.array(np.where(self.conditionmask_n)).ravel()
     inflection = np.abs(np.diff(np.sign(self.d2)))
     widths = np.sqrt(np.abs(self.y/self.d2)[id])
-    return widths
+    return widths/self.ncomps
 
 def get_guesses(self, positives=True):
     guesses=[]

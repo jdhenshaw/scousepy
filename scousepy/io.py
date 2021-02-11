@@ -435,8 +435,8 @@ def get_solnlist_saa(self, saa_dict):
             soln = SAA.model
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              SAA.coordinates[1], \
-                                              SAA.coordinates[0])
+                                              SAA.coordinates[0], \
+                                              SAA.coordinates[1])
                 solnlist.append(solution_desc)
 
     return solnlist
@@ -451,14 +451,14 @@ def get_solnlist_indiv(self):
         soln = spectrum.model
         if soln.ncomps==0.0:
             solution_desc = get_soln_desc(0, soln, \
-                                          spectrum.coordinates[1], \
-                                          spectrum.coordinates[0])
+                                          spectrum.coordinates[0], \
+                                          spectrum.coordinates[1])
             solnlist.append(solution_desc)
         else:
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              spectrum.coordinates[1], \
-                                              spectrum.coordinates[0])
+                                              spectrum.coordinates[0], \
+                                              spectrum.coordinates[1])
                 solnlist.append(solution_desc)
 
     return solnlist

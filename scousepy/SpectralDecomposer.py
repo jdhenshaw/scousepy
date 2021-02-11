@@ -100,6 +100,7 @@ class Decomposer(object):
         self.method='dspec'
         self.fittype=fittype
         self.guesses=guesses
+
         self.fit_a_spectrum()
         self.get_model_information()
 
