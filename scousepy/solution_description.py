@@ -36,7 +36,7 @@ class fit(object):
                 old_log = log.level
                 log.setLevel('ERROR')
 
-                spec = pyspeckit.Spectrum(data=[0,0], error=[0,0], xarr=[0,0])
+                spec = pyspeckit.Spectrum(data=[0.0,0.0], error=[0.0,0.0], xarr=[0.0,0.0])
                 spec.specfit.fittype = scouse.fittype
                 spec.specfit.fitter = spec.specfit.Registry.multifitters[scouse.fittype]
 
