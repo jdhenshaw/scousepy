@@ -253,8 +253,8 @@ class ScouseFitter(object):
         #===============#
         # Set up the plot defaults
         self.spectrum_window_ax=[0.05,0.475,0.375,0.425]
-        ymin=np.min(self.specy)-0.2*np.max(self.specy)
-        ymax=np.max(self.specy)+0.2*np.max(self.specy)
+        ymin=np.nanmin(self.specy)-0.2*np.nanmax(self.specy)
+        ymax=np.nanmax(self.specy)+0.2*np.nanmax(self.specy)
         self.spectrum_window=setup_plot_window(self,self.spectrum_window_ax,ymin=ymin,ymax=ymax)
         self.spectrum_window.text(0.99, 0.05, 'select legend items to toggle',
                                   transform=self.spectrum_window.transAxes,
@@ -274,9 +274,9 @@ class ScouseFitter(object):
         #============#
         # Set up the plot defaults
         self.deriv_window_ax=[0.45,0.475,0.375,0.425]
-        ymin=np.min([np.min(self.d1/np.max(self.d1)),np.min(self.d2/np.max(self.d2)),np.min(self.d3/np.max(self.d3)),np.min(self.d4/np.max(self.d4))])
-        ymax=np.max([np.max(self.d1/np.max(self.d1)),np.max(self.d2/np.max(self.d2)),np.max(self.d3/np.max(self.d3)),np.max(self.d4/np.max(self.d4))])
-        lim=np.max(np.abs([ymin,ymax]))
+        ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
+        ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
+        lim=np.nanmax(np.abs([ymin,ymax]))
         self.deriv_window=setup_plot_window(self,self.deriv_window_ax,ymin=-1*lim,ymax=lim)
         # plot the (normalised) derivatives
         plot_derivatives(self)
@@ -575,20 +575,20 @@ class ScouseFitter(object):
         self.dsp = compute_dsp(self)
 
         # update spectrum plot
-        ymax=np.max([self.SNR*self.specrms, np.max(self.specy)])+\
-             0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
-        ymin=np.min(self.specy)-0.2*np.max(self.specy)
+        ymax=np.nanmax([self.SNR*self.specrms, np.nanmax(self.specy)])+\
+             0.2*np.nanmax([self.SNR*self.specrms, np.nanmax(self.specy)])
+        ymin=np.nanmin(self.specy)-0.2*np.nanmax(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
         self.plot_spectrum=plot_spectrum(self,self.specx,self.specy,update=True,plottoupdate=self.plot_spectrum)
         self.plot_smooth=plot_spectrum(self,self.specx,self.ysmooth,update=True,plottoupdate=self.plot_smooth)
-        self.plot_SNR.set_xdata([np.min(self.specx),np.max(self.specx)])
+        self.plot_SNR.set_xdata([np.nanmin(self.specx),np.nanmax(self.specx)])
         self.plot_SNR.set_ydata([self.SNR*self.specrms,self.SNR*self.specrms])
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update deriv plot
-        ymin=np.min([np.min(self.d1/np.max(self.d1)),np.min(self.d2/np.max(self.d2)),np.min(self.d3/np.max(self.d3)),np.min(self.d4/np.max(self.d4))])
-        ymax=np.max([np.max(self.d1/np.max(self.d1)),np.max(self.d2/np.max(self.d2)),np.max(self.d3/np.max(self.d3)),np.max(self.d4/np.max(self.d4))])
-        lim=np.max(np.abs([ymin,ymax]))
+        ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
+        ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
+        lim=np.nanmax(np.abs([ymin,ymax]))
         plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
@@ -655,11 +655,11 @@ class ScouseFitter(object):
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
-        ymax=np.max([self.SNR*self.specrms, np.max(self.specy)])+\
-             0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
-        ymin=np.min(self.specy)-0.2*np.max(self.specy)
+        ymax=np.nanmax([self.SNR*self.specrms, np.nanmax(self.specy)])+\
+             0.2*np.nanmax([self.SNR*self.specrms, np.nanmax(self.specy)])
+        ymin=np.nanmin(self.specy)-0.2*np.nanmax(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
-        self.plot_SNR.set_xdata([np.min(self.specx),np.max(self.specx)])
+        self.plot_SNR.set_xdata([np.nanmin(self.specx),np.nanmax(self.specx)])
         self.plot_SNR.set_ydata([self.SNR*self.specrms,self.SNR*self.specrms])
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
@@ -700,9 +700,9 @@ class ScouseFitter(object):
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update deriv plot
-        ymin=np.min([np.min(self.d1/np.max(self.d1)),np.min(self.d2/np.max(self.d2)),np.min(self.d3/np.max(self.d3)),np.min(self.d4/np.max(self.d4))])
-        ymax=np.max([np.max(self.d1/np.max(self.d1)),np.max(self.d2/np.max(self.d2)),np.max(self.d3/np.max(self.d3)),np.max(self.d4/np.max(self.d4))])
-        lim=np.max(np.abs([ymin,ymax]))
+        ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
+        ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
+        lim=np.nanmax(np.abs([ymin,ymax]))
         plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
@@ -992,7 +992,11 @@ def get_model_info(self):
         modeldict['ncomps']=0
         modeldict['params']=[0.0,0.0,0.0]
         modeldict['errors']=[0.0,0.0,0.0]
-        modeldict['rms']=self.spectrum.error[0]
+        idnonmasked=np.where(~self.spectrum.error.mask)[0]
+        if np.size(idnonmasked)==0:
+            self.modeldict['rms']=np.nan
+        else:
+            self.modeldict['rms']=self.spectrum.error[idnonmasked[0]]
         modeldict['residstd']= np.std(self.spectrum.data)
         modeldict['chisq']=0.0
         modeldict['dof']=0.0
@@ -1072,7 +1076,7 @@ def plot_snr(self,**kwargs):
     """
     GUI setup
     """
-    return self.spectrum_window.plot([np.min(self.specx),np.max(self.specx)],[self.SNR*self.specrms,self.SNR*self.specrms],**kwargs)
+    return self.spectrum_window.plot([np.nanmin(self.specx),np.nanmax(self.specx)],[self.SNR*self.specrms,self.SNR*self.specrms],**kwargs)
 
 def plot_peak_locations(self,update=False,plottoupdate=None,**kwargs):
     """
@@ -1105,10 +1109,10 @@ def plot_derivatives(self,update=False,ymin=None,ymax=None):
     """
     import numpy as np
 
-    d1=self.d1/np.max(self.d1)
-    d2=self.d2/np.max(self.d2)
-    d3=self.d3/np.max(self.d3)
-    d4=self.d4/np.max(self.d4)
+    d1=self.d1/np.nanmax(self.d1)
+    d2=self.d2/np.nanmax(self.d2)
+    d3=self.d3/np.nanmax(self.d3)
+    d4=self.d4/np.nanmax(self.d4)
     # plot the data
     if update:
         self.deriv_window.set_ylim([ymin,ymax])

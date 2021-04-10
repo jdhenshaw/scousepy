@@ -465,7 +465,11 @@ class Decomposer(object):
             self.modeldict['ncomps']=0
             self.modeldict['params']=np.zeros(len(self.pskspectrum.specfit.modelerrs))
             self.modeldict['errors']=np.zeros(len(self.pskspectrum.specfit.modelerrs))
-            self.modeldict['rms']=self.pskspectrum.error[0]
+            idnonmasked=np.where(~self.pskspectrum.error.mask)[0]
+            if np.size(idnonmasked)==0:
+                self.modeldict['rms']=np.nan
+            else:
+                self.modeldict['rms']=self.pskspectrum.error[idnonmasked[0]]
             self.modeldict['residstd']= np.std(self.pskspectrum.data)
             self.modeldict['chisq']=0.0
             self.modeldict['dof']=0.0
@@ -479,7 +483,11 @@ class Decomposer(object):
             self.modeldict['ncomps']=int(self.pskspectrum.specfit.npeaks)
             self.modeldict['params']=self.pskspectrum.specfit.modelpars
             self.modeldict['errors']=self.pskspectrum.specfit.modelerrs
-            self.modeldict['rms']=self.pskspectrum.error[0]
+            idnonmasked=np.where(~self.pskspectrum.error.mask)[0]
+            if np.size(idnonmasked)==0:
+                self.modeldict['rms']=np.nan
+            else:
+                self.modeldict['rms']=self.pskspectrum.error[idnonmasked[0]]
             self.modeldict['residstd']= np.std(self.pskspectrum.specfit.residuals)
             self.modeldict['chisq']=self.pskspectrum.specfit.chi2
             self.modeldict['dof']=self.pskspectrum.specfit.dof

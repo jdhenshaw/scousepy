@@ -482,6 +482,9 @@ class scouse(object):
         # check if stages 1 and 2 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            #### TMP FIX
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            ###
             import_from_config(self, self.coverage_config_file_path)
         if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
             if self.verbose:
@@ -503,7 +506,7 @@ class scouse(object):
         if self.verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
 
-        # generate a list of all SAA's (inc. all wsaas)
+        # generate a list of all SAAs (inc. all wsaas)
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
 
@@ -752,6 +755,9 @@ class scouse(object):
         # check if stages 1, 2, 3 and 4 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            #### TMP FIX
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            ###
             import_from_config(self, self.coverage_config_file_path)
         if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
             self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
