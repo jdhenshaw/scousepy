@@ -992,11 +992,14 @@ def get_model_info(self):
         modeldict['ncomps']=0
         modeldict['params']=[0.0,0.0,0.0]
         modeldict['errors']=[0.0,0.0,0.0]
-        idnonmasked=np.where(~self.spectrum.error.mask)[0]
-        if np.size(idnonmasked)==0:
-            self.modeldict['rms']=np.nan
+        if np.ma.is_masked(self.pskspectrum.error):
+            idnonmasked=np.where(~self.pskspectrum.error.mask)[0]
+            if np.size(idnonmasked)==0:
+                self.modeldict['rms']=np.nan
+            else:
+                self.modeldict['rms']=self.pskspectrum.error[idnonmasked[0]]
         else:
-            self.modeldict['rms']=self.spectrum.error[idnonmasked[0]]
+            self.modeldict['rms']=self.pskspectrum.error[0]
         modeldict['residstd']= np.std(self.spectrum.data)
         modeldict['chisq']=0.0
         modeldict['dof']=0.0
