@@ -523,21 +523,23 @@ class Decomposer(object):
 
         """
         self.guesses_updated=np.asarray(self.modeldict['params'])
-        condition_passed = np.zeros(4, dtype='bool')
+        condition_passed = np.zeros(5, dtype='bool')
 
         condition_passed = self.check_ncomps(condition_passed)
 
         if condition_passed[0]:
-            condition_passed=self.check_rms(condition_passed)
+            condition_passed=self.check_finite(condition_passed)
             if (condition_passed[0]) and (condition_passed[1]):
-                condition_passed=self.check_dispersion(condition_passed)
+                condition_passed=self.check_rms(condition_passed)
                 if (condition_passed[0]) and (condition_passed[1]) and (condition_passed[2]):
-                    condition_passed=self.check_velocity(condition_passed)
-                    if np.all(condition_passed):
-                        if int((np.size(self.guesses_updated)/np.size(self.modeldict['parnames']))==1):
-                            self.validfit = True
-                        else:
-                            self.check_distinct()
+                    condition_passed=self.check_dispersion(condition_passed)
+                    if (condition_passed[0]) and (condition_passed[1]) and (condition_passed[2]) and (condition_passed[3]):
+                        condition_passed=self.check_velocity(condition_passed)
+                        if np.all(condition_passed):
+                            if int((np.size(self.guesses_updated)/np.size(self.modeldict['parnames']))==1):
+                                self.validfit = True
+                            else:
+                                self.check_distinct()
 
         self.conditions=condition_passed
 
@@ -558,6 +560,31 @@ class Decomposer(object):
             self.guesses_updated=[]
         else:
             condition_passed[0]=True
+
+        return condition_passed
+
+    def check_finite(self, condition_passed):
+        """
+        Check to see if the number of components in the fit are not finite
+
+        """
+
+        nparams=np.size(self.modeldict['parnames'])
+        ncomponents=np.size(self.guesses_updated)/nparams
+
+        # Now check all components to see if they are finite
+        for i in range(int(ncomponents)):
+            # find violating components
+            if np.any(np.isnan(self.guesses_updated[int(i*nparams):int(i*nparams)+nparams])):
+                self.guesses_updated[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
+
+        violating_comps = (self.guesses_updated==0.0)
+        if np.any(violating_comps):
+            condition_passed[1]=False
+        else:
+            condition_passed[1]=True
+
+        self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
         return condition_passed
 
@@ -589,9 +616,9 @@ class Decomposer(object):
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[1]=False
+            condition_passed[2]=False
         else:
-            condition_passed[1]=True
+            condition_passed[2]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
@@ -640,9 +667,9 @@ class Decomposer(object):
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[2]=False
+            condition_passed[3]=False
         else:
-            condition_passed[2]=True
+            condition_passed[3]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
@@ -694,9 +721,9 @@ class Decomposer(object):
 
         violating_comps = (self.guesses_updated==0.0)
         if np.any(violating_comps):
-            condition_passed[3]=False
+            condition_passed[4]=False
         else:
-            condition_passed[3]=True
+            condition_passed[4]=True
 
         self.guesses_updated = self.guesses_updated[(self.guesses_updated != 0.0)]
 
