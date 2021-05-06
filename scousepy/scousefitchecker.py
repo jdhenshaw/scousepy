@@ -33,7 +33,7 @@ class ScouseFitChecker(object):
                 selected_spectra=None,
                 maps=['rms','residstd','redchisq','ncomps','AIC','chisq'],
                 SNR=3,minSNR=1,maxSNR=30,
-                kernelsize=3,minkernel=1,maxkernel=30,
+                alpha=3,minkernel=1,maxkernel=30,
                 fittype='gaussian',
                 xarrkwargs={},unit={}):
 
@@ -55,7 +55,7 @@ class ScouseFitChecker(object):
         self.SNR=SNR
         self.minSNR=minSNR
         self.maxSNR=maxSNR
-        self.kernelsize=kernelsize
+        self.alpha=alpha
         self.minkernel=minkernel
         self.maxkernel=maxkernel
 
@@ -169,7 +169,7 @@ class ScouseFitChecker(object):
         self.slider_snr=make_slider(self.slider_snr_ax,"SNR",self.minSNR,self.maxSNR,self.update_SNR,valinit=self.SNR, valfmt="%i", facecolor='0.75')
 
         self.slider_kernel_ax=self.fig.add_axes([0.675, 0.8125, 0.275, 0.015])
-        self.slider_kernel=make_slider(self.slider_kernel_ax,"kernel",self.minkernel,self.maxkernel,self.update_kernelsize,valinit=self.kernelsize, valfmt="%i", facecolor='0.75')
+        self.slider_kernel=make_slider(self.slider_kernel_ax,"kernel",self.minkernel,self.maxkernel,self.update_alpha,valinit=self.alpha, valfmt="%i", facecolor='0.75')
 
         #========================#
         # compute diagnostics menu
@@ -617,9 +617,9 @@ class ScouseFitChecker(object):
         # update plot
         self.fig.canvas.draw()
 
-    def update_kernelsize(self,pos=None):
+    def update_alpha(self,pos=None):
         """
-        This controls what happens if the kernelsize slider is updated
+        This controls what happens if the alpha slider is updated
 
         Parameters:
         -----------
@@ -627,7 +627,7 @@ class ScouseFitChecker(object):
 
         """
         # new kernel size
-        self.kernelsize=int(round(pos))
+        self.alpha=int(round(pos))
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
@@ -1220,7 +1220,7 @@ def compute_dsp(self):
     Computes derivative spectroscopy and sets some global values
     """
     from scousepy.dspec import DSpec
-    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,kernelsize=self.kernelsize)
+    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,alpha=self.alpha)
     self.ysmooth = dsp.ysmooth
     self.d1 = dsp.d1
     self.d2 = dsp.d2
@@ -1256,7 +1256,7 @@ def get_model_info(self):
         modeldict['method']=self.decomposer.method
 
     modeldict['SNR']=self.SNR
-    modeldict['kernelsize']=self.kernelsize
+    modeldict['alpha']=self.alpha
 
     return modeldict
 
