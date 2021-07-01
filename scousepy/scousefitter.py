@@ -36,7 +36,7 @@ class ScouseFitter(object):
                        SNR=3,minSNR=1,maxSNR=30,
                        alpha=3,minalpha=1,maxalpha=30,
                        outputfile=None,
-                       xarrkwargs={},unit=''):
+                       xarrkwargs={},unit='',refit=False):
 
         """
 
@@ -154,11 +154,14 @@ class ScouseFitter(object):
                 if np.any(self.fitcount):
                     # Check to see if all of the spectra have been fitted.
                     if np.all(self.fitcount):
-                        print('')
-                        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                        print('')
-                        # exit if fitting has been completed
-                        return
+                        if not refit:
+                            print('')
+                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                            print('')
+                            # exit if fitting has been completed
+                            return
+                        else:
+                            self.index=0
                     else:
                         # pick up from where you left off
                         self.index=np.where(self.fitcount==False)[0][0]

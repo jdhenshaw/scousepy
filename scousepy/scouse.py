@@ -443,7 +443,7 @@ class scouse(object):
             self.trimids,\
             self.rms_approx=pickle.load(fh)
 
-    def stage_2(config=''):
+    def stage_2(config='', refit=False):
         """
         Fitting of the SAAs
 
@@ -492,9 +492,11 @@ class scouse(object):
             self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
             if self.fitcount is not None:
                 if np.all(self.fitcount):
-                    print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                    print('')
-                    return self
+                    if not refit:
+                        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                        print('')
+                        return self
+
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -524,7 +526,7 @@ class scouse(object):
                                 fit_dict=self.saa_dict,
                                 parent=saa_list[:,1],
                                 fitcount=self.fitcount,
-                                )
+                                refit=refit)
         fitterobject.show()
 
         if np.all(self.fitcount):
