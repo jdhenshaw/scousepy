@@ -5,10 +5,24 @@
 About
 =====
 
-Multi-component spectral line decomposition with ``scousepy``. ``scousepy'' is a
+Multi-component spectral line decomposition with ``scousepy``. ``scousepy`` is a
 package for the analysis of spectral line data. For a comprehensive description
 of the algorithm and functionality please head to
 [http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
+
+Basic description
+=================
+
+``scousepy`` includes tools for the decomposition of both data cubes, individual
+spectra, and lists of specta.
+
+Cube Fitting
+------------
+
+Cube fitting with ``scousepy`` is divided into 4 main phases:
+
+1. Defining the covergae
+
 
 Installing scousepy
 ===================
