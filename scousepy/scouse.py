@@ -1,11 +1,9 @@
 # Licensed under an MIT open source license - see LICENSE
 
 """
-
 SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2016-2018 Jonathan D. Henshaw
+Copyright (c) 2016-2021 Jonathan D. Henshaw
 CONTACT: henshaw@mpia.de
-
 """
 
 from __future__ import print_function
@@ -172,43 +170,31 @@ class scouse(object):
         T0 = NEW! controls how different the number of components in the fitted
              spectrum can be from the number of components of the parent
              spectrum.
-
              if |ncomps_spec - ncomps_saa| > T0 ; the fit is rejected
-
         T1 = multiple of the rms noise value (all components below this
              value are rejected).
-
              if I_peak < T1*rms ; the component is rejected
-
         T2 = minimum width of a component (in channels)
-
              if FHWM < T2*channel_width ; the component is rejected
-
         T3 = Governs how much the velocity dispersion of a given component can
              differ from the closest matching component in the SAA fit. It is
              given as a multiple of the velocity dispersion of the closest
              matching component.
-
              relchange = sigma/sigma_saa
              if relchange < 1:
                  relchange = 1/relchange
              if relchange > T3 ; the component is rejected
-
         T4 = Similar to T3. Governs how much the velocity of a given component
              can differ from the velocity of the closest matching component in
              the parent SAA.
-
              lowerlim = vel_saa - T4*disp_saa
              upperlim = vel_saa + T4*disp_saa
              if vel < lowerlim or vel > upperlim ; the component is rejected
-
         T5 = Dictates how close two components have to be before they are
              considered indistinguishable. Given as a multiple of the
              velocity dispersion of the narrowest neighbouring component.
-
              if vel - vel_neighbour < T5*FWHM_narrowestcomponent ; take the
              average of the two components and use this as a new guess
-
     njobs : int, optional
         Used for parallelised fitting
 
@@ -217,7 +203,6 @@ class scouse(object):
     indiv_dict : dictionary
         A dictionary containing each spectrum fit by scouse and their best
         fitting model solutions
-
 
     """
 
@@ -313,7 +298,6 @@ class scouse(object):
         -----
         See scouse class documentation for description of the parameters that
         are set during this stage.
-
         """
 
         # Import
@@ -704,35 +688,9 @@ class scouse(object):
 
     def stage_4(config='', bitesize=False, verbose=True):
         """
-        Stage 5
+        Stage 4
 
         In this stage the user is required to check the best-fitting solutions
-
-        Parameters
-        ----------
-        blocksize : int, optional
-            Defines the number of spectra that will be checked at any one time.
-            Scouse will display blocksize x blocksize spectra.
-        plot_residuals : bool, optional
-            If true, scouse will display the residuals as well as the best
-            fitting solution.
-        figsize : list
-            Sets the figure size
-        verbose : bool, optional
-            Verbose output.
-        autosave : bool, optional
-            Autoaves the scouse output.
-        bitesize : bool, optional
-            Optional bitesize checking. This allows the user to pick up where
-            they left off and continue to check spectra.
-        repeat : bool, optional
-            Sometimes you may want to run stage 5 multiple times. Combined with
-            newfile, this allows you to. If you are repeating the process, set
-            to true.
-        newfile : string, optional
-            If a string scouse will write the output to a new file rather than
-            overwriting the previous one. If nothing is entered, but repeat is
-            True then scouse will simply append '.bk' to the old s5 output.
 
         """
         # import
@@ -865,7 +823,6 @@ class scouse(object):
             configuration file
         verbose : bool, optional
             verbose output to terminal
-
         """
         from .io import create_directory_structure
         from .io import generate_config_file
@@ -915,7 +872,7 @@ class scouse(object):
         cube : spectral cube
             If fits file is not supplied - provide a spectral cube object
             instead
-
+            
         """
         import warnings
 
@@ -965,7 +922,6 @@ class scouse(object):
         """
         Determines number of cpus available for parallel processing. If njobs
         is set to None scouse will automatically use 75% of available cpus.
-
         """
         import multiprocessing
         maxcpus=multiprocessing.cpu_count()
