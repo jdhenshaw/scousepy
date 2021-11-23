@@ -33,7 +33,7 @@ class ScouseFitChecker(object):
                 selected_spectra=None,
                 maps=['rms','residstd','redchisq','ncomps','AIC','chisq'],
                 SNR=3,minSNR=1,maxSNR=30,
-                alpha=3,minkernel=1,maxkernel=30,
+                alpha=3,minalpha=0.1,maxalpha=30,
                 fittype='gaussian',
                 xarrkwargs={},unit={}):
 
@@ -56,8 +56,8 @@ class ScouseFitChecker(object):
         self.minSNR=minSNR
         self.maxSNR=maxSNR
         self.alpha=alpha
-        self.minkernel=minkernel
-        self.maxkernel=maxkernel
+        self.minalpha=minalpha
+        self.maxalpha=maxalpha
 
         self.speckey=None
         self.specx=None
@@ -168,8 +168,8 @@ class ScouseFitChecker(object):
         self.slider_snr_ax=self.fig.add_axes([0.675, 0.84, 0.275, 0.015])
         self.slider_snr=make_slider(self.slider_snr_ax,"SNR",self.minSNR,self.maxSNR,self.update_SNR,valinit=self.SNR, valfmt="%i", facecolor='0.75')
 
-        self.slider_kernel_ax=self.fig.add_axes([0.675, 0.8125, 0.275, 0.015])
-        self.slider_kernel=make_slider(self.slider_kernel_ax,"kernel",self.minkernel,self.maxkernel,self.update_alpha,valinit=self.alpha, valfmt="%i", facecolor='0.75')
+        self.slider_alpha_ax=self.fig.add_axes([0.675, 0.8125, 0.275, 0.015])
+        self.slider_alpha=make_slider(self.slider_alpha_ax,"alpha",self.minalpha,self.maxalpha,self.update_alpha,valinit=self.alpha, valfmt="%i", facecolor='0.75')
 
         #========================#
         # compute diagnostics menu
