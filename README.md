@@ -5,14 +5,10 @@
 About
 =====
 
-The ``scousepy`` package provides a method by which a large amount of complex
-astronomical spectral line data can be fitted in a systematic way. A description
-of the method and original [IDL version](https://github.com/jdhenshaw/SCOUSE) of the code
-can be found in [Henshaw et al. 2016](http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H).
-For a more comprehensive description of ``scousepy``, including a
-simple tutorial, please head [here](http://scousepy.readthedocs.io/en/latest/?badge=latest).
-The example scripts and data required for the tutorials can be found in the [scousepy_tutorials](https://github.com/jdhenshaw/scousepy_tutorials)
-repo.
+Multi-component spectral line decomposition with ``scousepy``. ``scousepy'' is a
+package for the analysis of spectral line data. For a comprehensive description
+of the algorithm and functionality please head to
+[http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
 Installing scousepy
 ===================
