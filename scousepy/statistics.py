@@ -2,7 +2,7 @@
 
 """
 
-SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
+scouse - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
 Copyright (c) 2016-2018 Jonathan D. Henshaw
 CONTACT: henshaw@mpia.de
 
@@ -16,31 +16,31 @@ from astropy.table import Column
 from .io import get_headings
 
 class stats(object):
-    def __init__(self, scouse=None):
+    def __init__(self, scouseobject=None):
         """
         Computes basic statistics on fitting
         """
 
-        self._nspec = get_nspec(self, scouse)
-        self._nsaa, self._nsaa_indiv = get_nsaa(self,scouse)
-        self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouse)
-        self._nfits = get_nfits(self, scouse)
-        self._ncomps = get_ncomps(self, scouse)
+        self._nspec = get_nspec(self, scouseobject)
+        self._nsaa, self._nsaa_indiv = get_nsaa(self,scouseobject)
+        self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouseobject)
+        self._nfits = get_nfits(self, scouseobject)
+        self._ncomps = get_ncomps(self, scouseobject)
         self._ncompsperfit = None
-        self._noriginal = get_noriginal(self, scouse)
-        self._nrefit = get_nrefit(self, scouse)
-        self._nalt = get_nalt(self, scouse)
-        self._nmultiple = get_nmultiple(self, scouse)
+        self._noriginal = get_noriginal(self, scouseobject)
+        self._nrefit = get_nrefit(self, scouseobject)
+        self._nalt = get_nalt(self, scouseobject)
+        self._nmultiple = get_nmultiple(self, scouseobject)
         self._originalfrac = None
         self._refitfrac = None
         self._altfrac = None
-        self._stats = get_param_stats(self, scouse)
+        self._stats = get_param_stats(self, scouseobject)
         self._meanrms = None
         self._meanresid = None
-        self._residratio = get_residratio(self, scouse)
-        self._meanchi2 = None
-        self._meanredchi2 = None
-        self._meanaic = None
+        self._residratio = get_residratio(self, scouseobject)
+        self._meanchisq = None
+        self._meanredchisq = None
+        self._meanAIC = None
 
     @property
     def stats(self):
@@ -50,25 +50,25 @@ class stats(object):
         return self._stats
 
     @property
-    def meanaic(self):
+    def meanAIC(self):
         """
         Returns mean chiq
         """
-        return self._stats['aic'][5]
+        return self._stats['AIC'][5]
 
     @property
-    def meanredchi2(self):
+    def meanredchisq(self):
         """
-        Returns mean redchi2
+        Returns mean redchisq
         """
-        return self._stats['redchi2'][5]
+        return self._stats['redchisq'][5]
 
     @property
-    def meanchi2(self):
+    def meanchisq(self):
         """
-        Returns mean chi2
+        Returns mean chisq
         """
-        return self._stats['chi2'][5]
+        return self._stats['chisq'][5]
 
     @property
     def residratio(self):
@@ -197,50 +197,50 @@ class stats(object):
         """
         return self._nspec
 
-def get_param_stats(self, scouse):
+def get_param_stats(self, scouseobject):
     """
     Calculates statistics for parameters
     """
 
-    keys = list(scouse.indiv_dict.keys())
-    nparams = np.size(scouse.indiv_dict[keys[0]].model.parnames)
+    keys = list(scouseobject.indiv_dict.keys())
+    nparams = np.size(scouseobject.indiv_dict[keys[0]].model.parnames)
 
     ncomps = []
     params = []
     errors = []
     rms = []
     residstd = []
-    chi2 = []
-    redchi2 = []
-    aic = []
+    chisq = []
+    redchisq = []
+    AIC = []
 
     for key in keys:
-        spectrum = scouse.indiv_dict[key]
+        spectrum = scouseobject.indiv_dict[key]
         if spectrum.model.ncomps != 0.0:
             ncomps.append(spectrum.model.ncomps)
             rms.append(spectrum.rms)
             residstd.append(spectrum.model.residstd)
-            chi2.append(spectrum.model.chi2)
-            redchi2.append(spectrum.model.redchi2)
-            aic.append(spectrum.model.aic)
+            chisq.append(spectrum.model.chisq)
+            redchisq.append(spectrum.model.redchisq)
+            AIC.append(spectrum.model.AIC)
 
             for i in range(0, int(spectrum.model.ncomps)):
                 params.append(spectrum.model.params[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
                 errors.append(spectrum.model.errors[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
 
-    commonstats = [ncomps, rms, residstd, chi2, redchi2, aic]
-    statkeys = get_statkeys(scouse, nparams)
+    commonstats = [ncomps, rms, residstd, chisq, redchisq, AIC]
+    statkeys = get_statkeys(scouseobject, nparams)
     statlist = unpack_statlist(nparams, commonstats, params, errors, statkeys)
 
     stat_dict = get_stat_dict(statkeys, statlist)
 
     return stat_dict
 
-def get_statkeys(scouse, nparams):
+def get_statkeys(scouseobject, nparams):
     """
     Returns key headings for the stats
     """
-    statkeys = get_headings(scouse, scouse.saa_dict[0])
+    statkeys = get_headings(scouseobject, scouseobject.saa_dict[0])
     statkeys.remove('x')
     statkeys.remove('y')
     statkeys.remove('dof')
@@ -254,8 +254,8 @@ def unpack_statlist(nparams, commonstats, params, errors, statkeys):
     Creates a list of stats in the same order as statkeys
     """
     _statlist = []
-    params = np.asarray(params)
-    errors = np.asarray(errors)
+    params = np.asarray(params,dtype='object')
+    errors = np.asarray(errors,dtype='object')
     for i in range(nparams):
         _statlist.append(params[:,i])
         _statlist.append(errors[:,i])
@@ -264,7 +264,7 @@ def unpack_statlist(nparams, commonstats, params, errors, statkeys):
         stat=np.asarray(commonstats[i])
         _statlist.append(stat)
 
-    _statlist = np.asarray(_statlist)
+    _statlist = np.asarray(_statlist,dtype='object')
 
     return _statlist
 
@@ -287,42 +287,42 @@ def get_stat_dict(statkeys, statlist):
 
     return stat_dict
 
-def get_residratio(self, scouse):
+def get_residratio(self, scouseobject):
     """
     Calculates mean ratio of resid/rms
     """
-    rmslist = [scouse.indiv_dict[key].model.rms for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
-    residlist = [scouse.indiv_dict[key].model.residstd for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
+    rmslist = [scouseobject.indiv_dict[key].model.rms for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
+    residlist = [scouseobject.indiv_dict[key].model.residstd for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
     return (np.asarray(residlist)/np.asarray(rmslist)).mean(axis=0)
 
-def get_nfits(self, scouse):
+def get_nfits(self, scouseobject):
     """
     Calculates number of non-dud fits
     """
-    fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
     return np.size(fits)
 
-def get_nspec(self, scouse):
+def get_nspec(self, scouseobject):
     """
     Gets number of spectra
     """
-    return scouse.cube.shape[1]*scouse.cube.shape[2]
+    return scouseobject.cube.shape[1]*scouseobject.cube.shape[2]
 
-def get_ncomps(self, scouse):
+def get_ncomps(self, scouseobject):
     """
     Calculates number of components
     """
-    fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps != 0.0) ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
     return np.sum(fits)
 
-def get_nmultiple(self, scouse):
+def get_nmultiple(self, scouseobject):
     """
     Calculates number of components
     """
-    fits = [scouse.indiv_dict[key].model.ncomps for key in scouse.indiv_dict.keys() if (scouse.indiv_dict[key].model.ncomps > 1.0)  ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps > 1.0)  ]
     return len(fits)
 
-def get_nspecsaa(self, scouse):
+def get_nspecsaa(self, scouseobject):
     """
     Number of spectra contained within spectral averaging areas
     """
@@ -330,8 +330,8 @@ def get_nspecsaa(self, scouse):
     indices_indiv_wsaa = []
     nspecsaa_indiv = []
 
-    for i, r in enumerate(scouse.wsaa, start=0):
-        saa_dict = scouse.saa_dict[i]
+    for i, r in enumerate(scouseobject.wsaa, start=0):
+        saa_dict = scouseobject.saa_dict[i]
         for key in saa_dict.keys():
             SAA = saa_dict[key]
             if SAA.to_be_fit:
@@ -353,14 +353,14 @@ def get_nspecsaa(self, scouse):
 
     return nspecsaa, nspecsaa_indiv
 
-def get_nsaa(self, scouse):
+def get_nsaa(self, scouseobject):
     """
     Total number of spectral averaging areas that have been fitted
     """
     nsaa = 0.0
     nsaa_indiv = []
-    for i, r in enumerate(scouse.wsaa, start=0):
-        saa_dict = scouse.saa_dict[i]
+    for i, r in enumerate(scouseobject.wsaa, start=0):
+        saa_dict = scouseobject.saa_dict[i]
         for key in saa_dict.keys():
             SAA = saa_dict[key]
             if SAA.to_be_fit:
@@ -369,40 +369,40 @@ def get_nsaa(self, scouse):
         nsaa = 0.0
     return np.sum(nsaa_indiv), nsaa_indiv
 
-def get_nrefit(self, scouse):
+def get_nrefit(self, scouseobject):
     """
     Get the number of spectra that were manually refitted.
     """
 
     nrefit = 0.0
-    for key in scouse.indiv_dict.keys():
-        spectrum = scouse.indiv_dict[key]
+    for key in scouseobject.indiv_dict.keys():
+        spectrum = scouseobject.indiv_dict[key]
         if spectrum.decision == 'refit':
             nrefit+=1
 
     return nrefit
 
-def get_nalt(self, scouse):
+def get_nalt(self, scouseobject):
     """
     Get the number of spectra that were manually refitted.
     """
 
     nalt = 0.0
-    for key in scouse.indiv_dict.keys():
-        spectrum = scouse.indiv_dict[key]
+    for key in scouseobject.indiv_dict.keys():
+        spectrum = scouseobject.indiv_dict[key]
         if spectrum.decision == 'alternative':
             nalt+=1
 
     return nalt
 
-def get_noriginal(self, scouse):
+def get_noriginal(self, scouseobject):
     """
     Get the number of spectra that were manually refitted.
     """
 
     noriginal = 0.0
-    for key in scouse.indiv_dict.keys():
-        spectrum = scouse.indiv_dict[key]
+    for key in scouseobject.indiv_dict.keys():
+        spectrum = scouseobject.indiv_dict[key]
         if spectrum.decision == 'original':
             noriginal+=1
 

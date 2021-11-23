@@ -32,64 +32,253 @@ if sys.version_info.major >= 3:
 else:
     proto=2
 
-def mkdir_s1(outputdir, s1dir):
+def create_directory_structure(scousedir):
     """
-    Make the output directory for stage 1
+    Make the output directory
     """
-    if not os.path.exists(outputdir):
-        os.makedirs(outputdir)
-    if not os.path.exists(s1dir):
-        os.mkdir(s1dir)
+    from .colors import colors
 
-def mkdir_s2(outputdir, s2dir):
-    """
-    Make the output directory for stage 2
-    """
-    if not os.path.exists(s2dir):
-        os.makedirs(s2dir)
+    if not os.path.exists(scousedir):
+        os.makedirs(scousedir)
+        mkdirectory(os.path.join(scousedir, 'stage_1'))
+        mkdirectory(os.path.join(scousedir, 'stage_2'))
+        mkdirectory(os.path.join(scousedir, 'stage_3'))
+        mkdirectory(os.path.join(scousedir, 'stage_4'))
+        mkdirectory(os.path.join(scousedir, 'config_files'))
     else:
-        # TODO: error handling
         pass
 
-def mkdir_s3(outputdir, s3dir):
-    """
-    Make the output directory for stage 3
-    """
-    if not os.path.exists(s3dir):
-        os.makedirs(s3dir)
+def mkdirectory(dir):
+    if not os.path.exists(dir):
+        os.mkdir(dir)
     else:
-        # TODO: error handling
         pass
 
-def mkdir_s4(outputdir, s4dir):
-    """
-    Make the output directory for stage 4
-    """
-    if not os.path.exists(s4dir):
-        os.makedirs(s4dir)
-    else:
-        # TODO: error handling
-        pass
+def append_keywords(config_file, dct, all_keywords=False, description=True):
+    for key in dct.keys():
+        if all_keywords:
+            if description:
+                config_file.append(
+                    '\n\n# {}'.format(dct[key]['description']))
+            config_file.append('\n{} = {}'.format(key, dct[key]['default']))
+        else:
+            if dct[key]['simple']:
+                if description:
+                    config_file.append(
+                        '\n\n# {}'.format(dct[key]['description']))
+                config_file.append('\n{} = {}'.format(key, dct[key]['default']))
+    return config_file
 
-def mkdir_s5(outputdir, s5dir):
-    """
-    Make the output directory for stage 5
-    """
-    if not os.path.exists(s5dir):
-        os.makedirs(s5dir)
-    else:
-        # TODO: error handling
-        pass
+def make_string(st):
+    newstring="\'" + str(st) + "\'"
+    return newstring
 
-def mkdir_s6(outputdir, s6dir):
+def generate_config_file(filename, datadirectory, outputdir, configdir, config_filename, description, coverage=False, dict=None, covdict=None):
     """
-    Make the output directory for stage 6
+    Creates the configuration table for scousepy
+
+    Parameters
+    ----------
+    filename : string
+        output filename of the config file
+    datadirectory : string
+        directory containing the datacube
+    outputdir : string
+        output directory
+    configdir : string
+        directory containing the config files
+    config_filename : string
+        filename of the configuration file
+    description : bool
+        whether or not to include the description of each parameter
+
+    Notes
+    -----
+    adapted from Gausspy+ methodology
+
     """
-    if not os.path.exists(s6dir):
-        os.makedirs(s6dir)
+    from collections import OrderedDict
+
+    config_file = str('# ScousePy config file\n\n')
+
+    if not coverage:
+        default = [
+            ('datadirectory', {
+                'default': make_string(datadirectory),
+                'description': "location of the FITS data cube you would like to decompose",
+                'simple': True}),
+            ('filename', {
+                'default': make_string(filename),
+                'description': "name of the FITS data cube (without extension)",
+                'simple': True}),
+            ('outputdirectory', {
+                'default': make_string(outputdir),
+                'description': "output directory for data products",
+                'simple': True}),
+            ('fittype', {
+                'default': make_string('gaussian'),
+                'description': "decomposition model (default=Gaussian)",
+                'simple': True}),
+            ('njobs', {
+                'default': '3',
+                'description': "Number of CPUs used for parallel processing",
+                'simple': True}),
+            ('verbose', {
+                'default': 'True',
+                'description': "print messages to the terminal [True/False]",
+                'simple': True}),
+            ('autosave', {
+                'default': 'True',
+                'description': "autosave output from individual steps [True/False]",
+                'simple': True}),
+            ]
+
     else:
-        # TODO: error handling
-        pass
+        default = [
+            ('nrefine', {
+                'default': '1',
+                'description': "number of refinement steps",
+                'simple': True}),
+            ('mask_below', {
+                'default': '0.0',
+                'description': "mask data below this value",
+                'simple': True}),
+            ('mask_coverage', {
+                'default': 'None',
+                'description': "optional input filepath to a fits file containing a mask used to define the coverage",
+                'simple': False}),
+            ('x_range', {
+                'default': "[None, None]",
+                'description': "data x range in pixels",
+                'simple': False}),
+            ('y_range', {
+                'default': "[None, None]",
+                'description': "data y range in pixels",
+                'simple': False}),
+            ('vel_range', {
+                'default': "[None, None]",
+                'description': "data velocity range in cube units",
+                'simple': False}),
+            ('wsaa', {
+                'default': '[3]',
+                'description': "width of the spectral averaging areas",
+                'simple': True}),
+            ('fillfactor', {
+                'default': "[0.5]",
+                'description': "fractional limit below which SAAs are rejected",
+                'simple': True}),
+            ('samplesize', {
+                'default': '0',
+                'description': "sample size for randomly selecting SAAs",
+                'simple': True}),
+            ('covmethod', {
+                'default': make_string('regular'),
+                'description': "method used to define the coverage [regular/random]",
+                'simple': True}),
+            ('spacing', {
+                'default': make_string('nyquist'),
+                'description': "method setting spacing of SAAs [nyquist/regular]",
+                'simple': True}),
+            ('speccomplexity', {
+                'default': make_string('momdiff'),
+                'description': "method defining spectral complexity",
+                'simple': True}),
+            ('totalsaas', {
+                'default': 'None',
+                'description': "total number of SAAs",
+                'simple': False}),
+            ('totalspec', {
+                'default': 'None',
+                'description': "total number of spectra within the coverage",
+                'simple': False}),
+            ]
+
+
+    stage_1 = [
+        ('write_moments', {
+            'default': 'True',
+            'description': "save moment maps as FITS files [True/False]",
+            'simple': False}),
+        ('save_fig', {
+            'default': 'True',
+            'description': "generate a figure of the coverage map [True/False]",
+            'simple': False}),
+        ]
+
+    stage_2 = [
+        ('write_ascii', {
+            'default': 'True',
+            'description': "outputs an ascii table of the fits [True/False]",
+            'simple': False}),
+        ]
+
+    stage_3 = [
+        ('tol', {
+            'default': "[2.0,3.0,1.0,2.5,2.5,0.5]",
+            'description': "Tolerance values for the fitting. See Henshaw et al. 2016a",
+            'simple': True}),
+        ]
+
+    dct_default = OrderedDict(default)
+    dct_stage_1 = OrderedDict(stage_1)
+    dct_stage_2 = OrderedDict(stage_2)
+    dct_stage_3 = OrderedDict(stage_3)
+
+    config_file = []
+
+    config_file.append('[DEFAULT]')
+    config_file = append_keywords(config_file, dct_default,
+                                  all_keywords=True,
+                                  description=description)
+
+    if not coverage:
+        config_file.append('\n\n[stage_1]')
+        config_file = append_keywords(config_file, dct_stage_1,
+                                      all_keywords=True,
+                                      description=description)
+
+        config_file.append('\n\n[stage_2]')
+        config_file = append_keywords(config_file, dct_stage_2,
+                                      all_keywords=True,
+                                      description=description)
+
+        config_file.append('\n\n[stage_3]')
+        config_file = append_keywords(config_file, dct_stage_3,
+                                      all_keywords=True,
+                                      description=description)
+
+    with open(os.path.join(configdir, config_filename), 'w') as file:
+        for line in config_file:
+            file.write(line)
+
+def import_from_config(self, config_file, config_key='DEFAULT'):
+    """
+    Read in values from configuration table.
+
+    Parameters
+    ----------
+    config_file : str
+        Filepath to configuration file
+    config_key : str
+        Section of configuration file, whose parameters should be read in addition to 'DEFAULT'.
+
+    Notes
+    -----
+    adapted from Gausspy+ methodology
+
+    """
+    import ast
+    import configparser
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    for key, value in config[config_key].items():
+        try:
+            value=ast.literal_eval(value)
+            setattr(self, key, value)
+        except ValueError:
+            raise Exception('Could not parse parameter {} from config file'.format(key))
 
 def write_averaged_spectra(cube_header, saa_spectra, r, dir,
                            fits_fmatter='saa_cube_r{}.fits'):
@@ -114,14 +303,40 @@ def write_averaged_spectra(cube_header, saa_spectra, r, dir,
     hdu.header['wsaa'] = r
     hdu.writeto(dir+'/saa_cube_r_{}.fits'.format(r), overwrite=True)
 
-def output_moments(momzero, momone, momtwo, momnine, dir, filename):
+def output_moments(cube_header, moments, dir, filename):
     """
-    Write the moment maps to file
+    Write the moment maps out as fits files
     """
-    momzero.write(dir+'/'+filename+'_momzero.fits', format='fits', overwrite=True)
-    momone.write(dir+'/'+filename+'_momone.fits', format='fits', overwrite=True)
-    momtwo.write(dir+'/'+filename+'_momtwo.fits', format='fits', overwrite=True)
-    fits.writeto(dir+'/'+filename+'_momnine.fits', momnine.value, momtwo.header, overwrite=True)
+    try:
+        unit=cube_header['BUNIT']
+    except KeyError:
+        cube_header['BUNIT']='I'
+        unit=cube_header['BUNIT']
+
+    header=moments[0].header
+
+    for i in range(len(moments)-1):
+
+        if i == 0:
+            myunit=unit+str(' km s-1')
+        elif (i==1) or (i==2) or (i==5):
+            myunit=str('km s-1')
+        else:
+            myunit=''
+
+        header['BUNIT']=myunit
+        if (i==0) or (i==1) or (i==2):
+            name='_mom'+str(i)
+            fits.writeto(dir+filename+name+'.fits', moments[i].value, header, overwrite=True)
+        elif (i==5):
+            name='_velatpeak'
+            fits.writeto(dir+filename+name+'.fits', moments[i].value, header, overwrite=True)
+        else:
+            pass
+            # FOR NOW MOM 3 and 4 ARE REMOVED
+
+            #name='_mom'+str(i)
+            #fits.writeto(dir+filename+name+'.fits', moments[i], header, overwrite=True)
 
 def output_ascii_saa(self, outputdir):
     """
@@ -220,8 +435,8 @@ def get_solnlist_saa(self, saa_dict):
             soln = SAA.model
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              SAA.coordinates[1], \
-                                              SAA.coordinates[0])
+                                              SAA.coordinates[0], \
+                                              SAA.coordinates[1])
                 solnlist.append(solution_desc)
 
     return solnlist
@@ -236,14 +451,14 @@ def get_solnlist_indiv(self):
         soln = spectrum.model
         if soln.ncomps==0.0:
             solution_desc = get_soln_desc(0, soln, \
-                                          spectrum.coordinates[1], \
-                                          spectrum.coordinates[0])
+                                          spectrum.coordinates[0], \
+                                          spectrum.coordinates[1])
             solnlist.append(solution_desc)
         else:
             for k in range(int(soln.ncomps)):
                 solution_desc = get_soln_desc(k, soln, \
-                                              spectrum.coordinates[1], \
-                                              spectrum.coordinates[0])
+                                              spectrum.coordinates[0], \
+                                              spectrum.coordinates[1])
                 solnlist.append(solution_desc)
 
     return solnlist
@@ -257,8 +472,8 @@ def get_soln_desc(idx, soln, x, y):
     """
     params_non_specific = [soln.ncomps, \
                            x, y,\
-                           soln.rms, soln.residstd, soln.chi2, \
-                           soln.dof, soln.redchi2, soln.aic]
+                           soln.rms, soln.residstd, soln.chisq, \
+                           soln.dof, soln.redchisq, soln.AIC]
 
     parlow = int((idx*len(soln.parnames)))
     parhigh = int((idx*len(soln.parnames))+len(soln.parnames))
