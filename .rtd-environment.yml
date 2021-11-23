@@ -12,3 +12,4 @@ dependencies:
     - https://github.com/pyspeckit/pyspeckit.git
     - https://github.com/radio-astro-tools/spectral-cube.git
     - https://github.com/lmfit/lmfit-py.git
+    - https://github.com/tqdm/tqdm.git
