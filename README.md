@@ -19,7 +19,7 @@ spectra, and lists of specta.
 Cube Fitting
 ------------
 
-Cube fitting with ``scousepy`` is divided into 4 main stages:
+Cube fitting with ``scousepy`` is divided into 4 main stages::
 
 1. Defining the coverage. Here the use informs ``scousepy`` where to fit.
 ``scousepy`` will compute basic noise and moments, allowing the user to define a
@@ -39,7 +39,8 @@ Single Spectra and lists of spectra
 -----------------------------------
 
 ``scousepy`` includes functionality for fitting individual or lists of spectra
-using the derivative spectroscopy technique.
+using the derivative spectroscopy technique. Further information and tutorials
+can be found at [http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
 
 Installing scousepy
@@ -102,10 +103,10 @@ Citing scousepy
 ===============
 
 If you make use of this package in a publication, please consider the following
-acknowledgement...
+acknowledgements...
 
 ```
-@ARTICLE{henshaw19,
+@ARTICLE{Henshaw19,
     author = {{Henshaw}, J.~D. and {Ginsburg}, A. and {Haworth}, T.~J. and
        {Longmore}, S.~N. and {Kruijssen}, J.~M.~D. and {Mills}, E.~A.~C. and
        {Sokolov}, V. and {Walker}, D.~L. and {Barnes}, A.~T. and {Contreras}, Y. and
@@ -124,6 +125,24 @@ acknowledgement...
     doi = {10.1093/mnras/stz471},
     adsurl = {http://adsabs.harvard.edu/abs/2019MNRAS.485.2457H},
     adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@ARTICLE{Henshaw2016,
+       author = {{Henshaw}, J.~D. and {Longmore}, S.~N. and {Kruijssen}, J.~M.~D. and {Davies}, B. and {Bally}, J. and {Barnes}, A. and {Battersby}, C. and {Burton}, M. and {Cunningham}, M.~R. and {Dale}, J.~E. and {Ginsburg}, A. and {Immer}, K. and {Jones}, P.~A. and {Kendrew}, S. and {Mills}, E.~A.~C. and {Molinari}, S. and {Moore}, T.~J.~T. and {Ott}, J. and {Pillai}, T. and {Rathborne}, J. and {Schilke}, P. and {Schmiedeke}, A. and {Testi}, L. and {Walker}, D. and {Walsh}, A. and {Zhang}, Q.},
+        title = "{Molecular gas kinematics within the central 250 pc of the Milky Way}",
+      journal = {\mnras},
+     keywords = {stars: formation, ISM: clouds, ISM: kinematics and dynamics, ISM: structure, Galaxy: centre, galaxies: ISM, Astrophysics - Astrophysics of Galaxies},
+         year = 2016,
+        month = apr,
+       volume = {457},
+       number = {3},
+        pages = {2675-2702},
+          doi = {10.1093/mnras/stw121},
+archivePrefix = {arXiv},
+       eprint = {1601.03732},
+ primaryClass = {astro-ph.GA},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2016MNRAS.457.2675H},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 
 ```
