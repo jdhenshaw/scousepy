@@ -10,6 +10,19 @@ package for the analysis of spectral line data. For a comprehensive description
 of the algorithm and functionality please head to
 [http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
 
+*Note*: ``scousepy`` has undergone some major updates in the latest release, namely:
+
+* Workflow update -- scousepy now uses config files for set up. These control basic parameters for use throughout the workflow
+* GUI for S1 - basic functionality is the same. Can also be run without using the config files
+* GUI for S2 - added derivative spectroscopy for providing initial guesses
+* Former S4 now merged into S3
+* Former S5 and S6 now merged
+* GUI for S3 - adaptive fit checker and fitting functionality
+
+I am in the process of updating the documentation and tutorials. If you need
+assistance on running the new version of ``scousepy``, please get in touch. For
+now I have included a simple example script in the tutorials directory.
+
 Basic description
 =================
 
