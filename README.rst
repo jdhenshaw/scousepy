@@ -8,7 +8,7 @@ About
 Multi-component spectral line decomposition with ``scousepy``. ``scousepy`` is a
 package for the analysis of spectral line data. For a comprehensive description
 of the algorithm and functionality please head to
-[http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
+`scousepy.readthedocs.io <http://scousepy.readthedocs.io/en/latest/?badge=latest>`_.
 
 *Note*: ``scousepy`` has undergone some major updates in the latest release, namely:
 
