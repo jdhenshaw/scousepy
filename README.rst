@@ -1,4 +1,4 @@
-.. image:: Figure_cartoon.png
+.. image:: docs/SCOUSE_LOGO.png
    :width: 850px
    :align: center
 
