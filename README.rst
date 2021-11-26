@@ -1,6 +1,6 @@
-<p align="center">
-<img src="docs/SCOUSE_LOGO.png"  alt="" width = "550" />
-</p>
+.. image:: docs/SCOUSE_LOGO.png
+    :width: 200px
+    :align: center
 
 About
 =====
@@ -39,12 +39,15 @@ Cube fitting with ``scousepy`` is divided into 4 main stages::
 mask for fitting. Once defined, ``scousepy`` creates a grid of macropixels with
 a user defined size and extracts a spatially averaged spectrum from each. This
 can be run using the GUI or automatically using the configuration files.
+
 2. Fitting the macropixels. ``scousepy`` uses a technique referred to as
 derivative spectroscopy to identify the number of components and their key
 properties. Fitting is performed via an interactive GUI.
+
 3. Automated fitting. ``scousepy`` uses the best-fitting solutions from the
 macropixels defined in stage 2 as initial guesses for an automated fitting
 process that is controlled via user-defined tolerance levels.
+
 4. Quality assessment. Here ``scousepy`` provides a GUI for quality assessment
 allowing the user to visually inspect their decomposition.
 
