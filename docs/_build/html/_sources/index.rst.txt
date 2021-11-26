@@ -8,7 +8,7 @@
 scousepy
 ********
 
-The ``scousepy`` package provides a method by which a large amount of complex
+test The ``scousepy`` package provides a method by which a large amount of complex
 astronomical spectral line data can be fitted in a systematic way. A detailed
 description of the method (and the original `IDL version
 <https://github.com/jdhenshaw/SCOUSE>`_ of the code)
