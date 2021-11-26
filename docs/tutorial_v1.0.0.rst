@@ -360,8 +360,7 @@ happening in the terminal...
 
 Repeat this process until all of the spectra selected in stage 5 have been
 checked over. As with stage 2, stages 5 and 6 can be run in bitesize mode. This
-type of fitting is a little more fiddly and will be described in the
-:ref:`Tips & Tricks <tips>` sections of this documentation.
+type of fitting is a little more fiddly and will be described below.
 
 Complete Example
 ~~~~~~~~~~~~~~~~

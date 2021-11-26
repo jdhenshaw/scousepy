@@ -26,8 +26,7 @@ Documentation
 
   installation.rst
   description.rst
-  tutorial.rst
-  tips.rst
+  tutorial_v1.0.0.rst
   license.rst
 
 Reporting issues and getting help
