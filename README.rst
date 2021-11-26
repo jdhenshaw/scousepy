@@ -56,7 +56,7 @@ Single Spectra and lists of spectra
 
 ``scousepy`` includes functionality for fitting individual or lists of spectra
 using the derivative spectroscopy technique. Further information and tutorials
-can be found at [http://scousepy.readthedocs.io](http://scousepy.readthedocs.io/en/latest/?badge=latest).
+can be found at `scousepy.readthedocs.io <http://scousepy.readthedocs.io/en/latest/?badge=latest>`_.
 
 
 Installing scousepy
@@ -67,15 +67,15 @@ Requirements
 
 ``scousepy`` requires the following packages:
 
-* [Python](http://www.python.org) 3.x
+* `Python <http://www.python.org/>`_ 3.x
 
-* [astropy](http://www.astropy.org/)>=3.0.2
-* [lmfit](http://lmfit.github.io/lmfit-py/)>=0.8.0
-* [matplotlib](https://matplotlib.org/)>=2.2.2
-* [numpy](http://www.numpy.org/)>=1.14.2
-* [tqdm](https://github.com/tqdm/tqdm)
-* [pyspeckit](http://pyspeckit.readthedocs.io/en/latest/)>=0.1.21.dev2682
-* [spectral_cube](http://spectral-cube.readthedocs.io/en/latest/)>=0.4.4.dev1809
+* `numpy <http://www.numpy.org/>`_
+* `matplotlib <https://matplotlib.org/>`_
+* `astropy <http://www.astropy.org/>`_
+* `lmfit <http://lmfit.github.io/lmfit-py/>`_
+* `tqdm <https://github.com/tqdm/tqdm>`_
+* `pyspeckit <http://pyspeckit.readthedocs.io/en/latest/>`_ >=0.1.21.dev2682
+* `spectral_cube <http://spectral-cube.readthedocs.io/en/latest/>`_ >=0.4.4.dev1809
 
 Please ensure that you are using the latest developer versions of both ``pyspeckit``
 and ``spectral-cube`` (Github installation).
@@ -83,7 +83,7 @@ and ``spectral-cube`` (Github installation).
 Note that for interactive fitting with pyspeckit you may need to customise your
 matplotlib configuration. Namely, if you're using ``scousepy`` on a Mac you will
 most likely need to change your backend from 'macosx' to 'Qt5Agg' (or equiv.).
-You can find some information about how to do this [here](https://matplotlib.org/users/customizing.html#customizing-matplotlib).
+You can find some information about how to do this `here <https://matplotlib.org/users/customizing.html#customizing-matplotlib>`_
 
 Installation
 ------------
