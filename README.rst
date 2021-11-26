@@ -1,5 +1,5 @@
 .. image:: docs/SCOUSE_LOGO.png
-    :width: 200px
+    :width: 550px
     :align: center
 
 About
