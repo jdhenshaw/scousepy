@@ -25,9 +25,10 @@
 # Thus, any C-extensions that are needed to build the documentation will *not*
 # be accessible, and the documentation will not build correctly.
 
-import datetime
 import os
 import sys
+import datetime
+from importlib import import_module
 
 try:
     from sphinx_astropy.conf.v1 import *  # noqa
@@ -51,28 +52,8 @@ highlight_language = 'python3'
 #needs_sphinx = '1.2'
 
 # To perform a Sphinx version check that needs to be more specific than
-# major.minor, call `check_sphinx_version("x.y.z")` here.
+# major.minor, call `check_sphinx_version("X.Y.Z")` here.
 # check_sphinx_version("1.2.1")
-
-# add any intersphinx
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/',
-               (None, 'http://data.astropy.org/intersphinx/python3.inv')),
-    'pythonloc': ('http://docs.python.org/',
-                  path.abspath(path.join(path.dirname(__file__),
-                                         'local/python3_local_links.inv'))),
-    'numpy': ('https://docs.scipy.org/doc/numpy/',
-              (None, 'http://data.astropy.org/intersphinx/numpy.inv')),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/',
-              (None, 'http://data.astropy.org/intersphinx/scipy.inv')),
-    'matplotlib': ('http://matplotlib.org/',
-                   (None, 'http://data.astropy.org/intersphinx/matplotlib.inv')),
-    'astropy': ('http://docs.astropy.org/en/stable/', None),
-    'lmfit': ('https://lmfit-py.readthedocs.io/en/latest/', None),
-    'pyspeckit': ('https://pyspeckit.readthedocs.io/en/latest/', None),
-    'spectral-cube': ('https://spectral-cube.readthedocs.io/en/latest/', None),
-    }
-
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -86,7 +67,7 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg['package_name']
+project = setup_cfg['name']
 author = setup_cfg['author']
 copyright = '{0}, {1}'.format(
     datetime.datetime.now().year, setup_cfg['author'])
@@ -95,8 +76,8 @@ copyright = '{0}, {1}'.format(
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-__import__(setup_cfg['package_name'])
-package = sys.modules[setup_cfg['package_name']]
+import_module(setup_cfg['name'])
+package = sys.modules[setup_cfg['name']]
 
 # The short X.Y version.
 version = package.__version__.split('-', 1)[0]
@@ -104,79 +85,58 @@ version = package.__version__.split('-', 1)[0]
 release = package.__version__
 
 
-# At the top.
-#import sphinx_bootstrap_theme
+# -- Options for HTML output --------------------------------------------------
 
-# ...
+# A NOTE ON HTML THEMES
+# The global astropy configuration uses a custom theme, 'bootstrap-astropy',
+# which is installed along with astropy. A different theme can be used or
+# the options for this theme can be modified by overriding some of the
+# variables set in the global configuration. The variables set in the
+# global configuration are listed below, commented out.
 
-# Activate the theme.
-html_theme = 'sphinx_rtd_theme'
-#html_theme = 'bootstrap'
-# = sphinx_bootstrap_theme.get_html_theme_path()
-# html_theme = 'sphinx_rtd_theme'
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
+# Add any paths that contain custom themes here, relative to this directory.
+# To use a different custom theme, add the directory containing the theme.
+#html_theme_path = []
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+# The theme to use for HTML and HTML Help pages.  See the documentation for
+# a list of builtin themes. To override the custom theme, set this to the
+# name of a builtin theme or the name of a custom theme in html_theme_path.
+#html_theme = None
 
-#uncomment below if you prefer the astropy theme
-#  # -- Options for HTML output --------------------------------------------------
-#
-#  # A NOTE ON HTML THEMES
-#  # The global astropy configuration uses a custom theme, 'bootstrap-astropy',
-#  # which is installed along with astropy. A different theme can be used or
-#  # the options for this theme can be modified by overriding some of the
-#  # variables set in the global configuration. The variables set in the
-#  # global configuration are listed below, commented out.
-#
-#
-#  # Add any paths that contain custom themes here, relative to this directory.
-#  # To use a different custom theme, add the directory containing the theme.
-#  #html_theme_path = []
-#
-#  # The theme to use for HTML and HTML Help pages.  See the documentation for
-#  # a list of builtin themes. To override the custom theme, set this to the
-#  # name of a builtin theme or the name of a custom theme in html_theme_path.
-#  #html_theme = None
-#
-#
-#  # Please update these texts to match the name of your package.
-#  html_theme_options = {
-#      'logotext1': 'scouse',  # white,  semi-bold
-#      'logotext2': 'py',  # orange, light
-#      'logotext3': ':docs'   # white,  light
-#      }
-#
-#
-#  # Custom sidebar templates, maps document names to template names.
-#  #html_sidebars = {}
-#
-#  # The name of an image file (relative to this directory) to place at the top
-#  # of the sidebar.
-#  #html_logo = ''
-#
-#  # The name of an image file (within the static path) to use as favicon of the
-#  # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-#  # pixels large.
-#  #html_favicon = ''
-#
-#  # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-#  # using the given strftime format.
-#  #html_last_updated_fmt = ''
-#
-#  # The name for this set of Sphinx documents.  If None, it defaults to
-#  # "<project> v<release> documentation".
-#  html_title = '{0} v{1}'.format(project, release)
+
+html_theme_options = {
+    'logotext1': 'scousepy',  # white,  semi-bold
+    'logotext2': '',  # orange, light
+    'logotext3': ':docs'   # white,  light
+    }
+
+
+# Custom sidebar templates, maps document names to template names.
+#html_sidebars = {}
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+#html_logo = ''
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+#html_favicon = ''
+
+# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
+# using the given strftime format.
+#html_last_updated_fmt = ''
+
+# The name for this set of Sphinx documents.  If None, it defaults to
+# "<project> v<release> documentation".
+html_title = '{0} v{1}'.format(project, release)
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + 'doc'
+
+# Prefixes that are ignored for sorting the Python module index
+modindex_common_prefix = ["scousepy."]
 
 
 # -- Options for LaTeX output -------------------------------------------------
@@ -197,22 +157,27 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 # -- Options for the edit_on_github extension ---------------------------------
 
-if eval(setup_cfg.get('edit_on_github')):
-    extensions += ['sphinx_astropy.ext.edit_on_github']
-    extensions += ['sphinx.ext.intersphinx']
+if setup_cfg.get('edit_on_github').lower() == 'true':
 
-    versionmod = __import__(setup_cfg['package_name'] + '.version')
+    extensions += ['sphinx_astropy.ext.edit_on_github']
+
     edit_on_github_project = setup_cfg['github_project']
-    if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
-    else:
-        edit_on_github_branch = "master"
+    edit_on_github_branch = "main"
 
     edit_on_github_source_root = ""
     edit_on_github_doc_root = "docs"
 
 # -- Resolving issue number to links in changelog -----------------------------
 github_issues_url = 'https://github.com/{0}/issues/'.format(setup_cfg['github_project'])
+
+
+# -- Options for linkcheck output -------------------------------------------
+linkcheck_retry = 5
+linkcheck_ignore = [
+    r'https://github\.com/jdhenshaw/scousepy/(?:issues|pull)/\d+',
+]
+linkcheck_timeout = 180
+linkcheck_anchors = False
 
 # -- Turn on nitpicky mode for sphinx (to warn about references not found) ----
 #
