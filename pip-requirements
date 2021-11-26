@@ -1,6 +1,0 @@
-astropy>=3.0.2
-lmfit>=0.8.0
-matplotlib>=2.2.2
-numpy>=1.14.2
-pyspeckit>=0.1.21.dev2682
-spectral_cube>=0.4.4.dev1809
