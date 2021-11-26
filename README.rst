@@ -1,6 +1,6 @@
-.. image:: docs/SCOUSE_LOGO.png
-    :width: 550px
-    :align: center
+.. image:: Figure_cartoon.png
+   :width: 850px
+   :align: center
 
 About
 =====
