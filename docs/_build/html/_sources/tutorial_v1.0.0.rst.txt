@@ -1,8 +1,8 @@
 .. _tutorial:
 
-********
-Tutorial
-********
+***************
+Tutorial v1.0.0
+***************
 
 The aim of this tutorial is to give a basic introduction to the main workflow of
 ``scousepy``. Each stage will be described below along with some of the
@@ -461,12 +461,9 @@ This format was largely introduced to prevent people from overwriting their
 hard work. In this way each stage can be run independently, without having to
 run the process from start to finish.
 
-***************
-Tips and Tricks
-***************
 
-Bitesized Fitting
-~~~~~~~~~~~~~~~~~
+Tips and Tricks
+~~~~~~~~~~~~~~~
 
 One thing that I have found particularly useful in my own work is to break the
 fitting process up into chunks. This can be really helpful if you have a lot of
