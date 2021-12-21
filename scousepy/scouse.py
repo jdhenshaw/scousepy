@@ -597,6 +597,9 @@ class scouse(object):
         # check if stages 1, 2, and 3 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            #### TMP FIX
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            ###
             import_from_config(self, self.coverage_config_file_path)
         if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
             self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
