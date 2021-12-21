@@ -113,7 +113,7 @@ class ScouseCoverage(object):
         self.sortedids=[0]
 
         # compute moments
-        self.moments = (self)
+        self.moments = compute_moments(self)
         # compute measures of spectral complexity
         self.complexity_maps = compute_spectral_complexity(self)
 
@@ -470,7 +470,7 @@ class ScouseCoverage(object):
         event : button press event
         """
         # compute moments
-        self.moments = (self)
+        self.moments = compute_moments(self)
         if (self.moment==3) or (self.moment==4) or (self.moment==6):
             maptoplot=self.moments[self.moment]
         else:
