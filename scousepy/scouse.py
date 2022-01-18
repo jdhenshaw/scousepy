@@ -757,6 +757,8 @@ class scouse(object):
         fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices)
         if not nocheck:
             fitcheckerobject.show()
+        else:
+            fitcheckerobject.close_window()
 
         if bitesize:
             self.check_spec_indices=self.check_spec_indices+fitcheckerobject.check_spec_indices
