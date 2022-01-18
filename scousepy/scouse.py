@@ -689,7 +689,7 @@ class scouse(object):
             self.completed_stages,\
             self.indiv_dict = pickle.load(fh)
 
-    def stage_4(config='', bitesize=False, verbose=True):
+    def stage_4(config='', bitesize=False, verbose=True, nocheck=False):
         """
         Stage 4
 
@@ -755,7 +755,8 @@ class scouse(object):
 
         # Interactive coverage generator
         fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices)
-        fitcheckerobject.show()
+        if not nocheck:
+            fitcheckerobject.show()
 
         if bitesize:
             self.check_spec_indices=self.check_spec_indices+fitcheckerobject.check_spec_indices

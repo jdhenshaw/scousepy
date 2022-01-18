@@ -249,7 +249,16 @@ def decomposition_method(input):
         print(rms)
         print(guesses)
         print(guesses_parent)
-        
+
+    # bebugging
+    # print("")
+    # print("saa: ", indivspec.saaindex)
+    # print("spectrum: ", indivspec)
+    # print("rms: ", rms)
+    # print("guesses: ", guesses)
+    # print("guesses_parent: ", guesses_parent)
+    # print("")
+
     # fit the spectrum
     Decomposer.fit_spectrum_from_parent(decomposer,guesses,guesses_parent,tol,res,fittype=fittype,)
 
