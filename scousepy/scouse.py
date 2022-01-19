@@ -564,7 +564,7 @@ class scouse(object):
             self.fitcount, \
             self.modelstore = pickle.load(fh)
 
-    def stage_3(config=''):
+    def stage_3(config='', s3file=None):
         """
         Stage 3
 
@@ -607,14 +607,24 @@ class scouse(object):
                 if not np.all(self.fitcount):
                     print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
                     return
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
-            if self.verbose:
-                progress_bar = print_to_terminal(stage='s3', step='load')
-            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
-            if 's3' in self.completed_stages:
-                print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
-                print('')
-            return self
+        if s3file is not None:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+                if self.verbose:
+                    progress_bar = print_to_terminal(stage='s3', step='load')
+                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/'+s3file)
+                if 's3' in self.completed_stages:
+                    print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
+                    print('')
+                return self
+        else:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+                if self.verbose:
+                    progress_bar = print_to_terminal(stage='s3', step='load')
+                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+                if 's3' in self.completed_stages:
+                    print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
+                    print('')
+                return self
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -689,7 +699,8 @@ class scouse(object):
             self.completed_stages,\
             self.indiv_dict = pickle.load(fh)
 
-    def stage_4(config='', bitesize=False, verbose=True, nocheck=False):
+    def stage_4(config='', bitesize=False, verbose=True, nocheck=False,
+                s3file=None, s4file=None):
         """
         Stage 4
 
@@ -728,16 +739,31 @@ class scouse(object):
                 if not np.all(self.fitcount):
                     print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
                     return
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
-            self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
-            if self.verbose:
-                progress_bar = print_to_terminal(stage='s4', step='load')
-            self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
-            if not bitesize:
-                print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
-                print('')
-                return self
+        if s3file is not None:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/'+s3file)
+        else:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
+
+        if s4file is not None:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/'+s4file):
+                if self.verbose:
+                    progress_bar = print_to_terminal(stage='s4', step='load')
+                self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/'+s4file)
+                if not bitesize:
+                    print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
+                    print('')
+                    return self
+        else:
+            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
+                if self.verbose:
+                    progress_bar = print_to_terminal(stage='s4', step='load')
+                self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
+                if not bitesize:
+                    print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
+                    print('')
+                    return self
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -794,11 +820,18 @@ class scouse(object):
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
-                os.rename(self.outputdirectory+self.filename+'/stage_4/s4.scousepy',self.outputdirectory+self.filename+'/stage_4/s4.scousepy.bk')
+            if s4file is not None:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_4/'+s4file):
+                    os.rename(self.outputdirectory+self.filename+'/stage_4/'+s4file,self.outputdirectory+self.filename+'/stage_4/'+s4file+'.bk')
 
-            with open(self.outputdirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages,self.check_spec_indices,self.indiv_dict), fh, protocol=proto)
+                with open(self.outputdirectory+self.filename+'/stage_4/'+s4file, 'wb') as fh:
+                    pickle.dump((self.completed_stages,self.check_spec_indices,self.indiv_dict), fh, protocol=proto)
+            else:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
+                    os.rename(self.outputdirectory+self.filename+'/stage_4/s4.scousepy',self.outputdirectory+self.filename+'/stage_4/s4.scousepy.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_4/s4.scousepy', 'wb') as fh:
+                    pickle.dump((self.completed_stages,self.check_spec_indices,self.indiv_dict), fh, protocol=proto)
 
         return self
 

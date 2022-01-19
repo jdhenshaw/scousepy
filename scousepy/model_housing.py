@@ -278,8 +278,7 @@ class saamodel(basemodel):
         super(basemodel, self).__init__()
 
         self.SNR=None
-        self.kernelsize=None
-        self.manual=None
+        self.alpha=None
 
         self.set_attributes(modeldict)
 

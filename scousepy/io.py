@@ -406,7 +406,7 @@ def get_headings(self, saa_dict):
             soln = SAA.model
             # These headings never change
             headings_non_specific = ['ncomps', 'x', 'y', 'rms', 'residual', \
-                                      'chi2', 'dof', 'redchi2', 'aic' ]
+                                      'chisq', 'dof', 'redchisq', 'aic' ]
             #These ones depend on the model used by pyspeckit
             headings_params = soln.parnames
             headings_errs = [str('err {0}').format(soln.parnames[k]) for k in range(len(soln.parnames))]

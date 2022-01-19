@@ -20,7 +20,6 @@ class stats(object):
         """
         Computes basic statistics on fitting
         """
-
         self._nspec = get_nspec(self, scouseobject)
         self._nsaa, self._nsaa_indiv = get_nsaa(self,scouseobject)
         self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouseobject)
@@ -34,6 +33,7 @@ class stats(object):
         self._originalfrac = None
         self._refitfrac = None
         self._altfrac = None
+        self._saastats = get_saa_stats(self, scouseobject)
         self._stats = get_param_stats(self, scouseobject)
         self._meanrms = None
         self._meanresid = None
@@ -48,6 +48,13 @@ class stats(object):
         Returns a dictionary containing the statistics of a fitted parameter
         """
         return self._stats
+
+    @property
+    def saastats(self):
+        """
+        Returns a dictionary containing the statistics of saa fitting
+        """
+        return self._saastats
 
     @property
     def meanAIC(self):
@@ -196,6 +203,34 @@ class stats(object):
         Total number of spectra in cube
         """
         return self._nspec
+
+def get_saa_stats(self, scouseobject):
+    """
+    Calculates statistics for saa Fitting
+    """
+    keys = list(scouseobject.saa_dict.keys())
+
+    statkeys = ['SNR', 'alpha']
+    stat_dict = {}
+    for key in keys:
+        saa_dict=scouseobject.saa_dict[key]
+        SNR = []
+        alpha = []
+        method = []
+        for i, saa in saa_dict.items():
+            if saa.to_be_fit:
+                if saa.model.method!='manual':
+                    SNR.append(saa.model.SNR)
+                    alpha.append(saa.model.alpha)
+                else:
+                    method.append(saa.model.method)
+        statlist = [SNR, alpha]
+        statdict = get_stat_dict(statkeys, statlist)
+        statdict['nmanual']=float(method.count('manual'))
+        stat_dict[key]=statdict
+
+    return stat_dict
+
 
 def get_param_stats(self, scouseobject):
     """
