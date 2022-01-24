@@ -25,11 +25,14 @@ class stats(object):
         self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouseobject)
         self._nfits = get_nfits(self, scouseobject)
         self._ncomps = get_ncomps(self, scouseobject)
+        self._ncomps_saa = get_ncomps_saa(self, scouseobject)
         self._ncompsperfit = None
+        self._ncompsperfit_saa = None
         self._noriginal = get_noriginal(self, scouseobject)
         self._nrefit = get_nrefit(self, scouseobject)
         self._nalt = get_nalt(self, scouseobject)
         self._nmultiple = get_nmultiple(self, scouseobject)
+        self._nmultiple_saa = get_nmultiple_saa(self, scouseobject)
         self._originalfrac = None
         self._refitfrac = None
         self._altfrac = None
@@ -106,6 +109,13 @@ class stats(object):
         return self._nmultiple
 
     @property
+    def nmultiple_saa(self):
+        """
+        Number of spectra requiring multicomponent fits
+        """
+        return self._nmultiple_saa
+
+    @property
     def noriginal(self):
         """
         Number of spectra fitted during the original run
@@ -156,11 +166,26 @@ class stats(object):
         return self._ncomps/float(self._nfits)
 
     @property
+    def ncompsperfit_saa(self):
+        """
+        Returns number of components per fitted position
+        """
+
+        return np.asarray(self._ncomps_saa)/np.asarray(self._nsaa_indiv)
+
+    @property
     def ncomps(self):
         """
         Number of components fitted
         """
         return self._ncomps
+
+    @property
+    def ncomps_saa(self):
+        """
+        Number of components fitted
+        """
+        return self._ncomps_saa
 
     @property
     def nfits(self):
@@ -392,6 +417,38 @@ def get_nmultiple(self, scouseobject):
     """
     fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps > 1.0)  ]
     return len(fits)
+
+def get_ncomps_saa(self, scouseobject):
+    """
+    Calculates number of components
+    """
+    fits=[]
+    keys = list(scouseobject.saa_dict.keys())
+    for key in keys:
+        saa_dict=scouseobject.saa_dict[key]
+        _fits = []
+        for i, saa in saa_dict.items():
+            if saa.to_be_fit:
+                if saa.model.ncomps!=0:
+                    _fits.append(saa.model.ncomps)
+        fits.append(np.sum(_fits))
+    return fits
+
+def get_nmultiple_saa(self, scouseobject):
+    """
+    Calculates number of components
+    """
+    fits=[]
+    keys = list(scouseobject.saa_dict.keys())
+    for key in keys:
+        saa_dict=scouseobject.saa_dict[key]
+        _fits = []
+        for i, saa in saa_dict.items():
+            if saa.to_be_fit:
+                if saa.model.ncomps>1:
+                    _fits.append(saa.model.ncomps)
+        fits.append(len(_fits))
+    return fits
 
 def get_nspecsaa(self, scouseobject):
     """
