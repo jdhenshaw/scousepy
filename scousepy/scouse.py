@@ -700,7 +700,7 @@ class scouse(object):
             self.indiv_dict = pickle.load(fh)
 
     def stage_4(config='', bitesize=False, verbose=True, nocheck=False,
-                s3file=None, s4file=None):
+                s3file=None, s4file=None, scouseobjectalt=[]):
         """
         Stage 4
 
@@ -780,7 +780,7 @@ class scouse(object):
                  progress_bar = print_to_terminal(stage='s4', step='start')
 
         # Interactive coverage generator
-        fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices)
+        fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices, scouseobjectalt=scouseobjectalt)
         if not nocheck:
             fitcheckerobject.show()
         else:

@@ -214,19 +214,51 @@ def get_saa_stats(self, scouseobject):
     stat_dict = {}
     for key in keys:
         saa_dict=scouseobject.saa_dict[key]
+
+        for i, saa in saa_dict.items():
+            if saa.to_be_fit:
+                nparams = np.size(saa.model.parnames)
+                break
+
+        ncomps = []
+        params = []
+        errors = []
+        rms = []
+        residstd = []
+        chisq = []
+        redchisq = []
+        AIC = []
         SNR = []
         alpha = []
         method = []
+
         for i, saa in saa_dict.items():
             if saa.to_be_fit:
+                ncomps.append(saa.model.ncomps)
+                rms.append(saa.rms)
+                residstd.append(saa.model.residstd)
+                chisq.append(saa.model.chisq)
+                redchisq.append(saa.model.redchisq)
+                AIC.append(saa.model.AIC)
+
+                for i in range(0, int(saa.model.ncomps)):
+                    params.append(saa.model.params[(i*len(saa.model.parnames)):(i*len(saa.model.parnames))+len(saa.model.parnames)])
+                    errors.append(saa.model.errors[(i*len(saa.model.parnames)):(i*len(saa.model.parnames))+len(saa.model.parnames)])
+
                 if saa.model.method!='manual':
                     SNR.append(saa.model.SNR)
                     alpha.append(saa.model.alpha)
                 else:
                     method.append(saa.model.method)
-        statlist = [SNR, alpha]
+
+        commonstats = [ncomps, rms, residstd, chisq, redchisq, AIC, SNR, alpha]
+        commonstatkeys = ['ncomps','rms','residstd','chisq','redchisq','AIC','SNR','alpha']
+        statkeys = get_statkeys(scouseobject, nparams, saa=True)
+        statlist = unpack_statlist(nparams, commonstats, commonstatkeys, params, errors, statkeys)
+
         statdict = get_stat_dict(statkeys, statlist)
         statdict['nmanual']=float(method.count('manual'))
+
         stat_dict[key]=statdict
 
     return stat_dict
@@ -264,14 +296,15 @@ def get_param_stats(self, scouseobject):
                 errors.append(spectrum.model.errors[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
 
     commonstats = [ncomps, rms, residstd, chisq, redchisq, AIC]
+    commonstatkeys = ['ncomps','rms','residstd','chisq','redchisq','AIC']
     statkeys = get_statkeys(scouseobject, nparams)
-    statlist = unpack_statlist(nparams, commonstats, params, errors, statkeys)
+    statlist = unpack_statlist(nparams, commonstats, commonstatkeys, params, errors, statkeys)
 
     stat_dict = get_stat_dict(statkeys, statlist)
 
     return stat_dict
 
-def get_statkeys(scouseobject, nparams):
+def get_statkeys(scouseobject, nparams, saa=False):
     """
     Returns key headings for the stats
     """
@@ -281,10 +314,13 @@ def get_statkeys(scouseobject, nparams):
     statkeys.remove('dof')
     _ncomps = statkeys.pop(0)
     statkeys.insert((nparams*2), _ncomps)
+    if saa:
+        statkeys.append('SNR')
+        statkeys.append('alpha')
 
     return statkeys
 
-def unpack_statlist(nparams, commonstats, params, errors, statkeys):
+def unpack_statlist(nparams, commonstats, commonstatkeys, params, errors, statkeys):
     """
     Creates a list of stats in the same order as statkeys
     """
@@ -295,7 +331,7 @@ def unpack_statlist(nparams, commonstats, params, errors, statkeys):
         _statlist.append(params[:,i])
         _statlist.append(errors[:,i])
 
-    for i in range(6):
+    for i in range(np.size(commonstatkeys)):
         stat=np.asarray(commonstats[i])
         _statlist.append(stat)
 

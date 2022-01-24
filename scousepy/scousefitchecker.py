@@ -35,9 +35,11 @@ class ScouseFitChecker(object):
                 SNR=3,minSNR=1,maxSNR=30,
                 alpha=3,minalpha=0.1,maxalpha=30,
                 fittype='gaussian',
-                xarrkwargs={},unit={}):
+                xarrkwargs={},unit={},
+                scouseobjectalt=[]):
 
         self.scouseobject=scouseobject
+        self.scouseobjectalt=scouseobjectalt
         self.verbose=verbose
         self.check_spec_indices=[]
 
@@ -321,7 +323,7 @@ class ScouseFitChecker(object):
 
                     # if the map is selected then we are going to plot
                     # some spectra
-                    plot_spectra(self)
+                    plot_spectra(self, self.scouseobject, color='limegreen')
 
             # else if one of the spectra are selected then store the
             # information and identify the spectrum as one to be
@@ -359,7 +361,7 @@ class ScouseFitChecker(object):
                     self.keys=get_neighbours(self)
                     # if the map is selected then we are going to plot
                     # some spectra
-                    plot_spectra(self)
+                    plot_spectra(self, self.scouseobject, color='limegreen')
 
             # else if one of the spectra are selected then store the
             # information and identify the spectrum as one to be
@@ -920,7 +922,8 @@ class ScouseFitChecker(object):
             self.diagnostics[4][self.my_spectrum.coordinates[1],self.my_spectrum.coordinates[0]]=model.AIC
             self.diagnostics[5][self.my_spectrum.coordinates[1],self.my_spectrum.coordinates[0]]=model.chisq
 
-        plot_spectra(self)
+        plot_spectra(self, self.scouseobject, color='limegreen')
+
         self.update_map(None, map=self.diagnostic)
         save_maps(self,self.diagnostics)
 
@@ -1143,7 +1146,7 @@ def setup_spec_window(self):
     #self.blank_window.text(1.625,1.10,"To select all: press 'a'", ha='center')
     return axlist
 
-def plot_spectra(self):
+def plot_spectra(self,scouseobject, color='green'):
     """
     Plotting spectra once the map has been clicked
 
@@ -1178,22 +1181,22 @@ def plot_spectra(self):
                 # get the 2D index
                 index=np.unravel_index(key,self.scouseobject.cube.shape[1:])
                 # plot from the cube rather than the fitted spectrum
-                spectrum=self.scouseobject.cube.filled_data[self.scouseobject.trimids,index[0],index[1]].value
+                spectrum=self.scouseobject.cube.filled_data[scouseobject.trimids,index[0],index[1]].value
                 # redefine the axis limits and plot the spectrum
                 ax.set_xlim(np.min(self.scouseobject.xtrim), np.max(self.scouseobject.xtrim))
                 ax.set_ylim(np.nanmin(spectrum), 1.05*np.nanmax(spectrum))
-                ax.plot(self.scouseobject.xtrim,spectrum, drawstyle='steps', color='k', lw=0.85)
+                ax.plot(scouseobject.xtrim,spectrum, drawstyle='steps', color='k', lw=0.85)
 
                 # now check to see if a model is available
-                if key in self.scouseobject.indiv_dict.keys():
-                    indivspec=self.scouseobject.indiv_dict[key]
+                if key in scouseobject.indiv_dict.keys():
+                    indivspec=scouseobject.indiv_dict[key]
                     # recreate the model
                     if indivspec.model is not None:
                         mod, res, totmod=recreate_model(self,indivspec,indivspec.model)
-                        ax.plot(self.scouseobject.xtrim,res, color='orange', lw=0.5, drawstyle='steps')
+                        ax.plot(scouseobject.xtrim,res, color='orange', lw=0.5, drawstyle='steps')
                         for k in range(np.shape(mod)[1]):
                             # plot individual components
-                            ax.plot(self.scouseobject.xtrim,mod[:,k], color='limegreen', lw=1)
+                            ax.plot(self.scouseobject.xtrim,mod[:,k], color=color, lw=1)
 
     self.fig.canvas.draw()
 
