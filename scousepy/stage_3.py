@@ -435,11 +435,41 @@ def model_selection(scouseobject):
             if np.size(aic)==0:
                 modeldict = create_a_dud(indivspec)
                 bfmodel = indivmodel(modeldict)
-            # in all other cases select the model with the lowest aic as our best
-            # fitting solution
+            # in all other cases investigate the AIC values
             else:
                 idx = np.squeeze(np.where(aic == np.min(aic)))
-                bfmodel = models[idx]
+                minaic=aic[idx]
+                minaicmodel=models[idx]
+
+                if len(models)>1:
+                    # get all the models less the model with the min aic value
+                    models_without_minaicmodel=[model for j,model in enumerate(models) if j!=idx]
+                    aic_without_minaic=[aic_ for j, aic_ in enumerate(aic) if j!=idx]
+
+                    # compute the difference in AIC between the selected model
+                    # and the rest
+                    delta_aic=[(aic_ - minaic) for aic_ in aic_without_minaic]
+                    # find the smallest delta value as all others can be discarded
+                    idx_delta=np.squeeze(np.where(delta_aic == np.min(delta_aic)))
+                    # get the model with the minimum delta value
+                    mindeltamodel=models_without_minaicmodel[idx_delta]
+                    mindelta=delta_aic[idx_delta]
+
+                    # model selection criteria
+                    if mindelta < 2.0:
+                        # if there are any models within mindelta < 2 of the
+                        # min aic value, we penelise the min aic model and
+                        # select the one with the smallest delta to it. Most
+                        # often this will favour models with a fewer number of
+                        # free parameters.
+
+                        # this will likely only happen in a few cases
+                        bfmodel=mindeltamodel
+                    else:
+                        # retain the model with the lowest aic value
+                        bfmodel=minaicmodel
+                else:
+                    bfmodel = minaicmodel
 
         # if not then mark the spectrum as a dud
         else:
