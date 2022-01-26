@@ -980,3 +980,129 @@ class scouse(object):
         self.load_cube(fitsfile=fitsfile)
 
         return stats(scouseobject=self)
+
+    def combine(scouseobjects=[]):
+        """
+        Combines multiple s3 decomposition runs into a single output file.
+
+        Parameters
+        ----------
+        scouseobjects : list
+            A list of scousepy objects that have been loaded via the load_stage_3
+            command.
+
+        Output
+        ------
+        scouseobject : an instance of the scousepy class
+            A new scouseobject where the s3 stages have been merged and best
+            fitting solutions combined into a single indiv_dict 
+        """
+        # create an empty dictionary that will house the combined results
+        indiv_dict_combine={}
+        # get the individual dictionaries
+        indiv_dicts=[scouseobject.indiv_dict for scouseobject in scouseobjects]
+        # identify the maximum index in each dict for mismatched inputs
+        maxindexes=[max(indiv_dict) for indiv_dict in indiv_dicts]
+        # get the id where the maximum index is located
+        idmax=np.squeeze(np.where(maxindexes==np.max(maxindexes)))
+        # get the maximum of these
+        maxindex=np.max(maxindexes)
+        # we are going to loop over the indexes
+        for key in range(0,maxindex+1):
+            keycheck=[True if key in indiv_dict else False for indiv_dict in indiv_dicts]
+            if np.any(keycheck):
+                # if only one key is found we are going to add this to the new
+                # dictionary directly
+                if np.sum(keycheck)==1:
+                    # get the index of the dictionary where the key is found
+                    idx=np.squeeze(np.where(keycheck))
+                    # get the individual spectrum
+                    indivspec=indiv_dicts[idx][key]
+                    # now we are going to add an attribute to the spectrum to
+                    # indicate which dictionary it came from
+                    setattr(indivspec,'combine',idx)
+                    # now add this to the new dictionary
+                    indiv_dict_combine[key]=indivspec
+                else:
+                    # if key is found in more than one of our dictionaries then
+                    # we have a decision to make
+
+                    # get the indices of the dictionaries where the key is found
+                    idx=np.squeeze(np.where(keycheck))
+                    # get the individual spectra
+                    indivspecs=[indiv_dicts[id][key] for id in idx]
+                    # get the models and the AIC values
+                    models=[indivspec.model for indivspec in indivspecs]
+                    aic=[indivspec.model.AIC for indivspec in indivspecs]
+
+                    # get the min aic
+                    idx_aic = np.squeeze(np.where(aic == np.min(aic)))
+                    minaic=aic[idx_aic]
+                    minaicmodel=models[idx_aic]
+                    # get a list of the models without the model with the minimum aic
+                    models_without_minaicmodel=[model for j,model in enumerate(models) if j!=idx_aic]
+                    aic_without_minaic=[aic_ for j, aic_ in enumerate(aic) if j!=idx_aic]
+
+                    # compute the difference in AIC between the selected model
+                    # and the rest
+                    delta_aic=[(aic_ - minaic) for aic_ in aic_without_minaic]
+                    # find the smallest delta value as all others can be discarded
+                    idx_delta=np.squeeze(np.where(delta_aic == np.min(delta_aic)))
+                    # get the model with the minimum delta value
+                    mindeltamodel=models_without_minaicmodel[idx_delta]
+                    mindelta=delta_aic[idx_delta]
+
+                    # model selection criteria
+                    if mindelta < 2.0:
+                        # if there are any models within mindelta < 2 of the
+                        # min aic value, we penelise the min aic model and
+                        # select the one with the smallest delta to it. Most
+                        # often this will favour models with a fewer number of
+                        # free parameters.
+
+                        # this will likely only happen in a few cases
+                        bfmodel=mindeltamodel
+                    else:
+                        # retain the model with the lowest aic value
+                        bfmodel=minaicmodel
+
+                    # identify which model our new best-fitting model relates to
+                    when_true = [model==bfmodel for model in models]
+                    idx_model=np.squeeze(np.where(when_true))
+                    # set this to be the default spectrum
+                    indivspec=indivspecs[idx_model]
+                    # now we are going to add an attribute to the spectrum to
+                    # indicate which dictionary it came from
+                    setattr(indivspec,'combine',idx_model)
+                    # now double check to see if any of the other models are
+                    # already contained within the model list in indiv spec
+                    when_true = [model_!=model for model_ in models for model in indivspec.model_from_parent]
+                    # if there are any models which are not duplicated in the list
+                    # we are going to add these to the list
+                    if np.any(when_true):
+                        # remove all duplicated models from the model list
+                        models_without_duplicates=[model for j,model in enumerate(models) if when_true[j] and model!=bfmodel]
+                        for model in models_without_duplicates:
+                            # add these to indivspec
+                            indivspec.model_from_parent.append(model)
+                    # now add this to the new dictionary
+                    indiv_dict_combine[key]=indivspec
+
+        # we now have a dictionary containing the best fitting solutions across
+        # multiple versions of the decompositions. We now want to output this
+        # as something sensible.
+
+        # lets create a safe copy of the decomposition which contains the most
+        # fitted spectra
+        s3template=scouseobjects[0]
+        # copy
+        import copy
+        s3copy=copy.deepcopy(s3template)
+        # update the dictionary with the new fits
+        setattr(s3copy,'indiv_dict',indiv_dict_combine)
+        # save as a new file
+        import pickle
+        with open(s3copy.outputdirectory+s3copy.filename+'/stage_3/s3.scousepy.combined', 'wb') as fh:
+            pickle.dump((s3copy.completed_stages, s3copy.indiv_dict), fh, protocol=proto)
+
+        return s3copy
