@@ -53,8 +53,8 @@ is tuned to the n2h+ data, which has hyperfine structure. Here we implement the
 range 32-42 km/s since this allows us to focus on the isolated hyperfine
 component, which we model as a Gaussian.
 
-Stage 1
-~~~~~~~
+Stage 1: defining the coverage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As discussed in the :ref:`description <description>` of the code, the purpose
 of stage 1 is to identify the spatial area over which to fit the data. Stage 1
@@ -105,8 +105,8 @@ the most complex line-profiles.
   :align: center
   :width: 400
 
-Stage 2
-~~~~~~~
+Stage 2: fitting the spectral averaging areas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Stage 2 is where we will perform our manual fitting. It is simple to run using ::
 
@@ -169,8 +169,8 @@ perform bitesize fitting where the process is broken down into sessions and the
 user fits a fixed number of spectra at any one time. The number of spectra to
 fit in any one session can be controlled using the ``nspec`` keyword.
 
-Stage 3
-~~~~~~~
+Stage 3: automated fitting
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Stage 3 represents the automated decomposition stage. ``scousepy`` will take you
 best-fitting solutions from stage 2 and pass these to the individual spectra
@@ -219,8 +219,8 @@ case the fitting was not parallelised (``njobs=1``)...
   :align: center
   :width: 900
 
-Stage 4
-~~~~~~~
+Stage 4 - selecting the best-fitting solutions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Not much to say here - just set this stage running. Here the best-fitting
 solutions from stage 3 are compiled for each spectrum. Where the SAAs overlap
@@ -229,8 +229,8 @@ there will be multiple fits for each spectrum. Duplicates are removed and the
 
   s = scouse.stage_4(s, verbose=True)
 
-Stage 5
-~~~~~~~
+Stage 5 - quality control
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now we want to check our work. Stage 5 works interactively and is run in the
 following way ::
@@ -296,8 +296,8 @@ lot of re-fitting (maybe >5-10% of the data), I will stop at this stage and twea
 the parameters of stage 3 and re-run from there. Once I'm happy that the majority
 of the fits are reasonable I will go through stage 5 in earnest.
 
-Stage 6
-~~~~~~~
+Stage 6 - refitting
+~~~~~~~~~~~~~~~~~~~
 
 Here we are going to look again at the spectra we selected during stage 5.
 Stage 6 is run using ::

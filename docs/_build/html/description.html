@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>A brief introduction to scousepy &#8212; scousepy v1.0.1.dev66+g38c657b.d20211126</title>
+    <title>A brief introduction to scousepy &#8212; scousepy v1.0.1.dev87+g558b850.d20211222</title>
     <link rel="stylesheet" href="_static/bootstrap-astropy.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
@@ -15,12 +15,13 @@
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/javascript" src="_static/sidebar.js"></script>
     <script type="text/javascript" src="_static/copybutton.js"></script>
     <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="next" title="Tutorial v2.0.0" href="tutorial_v2.0.0.html" />
     <link rel="prev" title="Installing scousepy" href="installation.html" />
     <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
 
@@ -49,7 +50,7 @@
     <h3>Navigation</h3>
     <ul>
       <li class="right">
-	<a href="tutorial.html" title="Tutorial">
+	<a href="tutorial_v2.0.0.html" title="Tutorial v2.0.0">
 	  next &raquo;
 	</a>
       </li>
@@ -60,7 +61,7 @@
 	 |
       </li>
       <li>
-	<a href="index.html">scousepy v1.0.1.dev66+g38c657b.d20211126</a>
+	<a href="index.html">scousepy v1.0.1.dev87+g558b850.d20211222</a>
 	 &#187;
       </li>
       
@@ -76,65 +77,110 @@
             
   <div class="section" id="a-brief-introduction-to-scousepy">
 <span id="description"></span><h1>A brief introduction to scousepy<a class="headerlink" href="#a-brief-introduction-to-scousepy" title="Permalink to this headline">¶</a></h1>
-<p>The method has been updated slightly from the <a class="reference external" href="https://github.com/jdhenshaw/SCOUSE">original IDL version of the
-code</a>. It is now more interactive than
-before which should hopefully speed things up a bit for the user. The method
-is broken down into six stages in total. Each stage is summarised below.</p>
+<p>Spectral decomposition with <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> is broken up into a sequence of distinct
+stages. Each stage is summarised below. More information on executing each of
+these steps can be found in the tutorials.</p>
 <a class="reference internal image-reference" href="_images/Figure_cartoon.png"><img alt="_images/Figure_cartoon.png" class="align-center" src="_images/Figure_cartoon.png" style="width: 850px;" /></a>
+<div class="section" id="stage-0-preparation-step">
+<h2>Stage 0: preparation step<a class="headerlink" href="#stage-0-preparation-step" title="Permalink to this headline">¶</a></h2>
+<p>The preparation step involves the creation of configuration files that <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
+will use to run the fitting. The first is <code class="docutils literal notranslate"><span class="pre">scousepy.config</span></code>. This contains the
+top-level information for fitting including information on the directory structure,
+the number of cpus for parallelised fitting, and optional keywords. The second is
+<code class="docutils literal notranslate"><span class="pre">coverage.config</span></code>. This contains all relevant information for the definition of
+the coverage (stage 1).</p>
+</div>
 <div class="section" id="stage-1-defining-the-coverage">
 <h2>Stage 1: defining the coverage<a class="headerlink" href="#stage-1-defining-the-coverage" title="Permalink to this headline">¶</a></h2>
-<p>Here <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> identifies the spatial area over which to fit the data. It
-generates a grid of spectral averaging areas (SAAs). The user is required to
-provide the width of the spectral averaging area. Extra refinement of spectral
-averaging areas (i.e. for complex regions) can be controlled using the keyword
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">refine_grid</span></code>.</p>
+<p>Here <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> identifies the spatial area over which to fit the data. There
+are two different ways this can be achieved: 1) via an interactive GUI; 2) via
+the configuration file <a href="#id1"><span class="problematic" id="id2">``</span></a>coverage.config’’.</p>
+<p>Both methods generate a grid of <em>spectral averaging areas (SAAs)</em>. In the
+interactive mode, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will generate moment maps based on user defined
+variables that are supplied as keywords within a <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> GUI. These
+<em>optional</em> keywords include a mask threshold as well as ranges in the <code class="docutils literal notranslate"><span class="pre">x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">y</span></code>, and <code class="docutils literal notranslate"><span class="pre">velocity</span></code> axes. In the non-interactive mode, the keywords are supplied
+via <a href="#id3"><span class="problematic" id="id4">``</span></a>coverage.config’’. The user can also port a ready made mask for the
+coverage definition via the  <code class="xref py py-obj docutils literal notranslate"><span class="pre">mask_coverage</span></code> keyword, which should be a path
+to a FITS file which will act as the mask.</p>
+<p>In defining the coverage the user must supply the size of the SAAs, which is
+provided via <code class="xref py py-obj docutils literal notranslate"><span class="pre">wsaa</span></code> (corresponding to the width, in pixels, of the SAA). The
+user can also provide a filling factor via <code class="xref py py-obj docutils literal notranslate"><span class="pre">fillfactor</span></code>. This keyword will
+allow <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> to reject all SAAs, where the fractional number of significant
+pixels contained within a given SAA does not satisfy this constraint. Extra
+refinement of the SAAs (i.e. for complex regions) can be controlled using the
+keyword <code class="xref py py-obj docutils literal notranslate"><span class="pre">refine_grid</span></code>. By default, the SAAs are Nyquist sampled. This means
+that any given spectrum may have multiple solutions.</p>
 </div>
 <div class="section" id="stage-2-fitting-the-spectral-averaging-areas">
 <h2>Stage 2: fitting the spectral averaging areas<a class="headerlink" href="#stage-2-fitting-the-spectral-averaging-areas" title="Permalink to this headline">¶</a></h2>
 <p>User-interactive fitting of the spatially averaged spectra output from stage 1.
-<code class="docutils literal notranslate"><span class="pre">scousepy</span></code> makes use of the <a class="reference external" href="http://pyspeckit.readthedocs.io/en/latest/">pyspeckit</a>
-package and is fully interactive.</p>
+Running stage 2 will launch a GUI for interactive fitting of the spectra extracted
+from the SAAs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scousepy</span></code> uses a technique called <em>derivative spectroscopy</em> to provide initial
+guesses for the decomposition of the SAA spectra. Derivative spectroscopy
+identifies peaks in the data by computing the derivatives of the spectrum
+(shown in the top-left panel of the GUI). The method is controlled by two
+parameters that can be adjusted using the sliders at the top of the GUI,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">SNR</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha</span></code>. The former is the signal-to-noise requirement for all identified
+peaks, and the latter controls the kernel size for smoothing of the spectrum.
+Smoothing is required to avoid noise amplification in the derivative spectra.</p>
+<p>The fit from derivative spectroscopy can be overruled by initiating the interactive
+fitter from <a class="reference external" href="http://pyspeckit.readthedocs.io/en/latest/">pyspeckit</a>.</p>
+<p>The user can navigate through the spectra using the buttons at the bottom of the
+GUI. The user may also choose to apply derivative spectroscopy to all of the
+spectra using the default (or current) values of <code class="xref py py-obj docutils literal notranslate"><span class="pre">SNR</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha</span></code>.</p>
 </div>
 <div class="section" id="stage-3-automated-fitting">
 <h2>Stage 3: automated fitting<a class="headerlink" href="#stage-3-automated-fitting" title="Permalink to this headline">¶</a></h2>
-<p>Non user-interactive fitting of individual spectra contained within all SAAs.
+<p>Non user-interactive fitting of the individual spectra contained within all SAAs.
 The user is required to input several tolerance levels to <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Please
 refer to <a class="reference external" href="http://adsabs.harvard.edu/abs/2016MNRAS.457.2675H">Henshaw et al. 2016</a>
-for more details on each of these.</p>
+for more details on each of these. These are supplied via the <code class="docutils literal notranslate"><span class="pre">scousepy.config</span></code>
+file.</p>
+<p>The Nyquist sampling of the SAAs means that a given spectrum may have multiple
+solutions. <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> identifies the best-fitting solution via the Akaike
+Information Criterion (AIC). The AIC is a measure of relative fitting quality
+which is used for fitting evaluation and model selection. The decision is in
+favour of the model with the lowest AIC. The AIC is given</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=2(k-L)\]</div>
+<p>in which <span class="math notranslate nohighlight">\(k\)</span> is the number of free parameters, and <span class="math notranslate nohighlight">\(L\)</span> is the log
+likelihood function of the model evaluated at the maximum likelihood estimate
+(i. e., the parameters for which L is maximized). More generally, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
+computes the AIC assuming that the observations are Gaussian distributed such
+that</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=n\,\mathrm{ln}\bigg(\frac{SSR}{n}\bigg)+2k\]</div>
+<p>in which <span class="math notranslate nohighlight">\(SSR\)</span> is the sum of the squared residuals and <span class="math notranslate nohighlight">\(n\)</span> is the
+sample size. In the event that the sample size is not large enough <span class="math notranslate nohighlight">\(n&lt;40\)</span>,
+a correction is applied</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=n\,\mathrm{ln}\bigg(\frac{SSR}{n}\bigg)+2k+\frac{2k(k+1)}{n-k-1}.\]</div>
+<p>The computation is handled via <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.stats.akaike_info_criterion_lsq.html">astropy</a>.</p>
+<p>To select the best-fitting solution, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> uses the following rule of
+thumb from Burnham and Anderson 2002, pg. 70:</p>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}=\mathrm{AIC}_{i}-\mathrm{AIC}_{min}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}&lt;2\;\mathrm{substantial\;support\;for\;model}\;i\]</div>
+<div class="math notranslate nohighlight">
+\[4&lt;\Delta \mathrm{AIC}_{i}&lt;7\;\mathrm{considerably\;less\;support\;for\;model}\;i\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}&gt;10\;\mathrm{essentially\;no\;support\;for\;model}\;i\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathrm{AIC}_{min}\)</span> is the minimum <span class="math notranslate nohighlight">\(\mathrm{AIC}\)</span> value out of
+the models compared.</p>
 </div>
-<div class="section" id="stage-4-selecting-the-best-fits">
-<h2>Stage 4: selecting the best fits<a class="headerlink" href="#stage-4-selecting-the-best-fits" title="Permalink to this headline">¶</a></h2>
-<p>Here <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> selects the best-fits that are output in stage 3.</p>
-</div>
-<div class="section" id="optional-stages">
-<h2>Optional Stages<a class="headerlink" href="#optional-stages" title="Permalink to this headline">¶</a></h2>
-<p>Unfortunately there is no one-size-fits-all method to selecting a best-fitting
-solution when multiple choices are available (stage 4). SCOUSE uses the Akaike
-Information Criterion, which weights the chi-squared value of a best-fitting
-solution according to the number of free-parameters.</p>
-<p>While AIC does a good job of returning the best-fitting solutions, there are
-areas where the best-fitting solutions can be improved. As such the following
-stages are optional but <em>highly recommended</em>.</p>
-<p>This part of the process has changed significantly from the original code. The
-user is now presented with several diagnostic plots (see below), selecting
-different regions will display the corresponding spectra, allowing the user to
-check the fit quality.</p>
-<p>Depending on the data a user may wish to perform a few iterations of Stages 5-6.</p>
-</div>
-<div class="section" id="stage-5-checking-the-best-fitting-solutions">
-<h2>Stage 5: checking the best-fitting solutions<a class="headerlink" href="#stage-5-checking-the-best-fitting-solutions" title="Permalink to this headline">¶</a></h2>
-<p>Checking the fits. Here the user is required to check the best-fitting
-solutions to the spectra. This stage is now fully interactive. The user is first
-presented with several diagnostic plots namely: <code class="xref py py-obj docutils literal notranslate"><span class="pre">rms</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">residstd</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">redchi2</span></code>,
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">ncomps</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">aic</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">chi2</span></code>. These can be used to assess the quality of fits
-throughout the map. Clicking on a particular region will show the spectra
-associated with that location. The user can then select spectra for closer
-inspection or refitting as required.</p>
-</div>
-<div class="section" id="stage-6-re-analysing-the-identified-spectra">
-<h2>Stage 6: re-analysing the identified spectra<a class="headerlink" href="#stage-6-re-analysing-the-identified-spectra" title="Permalink to this headline">¶</a></h2>
-<p>In this stage the user is required to either select an alternative solution or
-re-fit completely the spectra identified in stage 5.</p>
+<div class="section" id="stage-4-quality-control">
+<h2>Stage 4: quality control<a class="headerlink" href="#stage-4-quality-control" title="Permalink to this headline">¶</a></h2>
+<p>Quality control of the best-fitting solutions derived in stage 3. Running
+stage 4 will launch a GUI displaying various diagnostic plots of the goodness-of-fit
+statistics output by the decomposition. Clicking on this image will display a
+grid of spectra in the central panel for closer inspection. Clicking on one of
+those spectra will plot the selected spectrum in the right-hand panel. At this
+point the user has the option to select an alternative model solution (if
+available) or re-enter the fitting procedure, either using derivative spectroscopy
+or via the manual fitting procedure implemented in <a class="reference external" href="http://pyspeckit.readthedocs.io/en/latest/">pyspeckit</a>.</p>
 </div>
 </div>
 
@@ -147,13 +193,11 @@ re-fit completely the spectra identified in stage 5.</p>
         <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
 <ul>
 <li><a class="reference internal" href="#">A brief introduction to scousepy</a><ul>
+<li><a class="reference internal" href="#stage-0-preparation-step">Stage 0: preparation step</a></li>
 <li><a class="reference internal" href="#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
 <li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
 <li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
-<li><a class="reference internal" href="#stage-4-selecting-the-best-fits">Stage 4: selecting the best fits</a></li>
-<li><a class="reference internal" href="#optional-stages">Optional Stages</a></li>
-<li><a class="reference internal" href="#stage-5-checking-the-best-fitting-solutions">Stage 5: checking the best-fitting solutions</a></li>
-<li><a class="reference internal" href="#stage-6-re-analysing-the-identified-spectra">Stage 6: re-analysing the identified spectra</a></li>
+<li><a class="reference internal" href="#stage-4-quality-control">Stage 4: quality control</a></li>
 </ul>
 </li>
 </ul>
@@ -169,9 +213,9 @@ re-fit completely the spectra identified in stage 5.</p>
        rel="nofollow">Page Source</a> &nbsp;
     <a href="#">Back to Top</a></p>
   <p>
-    &copy; Copyright 2021, Jonathan D. Henshaw.<br/>
+    &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
     Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
-    Last built 26 Nov 2021. <br/>
+    Last built 28 Jan 2022. <br/>
   </p>
 </footer>
   </body>

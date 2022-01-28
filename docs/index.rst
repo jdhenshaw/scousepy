@@ -26,6 +26,7 @@ Documentation
 
   installation.rst
   description.rst
+  tutorial_v2.0.0.rst
   tutorial_v1.0.0.rst
   license.rst
 
@@ -101,8 +102,9 @@ Please also consider acknowledgements to the required packages in your work.
 Papers using scousepy
 ~~~~~~~~~~~~~~~~~~~~~
 
-* Henshaw et al. 2021, MNRAS, accepted
-* Liu et al. 2021, MNRAS, submitted
+* Hu, Lazarian, & Wang 2021, MNRAS, submitted
+* Henshaw et al. 2021, MNRAS, 509, 4758
+* Liu, Hu, & Lazarian 2021, MNRAS, 501, 4952
 * Barnes et al. 2021, MNRAS, 503, 4601
 * Callanan et al. 2021, MNRAS, 505, 4310
 * Yue et al. 2021, RAA, 21, 24
