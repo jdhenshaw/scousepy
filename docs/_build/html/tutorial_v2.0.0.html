@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutorial v2.0.0 &#8212; scousepy v1.0.1.dev87+g558b850.d20211222</title>
+    <link rel="stylesheet" href="_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial v1.0.0" href="tutorial_v1.0.0.html" />
+    <link rel="prev" title="A brief introduction to scousepy" href="description.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">scousepy</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="tutorial_v1.0.0.html" title="Tutorial v1.0.0">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="description.html" title="A brief introduction to scousepy">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">scousepy v1.0.1.dev87+g558b850.d20211222</a>
+	 &#187;
+      </li>
+      
+      <li>Tutorial v2.0.0</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tutorial-v2-0-0">
+<span id="tutorial"></span><h1>Tutorial v2.0.0<a class="headerlink" href="#tutorial-v2-0-0" title="Permalink to this headline">¶</a></h1>
+<p>The aim of this tutorial is to give a basic introduction to the main workflow of
+<code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Each stage will be described below along with some of the
+important customisable keywords. All data for the tutorial can be found <a class="reference external" href="https://github.com/jdhenshaw/scousepy_tutorials">here</a>, along with some example
+scripts.</p>
+<div class="section" id="data">
+<h2>Data<a class="headerlink" href="#data" title="Permalink to this headline">¶</a></h2>
+<p>This tutorial utilises observations of N2H+ (1-0) towards the Infrared Dark
+Cloud G035.39-00.33. This data set was first published in <a class="reference external" href="http://adsabs.harvard.edu/abs/2013MNRAS.428.3425H">Henshaw et al. 2013.</a>.
+These observations were carried out with the IRAM 30m Telescope. IRAM is
+supported by INSU/CNRS (France), MPG (Germany) and IGN (Spain). The data file
+is in fits format and is called</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">n2h</span><span class="o">+</span><span class="mf">10_37.</span><span class="n">fits</span>
+</pre></div>
+</div>
+<p>An important note on this data set is that N2H+ (1-0) has hyperfine structure.
+For the purposes of this tutorial, we are going to fit only the isolated hyperfine
+component. Specific to this data set, this component is located between ~ 30-41 km/s.</p>
+</div>
+<div class="section" id="stage-0-preparation-step">
+<h2>Stage 0: preparation step<a class="headerlink" href="#stage-0-preparation-step" title="Permalink to this headline">¶</a></h2>
+<p>The first thing we are going to do is import <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> using</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scousepy</span> <span class="kn">import</span> <span class="n">scouse</span>
+</pre></div>
+</div>
+<p>Next, we want to tell <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> where the data is and where to output the
+files associated with each stage</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">datadir</span><span class="o">=</span><span class="s1">&#39;/path/to/the/data/&#39;</span>
+<span class="n">outputdir</span><span class="o">=</span><span class="s1">&#39;/path/to/output/information/&#39;</span>
+<span class="n">filename</span><span class="o">=</span><span class="s1">&#39;n2h+10_37&#39;</span>
+</pre></div>
+</div>
+<p>Note how the filename is provided without the .fits extension. If <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputdir</span></code> is
+not provided <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will output everything to <code class="xref py py-obj docutils literal notranslate"><span class="pre">datadir</span></code> by default.</p>
+<p>Now we are going to create the configuration files</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_file</span><span class="o">=</span><span class="n">scouse</span><span class="o">.</span><span class="n">run_setup</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadir</span><span class="p">,</span> <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will produce a directory with the following structure</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span>| filename
+| ├── config_files
+| │   ├── scousepy.config
+| │   ├── coverage.config
+| ├── stage_1
+| ├── stage_2
+| ├── stage_3
+| └── stage_4
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">scousepy.config</span></code> will have the following structure</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">DEFAULT</span><span class="p">]</span>
+
+<span class="c1"># location of the FITS data cube you would like to decompose</span>
+<span class="n">datadirectory</span> <span class="o">=</span> <span class="s1">&#39;/path/to/the/data/&#39;</span>
+
+<span class="c1"># name of the FITS data cube (without extension)</span>
+<span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;n2h+10_37&#39;</span>
+
+<span class="c1"># output directory for data products</span>
+<span class="n">outputdirectory</span> <span class="o">=</span> <span class="s1">&#39;/path/to/output/information/&#39;</span>
+
+<span class="c1"># decomposition model (default=Gaussian)</span>
+<span class="n">fittype</span> <span class="o">=</span> <span class="s1">&#39;gaussian&#39;</span>
+
+<span class="c1"># Number of CPUs used for parallel processing</span>
+<span class="n">njobs</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="c1"># print messages to the terminal [True/False]</span>
+<span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># autosave output from individual steps [True/False]</span>
+<span class="n">autosave</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="p">[</span><span class="n">stage_1</span><span class="p">]</span>
+
+<span class="c1"># save moment maps as FITS files [True/False]</span>
+<span class="n">write_moments</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># generate a figure of the coverage map [True/False]</span>
+<span class="n">save_fig</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="p">[</span><span class="n">stage_2</span><span class="p">]</span>
+
+<span class="c1"># outputs an ascii table of the fits [True/False]</span>
+<span class="n">write_ascii</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="p">[</span><span class="n">stage_3</span><span class="p">]</span>
+
+<span class="c1"># Tolerance values for the fitting. See Henshaw et al. 2016a</span>
+<span class="n">tol</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span><span class="mf">3.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">2.5</span><span class="p">,</span><span class="mf">2.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Each of these parameters can be edited directly before running the subsequent
+stages. In particular, though <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> performs much quicker in parallelised
+mode (<code class="xref py py-obj docutils literal notranslate"><span class="pre">njobs</span></code>), debugging may be easier in serial.</p>
+<p><code class="docutils literal notranslate"><span class="pre">coverage.config</span></code> will have the following structure</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">DEFAULT</span><span class="p">]</span>
+
+<span class="c1"># number of refinement steps</span>
+<span class="n">nrefine</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1"># mask data below this value</span>
+<span class="n">mask_below</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="c1"># optional input filepath to a fits file containing a mask used to define the coverage</span>
+<span class="n">mask_coverage</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># data x range in pixels</span>
+<span class="n">x_range</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+<span class="c1"># data y range in pixels</span>
+<span class="n">y_range</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+<span class="c1"># data velocity range in cube units</span>
+<span class="n">vel_range</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+<span class="c1"># width of the spectral averaging areas</span>
+<span class="n">wsaa</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+<span class="c1"># fractional limit below which SAAs are rejected</span>
+<span class="n">fillfactor</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]</span>
+
+<span class="c1"># sample size for randomly selecting SAAs</span>
+<span class="n">samplesize</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># method used to define the coverage [regular/random]</span>
+<span class="n">covmethod</span> <span class="o">=</span> <span class="s1">&#39;regular&#39;</span>
+
+<span class="c1"># method setting spacing of SAAs [nyquist/regular]</span>
+<span class="n">spacing</span> <span class="o">=</span> <span class="s1">&#39;nyquist&#39;</span>
+
+<span class="c1"># method defining spectral complexity</span>
+<span class="n">speccomplexity</span> <span class="o">=</span> <span class="s1">&#39;momdiff&#39;</span>
+
+<span class="c1"># total number of SAAs</span>
+<span class="n">totalsaas</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># total number of spectra within the coverage</span>
+<span class="n">totalspec</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Again, each of these keywords can be edited manually before running stage 1. The
+GUI application of stage 1 can be bypassed using the keyword
+<code class="code docutils literal notranslate"><span class="pre">interactive=False</span></code>. T</p>
+</div>
+<div class="section" id="stage-1-defining-the-coverage-interactive">
+<h2>Stage 1: defining the coverage - interactive<a class="headerlink" href="#stage-1-defining-the-coverage-interactive" title="Permalink to this headline">¶</a></h2>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will launch an interactive GUI in order to define the
+coverage…</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_1.png"><img alt="_images/stage1_GUI_1.png" class="align-center" src="_images/stage1_GUI_1.png" style="width: 900px;" /></a>
+<p>The keywords included in <code class="docutils literal notranslate"><span class="pre">coverage.config</span></code> are updated by interacting with the
+GUI. For this particular data set we are fitting N2H+ (1-0), so the first thing
+we want to do is truncate the velocity range over which we are going to perform
+the fitting such that we only focus our attention on the isolated hyperfine
+component. We can do this by adjusting the <code class="docutils literal notranslate"><span class="pre">v</span> <span class="pre">limits</span></code> boxes and clicking
+<code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">moments</span></code>. The <code class="docutils literal notranslate"><span class="pre">v</span> <span class="pre">limits</span></code> are given in absolute units whereas the
+<code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">limits</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">limits</span></code> should be given in pixel units. This will result in
+the following</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_2.png"><img alt="_images/stage1_GUI_2.png" class="align-center" src="_images/stage1_GUI_2.png" style="width: 900px;" /></a>
+<p>Note how although the image itself doesn’t change much, the intensity does. This
+can be inferred from the sliders at the top of the GUI.</p>
+<p>We can also apply a mask such that we only fit a portion of the data. Here I
+have used a mask of 0.3 (again in absolute units, in this case K), remembering
+to click <code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">moments</span></code> again,</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_3.png"><img alt="_images/stage1_GUI_3.png" class="align-center" src="_images/stage1_GUI_3.png" style="width: 900px;" /></a>
+<p>We can inspect the mask itself by clicking on the <code class="docutils literal notranslate"><span class="pre">mask</span></code> button at the bottom</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_4.png"><img alt="_images/stage1_GUI_4.png" class="align-center" src="_images/stage1_GUI_4.png" style="width: 900px;" /></a>
+<p>Next up we want to run the coverage. For this we first want to set the <code class="docutils literal notranslate"><span class="pre">SAA</span> <span class="pre">size</span></code>.
+Here I have set the <code class="code docutils literal notranslate"><span class="pre">SAA</span> <span class="pre">size=5</span></code>. I have also retained the default settings
+for the other options, most importantly the <code class="code docutils literal notranslate"><span class="pre">filling</span> <span class="pre">factor=0.5</span></code>. Clicking
+on <code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">coverage</span></code> will produce the coverage map.</p>
+<p>The remaining settings are best ignored for now, but relate to various pieces of
+code that are still in development. The coverage will be displayed on the image
+and the box to the right will now display some basic statistics. Most importantly
+it indicates how many SAAs are to be fit and how many spectra are included within
+those SAAs (and will therefore be fit during stage 3).</p>
+<p>Done correctly, you should see something like this</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_5.png"><img alt="_images/stage1_GUI_5.png" class="align-center" src="_images/stage1_GUI_5.png" style="width: 900px;" /></a>
+<p>Hitting <code class="docutils literal notranslate"><span class="pre">continue</span></code> will process the coverage and extract the spatially averaged
+spectra from each of the spectral averaging areas</p>
+<a class="reference internal image-reference" href="_images/stage1_GUI_6.png"><img alt="_images/stage1_GUI_6.png" class="align-center" src="_images/stage1_GUI_6.png" style="width: 900px;" /></a>
+</div>
+<div class="section" id="stage-1-defining-the-coverage-non-interactive">
+<h2>Stage 1: defining the coverage - non-interactive<a class="headerlink" href="#stage-1-defining-the-coverage-non-interactive" title="Permalink to this headline">¶</a></h2>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">coverage.config</span></code> file can be edited directly to perform the
+computation of the coverage in a non-interactive way. Personally, I have found
+this helpful when fitting multiple cubes. In a separate code, I might extract
+information on the velocity limits using simple moment analysis. I can then
+update the configuration file using something like the following</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scousepy.configmaker</span> <span class="kn">import</span> <span class="n">ConfigMaker</span>
+
+<span class="c1"># create a dictionary for updating the scouse config file</span>
+<span class="n">mydicts</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;datadirectory&#39;</span><span class="p">:</span> <span class="n">datadir</span><span class="p">,</span>
+        <span class="s1">&#39;filename&#39;</span><span class="p">:</span> <span class="n">cubename</span><span class="p">,</span>
+        <span class="s1">&#39;outputdirectory&#39;</span><span class="p">:</span> <span class="n">outputdir</span><span class="p">,</span>
+        <span class="s1">&#39;njobs&#39;</span><span class="p">:</span> <span class="n">njobs</span><span class="p">,</span>
+        <span class="s1">&#39;tol&#39;</span><span class="p">:</span> <span class="n">tol</span><span class="p">}</span>
+
+<span class="c1"># create a dictionary for updating the coverage config file</span>
+<span class="n">mydictc</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mask_coverage&#39;</span><span class="p">:</span><span class="n">maskfile</span><span class="p">,</span>
+        <span class="s1">&#39;mask_below&#39;</span><span class="p">:</span><span class="n">snr</span><span class="o">*</span><span class="n">rms</span><span class="p">,</span>
+        <span class="s1">&#39;vel_range&#39;</span><span class="p">:[</span><span class="n">velmin</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">velmax</span><span class="o">.</span><span class="n">value</span><span class="p">],</span>
+        <span class="s1">&#39;wsaa&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">wsaa</span><span class="p">],</span>
+        <span class="s1">&#39;fillfactor&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">fillfactor</span><span class="p">]}</span>
+
+<span class="n">ConfigMaker</span><span class="p">(</span><span class="n">pathto_scousepyconfig</span><span class="p">,</span> <span class="n">configtype</span><span class="o">=</span><span class="s1">&#39;init&#39;</span><span class="p">,</span> <span class="nb">dict</span><span class="o">=</span><span class="n">mydicts</span><span class="p">)</span>
+<span class="n">ConfigMaker</span><span class="p">(</span><span class="n">pathto_coverageconfig</span><span class="p">,</span> <span class="n">configtype</span><span class="o">=</span><span class="s1">&#39;coverage&#39;</span><span class="p">,</span> <span class="nb">dict</span><span class="o">=</span><span class="n">mydictc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note how you can use a pre-defined mask here as opposed to using the moment
+based method used in the interactive version of stage 1. To run stage 1 in this
+way use</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="stage-2-fitting-the-spectral-averaging-areas">
+<h2>Stage 2: fitting the spectral averaging areas<a class="headerlink" href="#stage-2-fitting-the-spectral-averaging-areas" title="Permalink to this headline">¶</a></h2>
+<p>Stage 2 is where we will perform our semi-automated fitting. Running the following
+command will initiate a GUI that will allow us to fit the SAA spectra</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Where the GUI will look like this</p>
+<a class="reference internal image-reference" href="_images/stage2_GUI_1.png"><img alt="_images/stage2_GUI_1.png" class="align-center" src="_images/stage2_GUI_1.png" style="width: 900px;" /></a>
+<p>The GUI is divided into three main regions (not including the navigation buttons
+at the right and bottom of the screen). The top-left displays:</p>
+<ul class="simple">
+<li><p>The spectrum to be fit (blue solid histogram)</p></li>
+<li><p>A spectrum that has been smoothed with a Gaussian Kernel of <code class="docutils literal notranslate"><span class="pre">width=alpha</span></code> (black dotted curve)</p></li>
+<li><p>The initial guesses indicated the location and amplitude of peaks derived from derivative spectroscopy (black lollipops)</p></li>
+<li><p>Fitted components (green curves)</p></li>
+<li><p>The total model indicating the sum of the individual components (magenta curve)</p></li>
+<li><p>The residuals (orange histogram) defined as the spectrum-model</p></li>
+</ul>
+<p>Each of these items can be toggled on/off by clicking on the markers in the legend.</p>
+<p>The top-right displays the first (blue), second (orange), third (green), and
+fourth (red) order derivatives of the smoothed spectrum displayed in the left-hand
+plot. The profiles of these curves are used to identify peaks in the data.</p>
+<p>The bottom panel displays the fit information extracted from <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>. First
+it tells us that the fit has converged. It tells us the number of fitted components
+and their Gaussian characteristics (amplitude, shift=centroid, and width) and
+uncertainties. It also shows us some goodness of fit statistics.</p>
+<p>The fitting is controlled via the <code class="docutils literal notranslate"><span class="pre">alpha</span></code> and <code class="docutils literal notranslate"><span class="pre">SNR</span></code> parameters. As an example
+increasing the <code class="docutils literal notranslate"><span class="pre">alpha</span></code> value, which has the effect of smoothing the spectrum
+even more would result in a fewer number of components, as is illustrated here</p>
+<a class="reference internal image-reference" href="_images/stage2_GUI_2.png"><img alt="_images/stage2_GUI_2.png" class="align-center" src="_images/stage2_GUI_2.png" style="width: 900px;" /></a>
+<p>Note the difference in the right-hand panel, where now there are two prominent
+dips in the second derivative (orange) indicating the location of peaks.</p>
+<p>If you are unable to find a suitable fit by adjusting the <code class="docutils literal notranslate"><span class="pre">SNR</span></code> and <code class="docutils literal notranslate"><span class="pre">alpha</span></code>
+sliders, the other option is to enter the manual fitter which can be found in the
+navigation bar on the right. This will open up <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>’s manual fitter
+and should look like this</p>
+<a class="reference internal image-reference" href="_images/stage2_GUI_3.png"><img alt="_images/stage2_GUI_3.png" class="align-center" src="_images/stage2_GUI_3.png" style="width: 700px;" /></a>
+<p>Interactive fitting can be performed using several commands. To indicate
+the components that you would like to fit, you select each component twice: once
+somewhere close to the peak emission and another click to indicate (roughly)
+the full-width at half-maximum. In my experience with this, you don’t need to
+be particularly accurate, <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code> does an excellent job of picking up the
+components you have selected. Selection can be made either using the keyboard
+(<code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span></code>) or mouse. Once selected this will look something like this…</p>
+<a class="reference internal image-reference" href="_images/stage2_GUI_4.png"><img alt="_images/stage2_GUI_4.png" class="align-center" src="_images/stage2_GUI_4.png" style="width: 700px;" /></a>
+<p>If you are happy with your fit, hitting <code class="xref py py-obj docutils literal notranslate"><span class="pre">d</span></code> will lock it in. The resulting
+fit will be plotted and some useful information will be printed out to the
+terminal.</p>
+<a class="reference internal image-reference" href="_images/stage2_GUI_5.png"><img alt="_images/stage2_GUI_5.png" class="align-center" src="_images/stage2_GUI_5.png" style="width: 700px;" /></a>
+<p>Hitting <code class="xref py py-obj docutils literal notranslate"><span class="pre">enter</span></code> will close the interactive window and the fit in <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>’s
+stage 2 GUI will update.</p>
+<p>You can then navigate to the next spectra either by using the navigation bar on
+the right (<code class="docutils literal notranslate"><span class="pre">previous</span></code>, <code class="docutils literal notranslate"><span class="pre">next</span></code>) or the buttons at the bottom. Note that if at
+any time you exit the fitter, and re-run the script, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will pick up
+where it left off.</p>
+<p>Finally, when checking the results of the automated fitting in stage 3 and 4, it
+may become clear that some tweaks are needed to the fitting. Using the keyword
+<code class="code docutils literal notranslate"><span class="pre">refit</span></code> will allow you to re-enter the fitter</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">refit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can then navigate to problematic spectra using the input field at the bottom
+of the GUI.</p>
+</div>
+<div class="section" id="stage-3-automated-fitting">
+<h2>Stage 3: automated fitting<a class="headerlink" href="#stage-3-automated-fitting" title="Permalink to this headline">¶</a></h2>
+<p>Stage 3 represents the automated decomposition stage. <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will take you
+best-fitting solutions from stage 2 and pass these to the individual spectra
+located within each SAA. The fitting process is controlled by a number of
+tolerance levels which are passed to <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> via the <code class="docutils literal notranslate"><span class="pre">tol</span></code> keyword in
+<code class="docutils literal notranslate"><span class="pre">scousepy.config</span></code>.</p>
+<p>The tolerance levels are descibed more completely in
+<a class="reference external" href="http://adsabs.harvard.edu/abs/2016MNRAS.457.2675H">Henshaw et al. 2016</a>.
+However, in short, the tolerance levels correspond to the following</p>
+<ol class="arabic simple">
+<li><p>The allowed change in the number of components between the fit of an individual
+spectrum and its parent SAA.</p></li>
+<li><p>The S/N ratio each component must satisfy.</p></li>
+<li><p>The minimum width of each component given as a multiple of the channel spacing.</p></li>
+<li><p>This controls how similar a component must be to the closest matching component
+in the SAA fit in terms of velocity dispersion.</p></li>
+<li><p>This controls how similar a component must be to the closest matching component
+in the SAA fit in terms of centroid velocity.</p></li>
+<li><p>This governs the minimum separation between two components for them to be
+considered distinguishable (it is given as a multiple of the width of the
+narrowest component).</p></li>
+</ol>
+<p>Stage 3 is run using the following command</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with the fitting progress output to terminal</p>
+<a class="reference internal image-reference" href="_images/stage3_v2_1.png"><img alt="_images/stage3_v2_1.png" class="align-center" src="_images/stage3_v2_1.png" style="width: 900px;" /></a>
+<p>Something to consider is the <code class="docutils literal notranslate"><span class="pre">njobs</span></code> keyword. Various stages of <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
+have been parallelised. The parallelisation works on a divide and conquer
+approach, whereby the total number of spectra to be fit are divided into batches
+and each batch sent to a different cpu. I would highly recommend using <code class="docutils literal notranslate"><span class="pre">njobs&gt;1</span></code>
+for large (&gt;10000 spectra) data sets or for data sets with large numbers of
+components.</p>
+</div>
+<div class="section" id="stage-4-quality-control">
+<h2>Stage 4: quality control<a class="headerlink" href="#stage-4-quality-control" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Tutorial v2.0.0</a><ul>
+<li><a class="reference internal" href="#data">Data</a></li>
+<li><a class="reference internal" href="#stage-0-preparation-step">Stage 0: preparation step</a></li>
+<li><a class="reference internal" href="#stage-1-defining-the-coverage-interactive">Stage 1: defining the coverage - interactive</a></li>
+<li><a class="reference internal" href="#stage-1-defining-the-coverage-non-interactive">Stage 1: defining the coverage - non-interactive</a></li>
+<li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
+<li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
+<li><a class="reference internal" href="#stage-4-quality-control">Stage 4: quality control</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/tutorial_v2.0.0.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
+    Last built 28 Jan 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>
