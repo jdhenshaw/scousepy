@@ -938,6 +938,8 @@ class scouse(object):
             self.cube = _cube
             log.setLevel(old_log)
 
+        return _cube
+
     def save_to(self, filename):
         """
         Saves an output file
@@ -995,7 +997,7 @@ class scouse(object):
         ------
         scouseobject : an instance of the scousepy class
             A new scouseobject where the s3 stages have been merged and best
-            fitting solutions combined into a single indiv_dict 
+            fitting solutions combined into a single indiv_dict
         """
         # create an empty dictionary that will house the combined results
         indiv_dict_combine={}
