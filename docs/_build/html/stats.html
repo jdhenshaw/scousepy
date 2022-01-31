@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to output the solutions and retrieve some useful stats &#8212; scousepy v1.0.1.dev87+g558b850.d20211222</title>
+    <link rel="stylesheet" href="_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial v1.0.0" href="tutorial_v1.0.0.html" />
+    <link rel="prev" title="Tutorial v2.0.0" href="tutorial_v2.0.0.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">scousepy</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="tutorial_v1.0.0.html" title="Tutorial v1.0.0">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="tutorial_v2.0.0.html" title="Tutorial v2.0.0">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">scousepy v1.0.1.dev87+g558b850.d20211222</a>
+	 &#187;
+      </li>
+      
+      <li>How to output the solutions and retrieve some useful stats</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-output-the-solutions-and-retrieve-some-useful-stats">
+<span id="stats"></span><h1>How to output the solutions and retrieve some useful stats<a class="headerlink" href="#how-to-output-the-solutions-and-retrieve-some-useful-stats" title="Permalink to this headline">¶</a></h1>
+<p>Below describes some of the data structures output from <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> and how to
+access some potentially important information, starting with the things that
+are probably most useful for most people (with some more involved stuff further
+down that can be safely ignored unless you really want to dig).</p>
+<div class="section" id="how-to-output-the-best-fitting-solutions-to-an-ascii-table">
+<h2>How to output the best-fitting solutions to an ascii table<a class="headerlink" href="#how-to-output-the-best-fitting-solutions-to-an-ascii-table" title="Permalink to this headline">¶</a></h2>
+<p>Assuming you have completed all four stages of the fitting process, you can
+output the best-fitting solutions to an ascii table using the following commands</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># import scousepy</span>
+<span class="kn">from</span> <span class="nn">scousepy</span> <span class="kn">import</span> <span class="n">scouse</span>
+
+<span class="c1"># create pointers to input, output, data</span>
+<span class="n">datadir</span><span class="o">=</span><span class="s1">&#39;/path/to/the/data/&#39;</span>
+<span class="n">outputdir</span><span class="o">=</span><span class="s1">&#39;/path/to/output/information/&#39;</span>
+<span class="n">filename</span><span class="o">=</span><span class="s1">&#39;n2h+10_37&#39;</span>
+
+<span class="c1"># run scousepy</span>
+<span class="n">config_file</span><span class="o">=</span><span class="n">scouse</span><span class="o">.</span><span class="n">run_setup</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadirectory</span><span class="p">,</span> <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># output the ascii table</span>
+<span class="kn">from</span> <span class="nn">scousepy.io</span> <span class="kn">import</span> <span class="n">output_ascii_indiv</span>
+<span class="n">output_ascii_indiv</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">outputdir</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that in the above case, running the first four stages will simply load the
+relevant information which is stored in pickle files. I have set the keyword
+<code class="docutils literal notranslate"><span class="pre">bitesize=False</span></code> here to prevent <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> from opening the stage 4 GUI.
+The final two lines will output the information to an ascii file.</p>
+<p>Each row in the table corresponds to a single component. So any given pixel may
+have multiple rows in the table. The columns correspond to</p>
+<ol class="arabic simple">
+<li><p>number of components at that pixel location</p></li>
+<li><p>x location (pixels)</p></li>
+<li><p>y location (pixels)</p></li>
+<li><p>amplitude</p></li>
+<li><p>amplitude uncertainty</p></li>
+<li><p>shift (centroid velocity)</p></li>
+<li><p>shift uncertainty</p></li>
+<li><p>width (dispersion <em>not</em> FWHM)</p></li>
+<li><p>width uncertainty</p></li>
+<li><p>rms</p></li>
+<li><p>standard deviation of the residual spectrum</p></li>
+<li><p><span class="math notranslate nohighlight">\(\chi^{2}\)</span></p></li>
+<li><p>number of degrees of freedom</p></li>
+<li><p>reduced <span class="math notranslate nohighlight">\(\chi^{2}\)</span></p></li>
+<li><p>AIC</p></li>
+</ol>
+<p>It is worth noting that a similar table will be output during stage 2. This
+describes the solutions to the spectra extracted from the SAAs.</p>
+</div>
+<div class="section" id="how-to-retrieve-some-useful-statistics-regarding-the-fits">
+<h2>How to retrieve some useful statistics regarding the fits<a class="headerlink" href="#how-to-retrieve-some-useful-statistics-regarding-the-fits" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">scousepy.stats</span></code> module offers some basic but informative statistics
+on the decomposition. We can compute the statistics using</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># import scousepy</span>
+<span class="kn">from</span> <span class="nn">scousepy</span> <span class="kn">import</span> <span class="n">scouse</span>
+
+<span class="c1"># create pointers to input, output, data</span>
+<span class="n">datadir</span><span class="o">=</span><span class="s1">&#39;/path/to/the/data/&#39;</span>
+<span class="n">outputdir</span><span class="o">=</span><span class="s1">&#39;/path/to/output/information/&#39;</span>
+<span class="n">filename</span><span class="o">=</span><span class="s1">&#39;n2h+10_37&#39;</span>
+
+<span class="c1"># run scousepy</span>
+<span class="n">config_file</span><span class="o">=</span><span class="n">scouse</span><span class="o">.</span><span class="n">run_setup</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadirectory</span><span class="p">,</span> <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># compute the statistics</span>
+<span class="n">stats</span><span class="o">=</span><span class="n">scouse</span><span class="o">.</span><span class="n">compute_stats</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following information can then be accessed via the <code class="docutils literal notranslate"><span class="pre">stats</span></code> object</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of spectra in the cube is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">nspec</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of spectral averaging areas is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">nsaa</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of spectra contained within the SAA coverage is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">nspecsaa</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of spectra with model solutions is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">nfits</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of fitted components is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">ncomps</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The number of components per fit is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">ncompsperfit</span> <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The total number of fits requiring multi-component models is: &quot;</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">nmultiple</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In addition, the user can obtain the distributions of some of the common parameters
+and goodness-of-fit statistics using</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">param_dict</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">stats</span>
+<span class="n">saa_param_dict</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">saastats</span>
+</pre></div>
+</div>
+<p>These will return dictionaries outlining the distribution of quantities such as
+the model parameters. Each statistic has an associated list that includes</p>
+<ol class="arabic simple">
+<li><p>minimum value</p></li>
+<li><p>25th percentile</p></li>
+<li><p>median</p></li>
+<li><p>75th percentile</p></li>
+<li><p>maximum value</p></li>
+<li><p>mean value</p></li>
+</ol>
+<p>In addition, <code class="docutils literal notranslate"><span class="pre">stats.saastats</span></code> includes some useful information about the SAA
+fitting. It gives the distribution of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">SNR</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha</span></code> parameters, as well
+as the number of spectra that were fit manually (i.e. not using derivative
+spectroscopy).</p>
+</div>
+<div class="section" id="advanced-how-to-work-your-way-around-the-saas">
+<h2>(Advanced) How to work your way around the SAAs<a class="headerlink" href="#advanced-how-to-work-your-way-around-the-saas" title="Permalink to this headline">¶</a></h2>
+<p>The SAAs and their associated models are housed within a dictionary called <code class="docutils literal notranslate"><span class="pre">saa_dict</span></code>.
+It is indexed according to the number of levels of refinement in the SAA fitting.
+For most use cases, you may only use a single SAA size, and so the dictionary
+containing the SAAs can be accessed with <code class="docutils literal notranslate"><span class="pre">mySAAdict=s.saa_dict[0]</span></code>.</p>
+<p>Each SAA is represented as an object in this dictionary. Note that there is a SAA
+for every single SAA, even if that SAA was not fit (i.e. if it did not satisfy
+the masking criteria in stage 1). To get a list of SAAs that were fit you can
+use something like</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">mySAAdict</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">saa_dict</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">myFittedSAAs</span><span class="o">=</span><span class="p">[</span><span class="n">mySAAdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">mySAAdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">mySAAdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">to_be_fit</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Each SAA object contains information such as its pixel coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">saa.coordinates</span></code>),
+the indices of the individual spectra included in its boundary (<code class="xref py py-obj docutils literal notranslate"><span class="pre">saa.indices</span></code>),
+the spatially averaged spectrum extracted from those pixels (<code class="xref py py-obj docutils literal notranslate"><span class="pre">saa.spectrum</span></code>),
+the measured rms (<code class="xref py py-obj docutils literal notranslate"><span class="pre">saa.rms</span></code>), and the best-fitting model solution (<code class="xref py py-obj docutils literal notranslate"><span class="pre">saa.model</span></code>)</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">saa</span> <span class="ow">in</span> <span class="n">myFittedSAAs</span><span class="p">:</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">saa</span><span class="o">.</span><span class="n">coordinates</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="advanced-how-to-work-your-way-around-the-individual-spectra">
+<h2>(Advanced) How to work your way around the individual spectra<a class="headerlink" href="#advanced-how-to-work-your-way-around-the-individual-spectra" title="Permalink to this headline">¶</a></h2>
+<p>Similar to the SAAs, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> stores information on individual spectra in a
+dictionary called <code class="docutils literal notranslate"><span class="pre">indiv_dict</span></code>. The individual spectra objects contain a bunch
+of information that may be useful including the pixel coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.coordinates</span></code>),
+the index of that spectrum (<code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.index</span></code>), the measured rms (<code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.rms</span></code>). It
+also contains information regarding the parent SAA. The correct index for the
+SAA dictionary can be accessed (<code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.saa_dict_index</span></code>) and then the index of the
+parent saa can be found (<code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.saaindex</span></code>), such that the parent SAA can be accessed
+(<code class="docutils literal notranslate"><span class="pre">s.saa_dict[spec.saa_dict_index][spec.saaindex]</span></code>).</p>
+<p>Further information regarding the fitting process can also be accessed here. The
+input guesses from the parent SAA spectrum can be accessed via <code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.guesses_from_parent</span></code>.
+If some of these guesses yield results that are incompatible with the tolerance
+levels supplied during stage 3 then <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> will modify the input guesses.
+These can be accessed via <code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.guesses_updated</span></code>.</p>
+<p>Finally, the models from the parent SAA(s) can be found in <code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.models_from_parent</span></code>,
+and the best-fitting model is located in <code class="xref py py-obj docutils literal notranslate"><span class="pre">spec.model</span></code></p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">indiv_dict</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">indiv_dict</span>
+<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">indiv_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">coordinates</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="advanced-a-description-of-the-scousepy-model-object">
+<h2>(Advanced) A description of the <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> model object<a class="headerlink" href="#advanced-a-description-of-the-scousepy-model-object" title="Permalink to this headline">¶</a></h2>
+<p>Each decomposed spectrum, SAA or individual, has an associated model. The model
+object contains lots of useful information regarding the model solution. The
+attributes include</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">fittype</span> <span class="p">:</span> <span class="n">string</span>
+    <span class="n">Model</span> <span class="n">used</span> <span class="n">during</span> <span class="n">fitting</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">Gaussian</span><span class="p">)</span>
+<span class="n">parnames</span> <span class="p">:</span> <span class="nb">list</span>
+    <span class="n">A</span> <span class="nb">list</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">parameter</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">model</span> <span class="p">(</span><span class="n">corresponds</span> <span class="n">to</span> <span class="n">those</span>
+    <span class="n">used</span> <span class="ow">in</span> <span class="n">pyspeckit</span><span class="p">)</span>
+<span class="n">ncomps</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">components</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">model</span> <span class="n">solution</span>
+<span class="n">params</span> <span class="p">:</span> <span class="nb">list</span>
+    <span class="n">The</span> <span class="n">parameter</span> <span class="n">estimates</span>
+<span class="n">errors</span> <span class="p">:</span> <span class="nb">list</span>
+    <span class="n">The</span> <span class="n">uncertainties</span> <span class="n">on</span> <span class="n">each</span> <span class="n">measured</span> <span class="n">parameter</span>
+<span class="n">rms</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">measured</span> <span class="n">rms</span> <span class="n">value</span>
+<span class="n">residstd</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">standard</span> <span class="n">deviation</span> <span class="n">of</span> <span class="n">the</span> <span class="n">residuals</span>
+<span class="n">chisq</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">chi</span> <span class="n">squared</span> <span class="n">value</span>
+<span class="n">dof</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">degrees</span> <span class="n">of</span> <span class="n">freedom</span>
+<span class="n">redchisq</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">reduced</span> <span class="n">chi</span> <span class="n">squared</span> <span class="n">value</span>
+<span class="n">AIC</span> <span class="p">:</span> <span class="n">Number</span>
+    <span class="n">The</span> <span class="n">akaike</span> <span class="n">information</span> <span class="n">criterion</span>
+<span class="n">fitconverge</span> <span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">Indicates</span> <span class="n">whether</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">the</span> <span class="n">fit</span> <span class="n">has</span> <span class="n">converged</span>
+<span class="n">method</span> <span class="p">:</span> <span class="n">String</span>
+  <span class="n">The</span> <span class="n">method</span> <span class="n">of</span> <span class="n">decomposition</span> <span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">dspec</span><span class="p">,</span> <span class="n">manual</span><span class="p">,</span> <span class="n">removed</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">How to output the solutions and retrieve some useful stats</a><ul>
+<li><a class="reference internal" href="#how-to-output-the-best-fitting-solutions-to-an-ascii-table">How to output the best-fitting solutions to an ascii table</a></li>
+<li><a class="reference internal" href="#how-to-retrieve-some-useful-statistics-regarding-the-fits">How to retrieve some useful statistics regarding the fits</a></li>
+<li><a class="reference internal" href="#advanced-how-to-work-your-way-around-the-saas">(Advanced) How to work your way around the SAAs</a></li>
+<li><a class="reference internal" href="#advanced-how-to-work-your-way-around-the-individual-spectra">(Advanced) How to work your way around the individual spectra</a></li>
+<li><a class="reference internal" href="#advanced-a-description-of-the-scousepy-model-object">(Advanced) A description of the <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> model object</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/stats.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
+    Last built 31 Jan 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

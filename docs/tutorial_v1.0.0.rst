@@ -1,4 +1,4 @@
-.. _tutorial:
+.. _tutorial_v1.0.0:
 
 ***************
 Tutorial v1.0.0
@@ -219,8 +219,8 @@ case the fitting was not parallelised (``njobs=1``)...
   :align: center
   :width: 900
 
-Stage 4 - selecting the best-fitting solutions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Stage 4: selecting the best-fitting solutions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Not much to say here - just set this stage running. Here the best-fitting
 solutions from stage 3 are compiled for each spectrum. Where the SAAs overlap
@@ -229,8 +229,8 @@ there will be multiple fits for each spectrum. Duplicates are removed and the
 
   s = scouse.stage_4(s, verbose=True)
 
-Stage 5 - quality control
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Stage 5: quality control
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now we want to check our work. Stage 5 works interactively and is run in the
 following way ::
@@ -296,8 +296,8 @@ lot of re-fitting (maybe >5-10% of the data), I will stop at this stage and twea
 the parameters of stage 3 and re-run from there. Once I'm happy that the majority
 of the fits are reasonable I will go through stage 5 in earnest.
 
-Stage 6 - refitting
-~~~~~~~~~~~~~~~~~~~
+Stage 6: refitting
+~~~~~~~~~~~~~~~~~~
 
 Here we are going to look again at the spectra we selected during stage 5.
 Stage 6 is run using ::

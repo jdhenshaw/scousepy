@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="License" href="license.html" />
-    <link rel="prev" title="Tutorial v2.0.0" href="tutorial_v2.0.0.html" />
+    <link rel="prev" title="How to output the solutions and retrieving some useful stats" href="stats.html" />
     <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
 
   </head><body>
@@ -55,7 +55,7 @@
 	</a>
       </li>
       <li class="right">
-	<a href="tutorial_v2.0.0.html" title="Tutorial v2.0.0">
+	<a href="stats.html" title="How to output the solutions and retrieving some useful stats">
 	  &laquo; previous
 	</a>
 	 |
@@ -76,7 +76,7 @@
           <div class="body" role="main">
             
   <div class="section" id="tutorial-v1-0-0">
-<span id="tutorial"></span><h1>Tutorial v1.0.0<a class="headerlink" href="#tutorial-v1-0-0" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Tutorial v1.0.0<a class="headerlink" href="#tutorial-v1-0-0" title="Permalink to this headline">¶</a></h1>
 <p>The aim of this tutorial is to give a basic introduction to the main workflow of
 <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Each stage will be described below along with some of the
 important customisable keywords. All data for the tutorial can be found <a class="reference external" href="https://github.com/jdhenshaw/scousepy_tutorials">here</a>, along with some example
@@ -251,7 +251,7 @@ case the fitting was not parallelised (<code class="docutils literal notranslate
 <a class="reference internal image-reference" href="_images/stage3_1.png"><img alt="_images/stage3_1.png" class="align-center" src="_images/stage3_1.png" style="width: 900px;" /></a>
 </div>
 <div class="section" id="stage-4-selecting-the-best-fitting-solutions">
-<h2>Stage 4 - selecting the best-fitting solutions<a class="headerlink" href="#stage-4-selecting-the-best-fitting-solutions" title="Permalink to this headline">¶</a></h2>
+<h2>Stage 4: selecting the best-fitting solutions<a class="headerlink" href="#stage-4-selecting-the-best-fitting-solutions" title="Permalink to this headline">¶</a></h2>
 <p>Not much to say here - just set this stage running. Here the best-fitting
 solutions from stage 3 are compiled for each spectrum. Where the SAAs overlap
 there will be multiple fits for each spectrum. Duplicates are removed and the
@@ -261,7 +261,7 @@ there will be multiple fits for each spectrum. Duplicates are removed and the
 </div></blockquote>
 </div>
 <div class="section" id="stage-5-quality-control">
-<h2>Stage 5 - quality control<a class="headerlink" href="#stage-5-quality-control" title="Permalink to this headline">¶</a></h2>
+<h2>Stage 5: quality control<a class="headerlink" href="#stage-5-quality-control" title="Permalink to this headline">¶</a></h2>
 <p>Now we want to check our work. Stage 5 works interactively and is run in the
 following way</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_5</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">blocksize</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
@@ -306,7 +306,7 @@ the parameters of stage 3 and re-run from there. Once I’m happy that the major
 of the fits are reasonable I will go through stage 5 in earnest.</p>
 </div>
 <div class="section" id="stage-6-refitting">
-<h2>Stage 6 - refitting<a class="headerlink" href="#stage-6-refitting" title="Permalink to this headline">¶</a></h2>
+<h2>Stage 6: refitting<a class="headerlink" href="#stage-6-refitting" title="Permalink to this headline">¶</a></h2>
 <p>Here we are going to look again at the spectra we selected during stage 5.
 Stage 6 is run using</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_6</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">plot_neighbours</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -462,7 +462,7 @@ which can be run in stage 2 in the following way…</p>
 <span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">write_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nspec</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Check out the <a class="reference internal" href="tutorial_v2.0.0.html#tutorial"><span class="std std-ref">Complete Example</span></a> in the tutorial
+<p>Check out the <a class="reference external" href="https://docs.astropy.org/en/stable/io/fits/index.html#tutorial" title="(in Astropy v5.0)"><span class="xref std std-ref">Complete Example</span></a> in the tutorial
 section of the documentation to understand what is going on here with some more
 context. However, in short, the first run I have used the keywords <code class="docutils literal notranslate"><span class="pre">bitesize=True</span></code>
 and <code class="docutils literal notranslate"><span class="pre">nspec=10</span></code>. This will fit the first 10 spectra as normal. Note the
@@ -487,9 +487,9 @@ change this to whatever value you like.</p>
 <li><a class="reference internal" href="#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
 <li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
 <li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
-<li><a class="reference internal" href="#stage-4-selecting-the-best-fitting-solutions">Stage 4 - selecting the best-fitting solutions</a></li>
-<li><a class="reference internal" href="#stage-5-quality-control">Stage 5 - quality control</a></li>
-<li><a class="reference internal" href="#stage-6-refitting">Stage 6 - refitting</a></li>
+<li><a class="reference internal" href="#stage-4-selecting-the-best-fitting-solutions">Stage 4: selecting the best-fitting solutions</a></li>
+<li><a class="reference internal" href="#stage-5-quality-control">Stage 5: quality control</a></li>
+<li><a class="reference internal" href="#stage-6-refitting">Stage 6: refitting</a></li>
 <li><a class="reference internal" href="#complete-example">Complete Example</a></li>
 <li><a class="reference internal" href="#tips-and-tricks">Tips and Tricks</a></li>
 </ul>
@@ -509,7 +509,7 @@ change this to whatever value you like.</p>
   <p>
     &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
     Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
-    Last built 28 Jan 2022. <br/>
+    Last built 31 Jan 2022. <br/>
   </p>
 </footer>
   </body>

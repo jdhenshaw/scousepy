@@ -21,7 +21,7 @@
     <link rel="shortcut icon" href="_static/astropy_logo.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial v1.0.0" href="tutorial_v1.0.0.html" />
+    <link rel="next" title="How to output the solutions and retrieving some useful stats" href="stats.html" />
     <link rel="prev" title="A brief introduction to scousepy" href="description.html" />
     <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
 
@@ -50,7 +50,7 @@
     <h3>Navigation</h3>
     <ul>
       <li class="right">
-	<a href="tutorial_v1.0.0.html" title="Tutorial v1.0.0">
+	<a href="stats.html" title="How to output the solutions and retrieving some useful stats">
 	  next &raquo;
 	</a>
       </li>
@@ -76,7 +76,7 @@
           <div class="body" role="main">
             
   <div class="section" id="tutorial-v2-0-0">
-<span id="tutorial"></span><h1>Tutorial v2.0.0<a class="headerlink" href="#tutorial-v2-0-0" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Tutorial v2.0.0<a class="headerlink" href="#tutorial-v2-0-0" title="Permalink to this headline">¶</a></h1>
 <p>The aim of this tutorial is to give a basic introduction to the main workflow of
 <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>. Each stage will be described below along with some of the
 important customisable keywords. All data for the tutorial can be found <a class="reference external" href="https://github.com/jdhenshaw/scousepy_tutorials">here</a>, along with some example
@@ -219,7 +219,7 @@ mode (<code class="xref py py-obj docutils literal notranslate"><span class="pre
 </div>
 <p>Again, each of these keywords can be edited manually before running stage 1. The
 GUI application of stage 1 can be bypassed using the keyword
-<code class="code docutils literal notranslate"><span class="pre">interactive=False</span></code>. T</p>
+<code class="code docutils literal notranslate"><span class="pre">interactive=False</span></code>.</p>
 </div>
 <div class="section" id="stage-1-defining-the-coverage-interactive">
 <h2>Stage 1: defining the coverage - interactive<a class="headerlink" href="#stage-1-defining-the-coverage-interactive" title="Permalink to this headline">¶</a></h2>
@@ -329,7 +329,7 @@ dips in the second derivative (orange) indicating the location of peaks.</p>
 sliders, the other option is to enter the manual fitter which can be found in the
 navigation bar on the right. This will open up <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>’s manual fitter
 and should look like this</p>
-<a class="reference internal image-reference" href="_images/stage2_GUI_3.png"><img alt="_images/stage2_GUI_3.png" class="align-center" src="_images/stage2_GUI_3.png" style="width: 700px;" /></a>
+<a class="reference internal image-reference" href="_images/stage2_GUI_3.png"><img alt="_images/stage2_GUI_3.png" class="align-center" src="_images/stage2_GUI_3.png" style="width: 500px;" /></a>
 <p>Interactive fitting can be performed using several commands. To indicate
 the components that you would like to fit, you select each component twice: once
 somewhere close to the peak emission and another click to indicate (roughly)
@@ -337,11 +337,11 @@ the full-width at half-maximum. In my experience with this, you don’t need to
 be particularly accurate, <code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code> does an excellent job of picking up the
 components you have selected. Selection can be made either using the keyboard
 (<code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span></code>) or mouse. Once selected this will look something like this…</p>
-<a class="reference internal image-reference" href="_images/stage2_GUI_4.png"><img alt="_images/stage2_GUI_4.png" class="align-center" src="_images/stage2_GUI_4.png" style="width: 700px;" /></a>
+<a class="reference internal image-reference" href="_images/stage2_GUI_4.png"><img alt="_images/stage2_GUI_4.png" class="align-center" src="_images/stage2_GUI_4.png" style="width: 500px;" /></a>
 <p>If you are happy with your fit, hitting <code class="xref py py-obj docutils literal notranslate"><span class="pre">d</span></code> will lock it in. The resulting
 fit will be plotted and some useful information will be printed out to the
 terminal.</p>
-<a class="reference internal image-reference" href="_images/stage2_GUI_5.png"><img alt="_images/stage2_GUI_5.png" class="align-center" src="_images/stage2_GUI_5.png" style="width: 700px;" /></a>
+<a class="reference internal image-reference" href="_images/stage2_GUI_5.png"><img alt="_images/stage2_GUI_5.png" class="align-center" src="_images/stage2_GUI_5.png" style="width: 500px;" /></a>
 <p>Hitting <code class="xref py py-obj docutils literal notranslate"><span class="pre">enter</span></code> will close the interactive window and the fit in <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>’s
 stage 2 GUI will update.</p>
 <p>You can then navigate to the next spectra either by using the navigation bar on
@@ -384,8 +384,40 @@ narrowest component).</p></li>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>with the fitting progress output to terminal</p>
+<p>with the progress report output to terminal</p>
 <a class="reference internal image-reference" href="_images/stage3_v2_1.png"><img alt="_images/stage3_v2_1.png" class="align-center" src="_images/stage3_v2_1.png" style="width: 900px;" /></a>
+<p>The Nyquist sampling of the SAAs means that a given spectrum may have multiple
+solutions. <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> identifies the best-fitting solution via the Akaike
+Information Criterion (AIC). The AIC is a measure of relative fitting quality
+which is used for fitting evaluation and model selection. The decision is in
+favour of the model with the lowest AIC. The AIC is given</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=2(k-L)\]</div>
+<p>in which <span class="math notranslate nohighlight">\(k\)</span> is the number of free parameters, and <span class="math notranslate nohighlight">\(L\)</span> is the log
+likelihood function of the model evaluated at the maximum likelihood estimate
+(i. e., the parameters for which L is maximized). More generally, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
+computes the AIC assuming that the observations are Gaussian distributed such
+that</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=n\,\mathrm{ln}\bigg(\frac{SSR}{n}\bigg)+2k\]</div>
+<p>in which <span class="math notranslate nohighlight">\(SSR\)</span> is the sum of the squared residuals and <span class="math notranslate nohighlight">\(n\)</span> is the
+sample size. In the event that the sample size is not large enough <span class="math notranslate nohighlight">\(n&lt;40\)</span>,
+a correction is applied</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{AIC}=n\,\mathrm{ln}\bigg(\frac{SSR}{n}\bigg)+2k+\frac{2k(k+1)}{n-k-1}.\]</div>
+<p>The computation is handled via <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.stats.akaike_info_criterion_lsq.html">astropy</a>.</p>
+<p>To select the best-fitting solution, <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> uses the following rule of
+thumb from Burnham and Anderson 2002, pg. 70:</p>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}=\mathrm{AIC}_{i}-\mathrm{AIC}_{min}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}&lt;2\;\mathrm{substantial\;support\;for\;model}\;i\]</div>
+<div class="math notranslate nohighlight">
+\[4&lt;\Delta \mathrm{AIC}_{i}&lt;7\;\mathrm{considerably\;less\;support\;for\;model}\;i\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \mathrm{AIC}_{i}&gt;10\;\mathrm{essentially\;no\;support\;for\;model}\;i\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathrm{AIC}_{min}\)</span> is the minimum <span class="math notranslate nohighlight">\(\mathrm{AIC}\)</span> value out of
+the models compared.</p>
 <p>Something to consider is the <code class="docutils literal notranslate"><span class="pre">njobs</span></code> keyword. Various stages of <code class="docutils literal notranslate"><span class="pre">scousepy</span></code>
 have been parallelised. The parallelisation works on a divide and conquer
 approach, whereby the total number of spectra to be fit are divided into batches
@@ -395,6 +427,75 @@ components.</p>
 </div>
 <div class="section" id="stage-4-quality-control">
 <h2>Stage 4: quality control<a class="headerlink" href="#stage-4-quality-control" title="Permalink to this headline">¶</a></h2>
+<p>Stage 4 represents the quality control phase. Here we are able to inspect the
+decomposition. Stage 4 is run using the following command</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This command will launch a GUI with which we can inspect the best-fitting
+solutions determined during stage 3. The GUI will look like the following</p>
+<a class="reference internal image-reference" href="_images/stage4_GUI_1.png"><img alt="_images/stage4_GUI_1.png" class="align-center" src="_images/stage4_GUI_1.png" style="width: 900px;" /></a>
+<p>The GUI is divided into three main areas. The left panel displays a series of
+diagnostic plots that can be used to identify problem areas. The diagnostic plots
+include</p>
+<ol class="arabic simple">
+<li><p>rms noise.</p></li>
+<li><p>standard deviation of the residual spectrum at each pixel</p></li>
+<li><p>reduced <span class="math notranslate nohighlight">\(\chi^{2}\)</span></p></li>
+<li><p>number of fitted components</p></li>
+<li><p>AIC - the Akaike Information Criterion</p></li>
+<li><p><span class="math notranslate nohighlight">\(\chi^{2}\)</span></p></li>
+</ol>
+<p>Selecting a pixel in the diagnostic map will display the spectrum and its best-fitting
+solution at that location (as well as its surrounding neighbours) in the central
+panel like so</p>
+<a class="reference internal image-reference" href="_images/stage4_GUI_2.png"><img alt="_images/stage4_GUI_2.png" class="align-center" src="_images/stage4_GUI_2.png" style="width: 900px;" /></a>
+<p>The user can then select one of the highlighted spectra for closer inspection.
+By clicking on one of the spectra in the central panel, it will appear in the
+right-hand panel. Underneath the spectrum will include some additional information
+on the decomposition. In the example below, we can see that there are two models
+available. The model selected (and displayed) by <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> is a two component
+model.</p>
+<a class="reference internal image-reference" href="_images/stage4_GUI_3.png"><img alt="_images/stage4_GUI_3.png" class="align-center" src="_images/stage4_GUI_3.png" style="width: 900px;" /></a>
+<p>However, the user has the option to edit this. Pressing on the right arrow will
+display the next available solution, in this case, a single component fit. If
+the user would like to use this solution instead, they can click <code class="docutils literal notranslate"><span class="pre">confirm</span></code>.
+Note how this automatically updates the spectrum model in the central panel.</p>
+<a class="reference internal image-reference" href="_images/stage4_GUI_4.png"><img alt="_images/stage4_GUI_4.png" class="align-center" src="_images/stage4_GUI_4.png" style="width: 900px;" /></a>
+<p>Alternatively, the user can manually fit the spectrum, either using derivative
+spectroscopy <code class="docutils literal notranslate"><span class="pre">fit</span> <span class="pre">(dspec)</span></code> or manually using <code class="docutils literal notranslate"><span class="pre">fit</span> <span class="pre">(manual)</span></code>, which will launch
+<code class="docutils literal notranslate"><span class="pre">pyspeckit</span></code>’s manual fitter. Again, to lock the change in, the user must hit
+<code class="docutils literal notranslate"><span class="pre">confirm</span></code> before selecting another spectrum.</p>
+<p>The user can end the process by hitting <code class="docutils literal notranslate"><span class="pre">continue</span></code>. If at any stage the user
+would like to re-enter this quality control step, they can do so by using the
+keyword <code class="xref py py-obj docutils literal notranslate"><span class="pre">bitesize</span></code></p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the user can also bypass this step entirely by using the keyword <code class="xref py py-obj docutils literal notranslate"><span class="pre">nocheck</span></code></p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">nocheck</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="a-complete-example">
+<h2>A complete example<a class="headerlink" href="#a-complete-example" title="Permalink to this headline">¶</a></h2>
+<p>To run all the steps in sequence your code might look something like this</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># import scousepy</span>
+<span class="kn">from</span> <span class="nn">scousepy</span> <span class="kn">import</span> <span class="n">scouse</span>
+
+<span class="c1"># create pointers to input, output, data</span>
+<span class="n">datadir</span><span class="o">=</span><span class="s1">&#39;/path/to/the/data/&#39;</span>
+<span class="n">outputdir</span><span class="o">=</span><span class="s1">&#39;/path/to/output/information/&#39;</span>
+<span class="n">filename</span><span class="o">=</span><span class="s1">&#39;n2h+10_37&#39;</span>
+
+<span class="c1"># run scousepy</span>
+<span class="n">config_file</span><span class="o">=</span><span class="n">scouse</span><span class="o">.</span><span class="n">run_setup</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">datadirectory</span><span class="p">,</span> <span class="n">outputdir</span><span class="o">=</span><span class="n">outputdir</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_1</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_2</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_3</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">scouse</span><span class="o">.</span><span class="n">stage_4</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">bitesize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 </div>
 
@@ -414,6 +515,7 @@ components.</p>
 <li><a class="reference internal" href="#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
 <li><a class="reference internal" href="#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
 <li><a class="reference internal" href="#stage-4-quality-control">Stage 4: quality control</a></li>
+<li><a class="reference internal" href="#a-complete-example">A complete example</a></li>
 </ul>
 </li>
 </ul>
@@ -431,7 +533,7 @@ components.</p>
   <p>
     &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
     Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
-    Last built 28 Jan 2022. <br/>
+    Last built 31 Jan 2022. <br/>
   </p>
 </footer>
   </body>
