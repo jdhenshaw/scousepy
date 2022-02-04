@@ -350,6 +350,12 @@ class scouse(object):
                                             interactive=interactive)
             if interactive:
                  coverageobject.show()
+            if coverageobject.config_file is None or len(coverageobject.config_file) == 0:
+                raise ValueError("Coverage configuration was set to be 'interactive', but the "
+                        "interactive plot window did not wait for input.  You will need to either "
+                        "manually create the coverage.config file or re-start with a blocking "
+                        "matplotlib frontend.")
+
             # write out the config file for the coverage
             self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
             with open(self.coverage_config_file_path, 'w') as file:
