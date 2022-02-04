@@ -350,7 +350,7 @@ class scouse(object):
                                             interactive=interactive)
             if interactive:
                  coverageobject.show()
-            if len(coverageobject.config_file) == 0:
+            if coverageobject.config_file is None or len(coverageobject.config_file) == 0:
                 raise ValueError("Coverage configuration was set to be 'interactive', but the "
                         "interactive plot window did not wait for input.  You will need to either "
                         "manually create the coverage.config file or re-start with a blocking "
