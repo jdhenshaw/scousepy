@@ -29,6 +29,8 @@ class ScouseCoverage(object):
     """
     def __init__(self, scouseobject=None, create_config_file=True, verbose=True, interactive=True):
 
+        self.coverage_is_complete = False
+
         # For moments
         self.scouseobject=scouseobject
         self.verbose=verbose
@@ -388,6 +390,9 @@ class ScouseCoverage(object):
             self.run_coverage(None)
             # complete the coverage task
             self.coverage_complete(None)
+        else:
+            self.fig.canvas.flush_events()
+            self.fig.canvas.draw_idle()
 
 
     def show(self):
@@ -431,6 +436,8 @@ class ScouseCoverage(object):
             if self.covmethod=='regular':
                 self.samplesize=0.0
             self.config_file=make_config_file(self)
+
+        self.coverage_is_complete = True
 
         # close the window
         self.close_window()

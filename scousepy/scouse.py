@@ -21,6 +21,8 @@ import shutil
 import time
 import pyspeckit
 import random
+import asyncio
+
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
 
 from .stage_3 import *
@@ -348,22 +350,50 @@ class scouse(object):
             # Interactive coverage generator
             coverageobject=ScouseCoverage(scouseobject=self,verbose=self.verbose,
                                             interactive=interactive)
+            print(f"Checking if interactive: {interactive}")
             if interactive:
-                 coverageobject.show()
-            if coverageobject.config_file is None or len(coverageobject.config_file) == 0:
-                raise ValueError("Coverage configuration was set to be 'interactive', but the "
-                        "interactive plot window did not wait for input. If you are running in "
-                        "Jupyter notebooks or Spyder then try running scouse as a script instead. "
-                        "Alternatively set interactive=False and manually update coverage.config.")
+                coverageobject.show()
+                if not coverageobject.coverage_is_complete:
+                    # we are in a notebook and need asyncio
+                    async def wait_on_interactive():
+                        while coverageobject.config_file is None:
+                            await asyncio.sleep(1)
+                        self.save_coverage(coverageobject, old_log)
+                        self.run_coverage(coverageobject)
+                        plt.close(coverageobject.fig.number)
+                    
+                    loop = asyncio.get_event_loop()
+                    loop.create_task(wait_on_interactive())
+            else:
+                self.save_coverage(coverageobject, old_log)
+                self.run_coverage(coverageobject)
+
+            print(f"coverageobject.config_file = {coverageobject.config_file}")
+            #if coverageobject.config_file is None or len(coverageobject.config_file) == 0:
+            #    raise ValueError("Coverage configuration was set to be 'interactive', but the "
+            #            "interactive plot window did not wait for input.  You will need to either "
+            #            "manually create the coverage.config file or re-start with a blocking "
+            #            "matplotlib frontend.")
+        return self
+
+    def save_coverage(self, coverageobject, old_log):
+        from .io import import_from_config
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
 
             # write out the config file for the coverage
-            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,
+                    self.filename, 'config_files', 'coverage.config')
             with open(self.coverage_config_file_path, 'w') as file:
                 for line in coverageobject.config_file:
                     file.write(line)
             # set the parameters
             import_from_config(self, self.coverage_config_file_path)
             log.setLevel(old_log)
+
+    def run_coverage(self, coverageobject):
+        from .stage_1 import generate_SAAs, plot_coverage, compute_noise, get_x_axis
+        from .verbose_output import print_to_terminal
 
         # start the time once the coverage has been generated
         starttime = time.time()
