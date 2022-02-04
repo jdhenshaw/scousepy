@@ -350,7 +350,6 @@ class scouse(object):
             # Interactive coverage generator
             coverageobject=ScouseCoverage(scouseobject=self,verbose=self.verbose,
                                             interactive=interactive)
-            print(f"Checking if interactive: {interactive}")
             if interactive:
                 coverageobject.show()
                 if not coverageobject.coverage_is_complete:
@@ -368,12 +367,6 @@ class scouse(object):
                 self.save_coverage(coverageobject, old_log)
                 self.run_coverage(coverageobject)
 
-            print(f"coverageobject.config_file = {coverageobject.config_file}")
-            #if coverageobject.config_file is None or len(coverageobject.config_file) == 0:
-            #    raise ValueError("Coverage configuration was set to be 'interactive', but the "
-            #            "interactive plot window did not wait for input.  You will need to either "
-            #            "manually create the coverage.config file or re-start with a blocking "
-            #            "matplotlib frontend.")
         return self
 
     def save_coverage(self, coverageobject, old_log):
