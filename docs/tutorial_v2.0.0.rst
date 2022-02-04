@@ -153,7 +153,7 @@ mode (`njobs`), debugging may be easier in serial.
 
 Again, each of these keywords can be edited manually before running stage 1. The
 GUI application of stage 1 can be bypassed using the keyword
-:code:`interactive=False`. 
+:code:`interactive=False`.
 
 Stage 1: defining the coverage - interactive
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -522,7 +522,7 @@ To run all the steps in sequence your code might look something like this ::
   filename='n2h+10_37'
 
   # run scousepy
-  config_file=scouse.run_setup(filename, datadirectory, outputdir=outputdir)
+  config_file=scouse.run_setup(filename, datadir, outputdir=outputdir)
   s = scouse.stage_1(config=config_file, interactive=True)
   s = scouse.stage_2(config=config_file)
   s = scouse.stage_3(config=config_file)
