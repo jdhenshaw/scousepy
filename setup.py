@@ -9,6 +9,8 @@ import sys
 
 from setuptools import setup
 
+setup()
+
 from extension_helpers import get_extensions
 
 

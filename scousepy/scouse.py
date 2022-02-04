@@ -995,7 +995,7 @@ class scouse(object):
         ------
         scouseobject : an instance of the scousepy class
             A new scouseobject where the s3 stages have been merged and best
-            fitting solutions combined into a single indiv_dict 
+            fitting solutions combined into a single indiv_dict
         """
         # create an empty dictionary that will house the combined results
         indiv_dict_combine={}
