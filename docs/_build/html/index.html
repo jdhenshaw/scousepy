@@ -79,7 +79,7 @@ package for the analysis of spectral line data. A detailed
 description of the method (and the original <a class="reference external" href="https://github.com/jdhenshaw/SCOUSE">IDL version</a> of the code)
 can be found in <a class="reference external" href="http://ukads.nottingham.ac.uk/abs/2016arXiv160103732H">Henshaw et al. 2016</a>.
 In the following pages you will find a <a class="reference internal" href="description.html#description"><span class="std std-ref">brief introduction</span></a>
-to the method as well as a <a class="reference internal" href="tutorial_v2.0.0.html#tutorial"><span class="std std-ref">tutorial</span></a>. The <a class="reference external" href="https://github.com/jdhenshaw/scousepy">source code</a> is available on GitHub and comments
+to the method as well as a <a class="reference external" href="https://docs.astropy.org/en/stable/io/fits/index.html#tutorial" title="(in Astropy v5.0)"><span class="xref std std-ref">tutorial</span></a>. The <a class="reference external" href="https://github.com/jdhenshaw/scousepy">source code</a> is available on GitHub and comments
 and contributions are very welcome.</p>
 <div class="section" id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
@@ -106,6 +106,15 @@ and contributions are very welcome.</p>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v2.0.0.html#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v2.0.0.html#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v2.0.0.html#stage-4-quality-control">Stage 4: quality control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_v2.0.0.html#a-complete-example">A complete example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">How to output the solutions and retrieve some useful stats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stats.html#how-to-output-the-best-fitting-solutions-to-an-ascii-table">How to output the best-fitting solutions to an ascii table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stats.html#how-to-retrieve-some-useful-statistics-regarding-the-fits">How to retrieve some useful statistics regarding the fits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stats.html#advanced-how-to-work-your-way-around-the-saas">(Advanced) How to work your way around the SAAs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stats.html#advanced-how-to-work-your-way-around-the-individual-spectra">(Advanced) How to work your way around the individual spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stats.html#advanced-a-description-of-the-scousepy-model-object">(Advanced) A description of the <code class="docutils literal notranslate"><span class="pre">scousepy</span></code> model object</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_v1.0.0.html">Tutorial v1.0.0</a><ul>
@@ -114,9 +123,9 @@ and contributions are very welcome.</p>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-1-defining-the-coverage">Stage 1: defining the coverage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-2-fitting-the-spectral-averaging-areas">Stage 2: fitting the spectral averaging areas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-3-automated-fitting">Stage 3: automated fitting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-4-selecting-the-best-fitting-solutions">Stage 4 - selecting the best-fitting solutions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-5-quality-control">Stage 5 - quality control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-6-refitting">Stage 6 - refitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-4-selecting-the-best-fitting-solutions">Stage 4: selecting the best-fitting solutions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-5-quality-control">Stage 5: quality control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#stage-6-refitting">Stage 6: refitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#complete-example">Complete Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial_v1.0.0.html#tips-and-tricks">Tips and Tricks</a></li>
 </ul>
@@ -245,7 +254,7 @@ acknowledgements…:</p>
   <p>
     &copy; Copyright 2022, Jonathan D. Henshaw.<br/>
     Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.2.1. &nbsp;
-    Last built 28 Jan 2022. <br/>
+    Last built 31 Jan 2022. <br/>
   </p>
 </footer>
   </body>

@@ -27,6 +27,7 @@ Documentation
   installation.rst
   description.rst
   tutorial_v2.0.0.rst
+  stats.rst
   tutorial_v1.0.0.rst
   license.rst
 
