@@ -144,6 +144,9 @@ class Decomposer(object):
         if np.any(np.invert(np.isfinite(errors))):
             #print('initial fit did not converge...modifying initial guesses')
             guesses = np.copy(self.pskspectrum.specfit.modelpars)
+            #print(guesses_parent)
+            #print(guesses)
+            #print(errors)
             rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 else 1.0 for guess in guesses])
             #print(rounding)
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
@@ -157,7 +160,7 @@ class Decomposer(object):
                 if np.sum([1 for number in component if number < 0.0]) >= 1:
                     self.guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
-
+            #print(self.guesses)
             namelist = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
             foundname = [pname in namelist for pname in self.pskspectrum.specfit.fitter.parnames]
             foundname = np.array(foundname)
@@ -166,8 +169,9 @@ class Decomposer(object):
 
             # Now check all components to see if they are above the rms threshold
             amplist=np.asarray([self.guesses[int(i*nparams)+idx] for i in range(int(ncomponents))])
-
-            idx = np.where(amplist==np.min(amplist))
+            #print(amplist)
+            idx = np.where(amplist==np.min(amplist))[0]
+            #print(idx)
             idx=np.asscalar(idx[0])
 
             self.guesses[int((idx*nparams)):int((idx*nparams)+nparams)] = 0.0
