@@ -144,7 +144,7 @@ class Decomposer(object):
         if np.any(np.invert(np.isfinite(errors))):
             #print('initial fit did not converge...modifying initial guesses')
             guesses = np.copy(self.pskspectrum.specfit.modelpars)
-            rounding = np.asarray([np.abs(np.floor(np.log10(guess))) if np.floor(np.log10(guess))<0.0 else 1.0 for guess in guesses])
+            rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 else 1.0 for guess in guesses])
             #print(rounding)
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
 
