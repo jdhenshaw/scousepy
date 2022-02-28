@@ -702,13 +702,24 @@ class scouse(object):
         if self.verbose:
             progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
+                                             
         self.completed_stages.append('s3')
 
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            if s3file is not None:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/'+s3file,self.outputdirectory+self.filename+'/stage_3/'+s3file+'.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/'+s3file, 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            else:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/s3.scousepy',self.outputdirectory+self.filename+'/stage_3/s3.scousepy.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
 
         return self
 
