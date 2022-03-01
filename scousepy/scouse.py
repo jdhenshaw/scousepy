@@ -282,7 +282,7 @@ class scouse(object):
         #
 
     @staticmethod
-    def stage_1(config='', interactive=True):
+    def stage_1(config='', interactive=True, verbose=None):
         """
         Identify the spatial area over which the fitting will be implemented.
 
@@ -320,14 +320,18 @@ class scouse(object):
             print('')
             return
 
+        if verbose is not None:
+            self.verbose=verbose
+
         # check if stage 1 has already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s1', step='load')
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
             if 's1' in self.completed_stages:
-                print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
-                print('')
+                if self.verbose:
+                    print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
+                    print('')
             return self
 
         # load the cube
@@ -433,7 +437,7 @@ class scouse(object):
             self.trimids,\
             self.rms_approx=pickle.load(fh)
 
-    def stage_2(config='', refit=False):
+    def stage_2(config='', refit=False, verbose=None):
         """
         Fitting of the SAAs
 
@@ -469,6 +473,9 @@ class scouse(object):
             print('')
             return
 
+        if verbose is not None:
+            self.verbose=verbose
+
         # check if stages 1 and 2 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
@@ -483,8 +490,9 @@ class scouse(object):
             if self.fitcount is not None:
                 if np.all(self.fitcount):
                     if not refit:
-                        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                        print('')
+                        if self.verbose:
+                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                            print('')
                         return self
 
 
@@ -570,7 +578,7 @@ class scouse(object):
             self.fitcount, \
             self.modelstore = pickle.load(fh)
 
-    def stage_3(config='', s3file=None):
+    def stage_3(config='', s3file=None, verbose=None):
         """
         Stage 3
 
@@ -600,6 +608,9 @@ class scouse(object):
             print('')
             return
 
+        if verbose is not None:
+            self.verbose=verbose
+
         # check if stages 1, 2, and 3 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
             self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
@@ -619,8 +630,9 @@ class scouse(object):
                     progress_bar = print_to_terminal(stage='s3', step='load')
                 self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/'+s3file)
                 if 's3' in self.completed_stages:
-                    print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
-                    print('')
+                    if self.verbose:
+                        print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
+                        print('')
                 return self
         else:
             if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
@@ -628,8 +640,9 @@ class scouse(object):
                     progress_bar = print_to_terminal(stage='s3', step='load')
                 self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
                 if 's3' in self.completed_stages:
-                    print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
-                    print('')
+                    if self.verbose:
+                        print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
+                        print('')
                 return self
 
         # load the cube
@@ -689,13 +702,24 @@ class scouse(object):
         if self.verbose:
             progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
+                                             
         self.completed_stages.append('s3')
 
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            if s3file is not None:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/'+s3file,self.outputdirectory+self.filename+'/stage_3/'+s3file+'.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/'+s3file, 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            else:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/s3.scousepy',self.outputdirectory+self.filename+'/stage_3/s3.scousepy.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
 
         return self
 
@@ -705,7 +729,7 @@ class scouse(object):
             self.completed_stages,\
             self.indiv_dict = pickle.load(fh)
 
-    def stage_4(config='', bitesize=False, verbose=True, nocheck=False,
+    def stage_4(config='', bitesize=False, verbose=None, nocheck=False,
                 s3file=None, s4file=None, scouseobjectalt=[]):
         """
         Stage 4
@@ -731,6 +755,9 @@ class scouse(object):
                                   "2: Create a configuration file using 'run_setup'."+colors._endc_)
             print('')
             return
+
+        if verbose is not None:
+            self.verbose=verbose
 
         # check if stages 1, 2, 3 and 4 have already been run
         if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
@@ -758,8 +785,9 @@ class scouse(object):
                     progress_bar = print_to_terminal(stage='s4', step='load')
                 self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/'+s4file)
                 if not bitesize:
-                    print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
-                    print('')
+                    if self.verbose:
+                        print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
+                        print('')
                     return self
         else:
             if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
@@ -767,8 +795,9 @@ class scouse(object):
                     progress_bar = print_to_terminal(stage='s4', step='load')
                 self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
                 if not bitesize:
-                    print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
-                    print('')
+                    if self.verbose:
+                        print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
+                        print('')
                     return self
 
         # load the cube
