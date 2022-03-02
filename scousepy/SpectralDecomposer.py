@@ -151,29 +151,35 @@ class Decomposer(object):
             #print(rounding)
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
 
+            # first get the number of parameters and components
             nparams=np.size(self.pskspectrum.specfit.fitter.parnames)
-
             ncomponents=np.size(self.guesses)/nparams
 
+            # remove any instances of negative intensity
             for i in range(int(ncomponents)):
                 component = self.guesses[int((i*nparams)):int((i*nparams)+nparams)]
                 if np.sum([1 for number in component if number < 0.0]) >= 1:
                     self.guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
 
-            #print(self.guesses)
+            # identify where amplitude is in paranames
             namelist = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
             foundname = [pname in namelist for pname in self.pskspectrum.specfit.fitter.parnames]
             foundname = np.array(foundname)
             idx=np.where(foundname==True)[0]
             idx=np.asscalar(idx[0])
 
-            # Now check all components to see if they are above the rms threshold
+            # Now get the amplitudes
             amplist=np.asarray([self.guesses[int(i*nparams)+idx] for i in range(int(ncomponents))])
-            #print(amplist)
+            # identify the lowest amplitude
             idx = np.where(amplist==np.min(amplist))[0]
-            #print(idx)
             idx=np.asscalar(idx[0])
 
+            # it is conceivable at this point that there is only one component
+            # that was negative and its params have just been set to zero
+
+            # for spectra with more than one component we want to set the component
+            # with the lowest amplitude to zero as well (this could be the same
+            # component)
             self.guesses[int((idx*nparams)):int((idx*nparams)+nparams)] = 0.0
 
             self.psktemplate=None
@@ -183,8 +189,11 @@ class Decomposer(object):
             else:
                 self.create_a_spectrum()
 
+            # now remove all zero components
             self.guesses = self.guesses[(self.guesses != 0.0)]
-            self.fit_a_spectrum()
+            # need an if statement here in case self.guesses is now empty
+            if np.size(self.guesses) != 0.0:
+                self.fit_a_spectrum()
 
         self.get_model_information()
         self.check_against_parent()
