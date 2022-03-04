@@ -333,7 +333,7 @@ class scouse(object):
         if os.path.exists(s1path):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s1', step='load')
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/'+s1file)
+            self.load_stage_1(s1path)
             if 's1' in self.completed_stages:
                 if self.verbose:
                     print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
