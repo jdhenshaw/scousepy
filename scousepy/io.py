@@ -338,7 +338,7 @@ def output_moments(cube_header, moments, dir, filename):
             #name='_mom'+str(i)
             #fits.writeto(dir+filename+name+'.fits', moments[i], header, overwrite=True)
 
-def output_ascii_saa(self, outputdir):
+def output_ascii_saa(self, path):
     """
     Outputs an ascii table containing the information for each fit.
     """
@@ -347,7 +347,7 @@ def output_ascii_saa(self, outputdir):
         saa_dict = self.saa_dict[i]
         if any(SAA.to_be_fit for SAA in saa_dict.values()):
             table = make_table(self, saa_dict, saa=True)
-            table.write(outputdir+'/saa_model_solutions_'+str(self.wsaa[i])+'_.dat', format='ascii', \
+            table.write(path+'_model_solutions_'+str(self.wsaa[i])+'.dat', format='ascii', \
                         overwrite=True, delimiter='\t')
         else:
             # I don't know how we got to this case, but I encountered it at least once.
@@ -427,9 +427,11 @@ def get_solnlist_saa(self, saa_dict):
     Returns list of SAA solutions
     """
     solnlist = []
-    for j in range(len(saa_dict.keys())):
+    #for j in range(len(saa_dict.keys())):
+    for key in saa_dict.keys():
         # get the relavent SAA
-        SAA = saa_dict[j]
+        #SAA = saa_dict[j]
+        SAA = saa_dict[key]
 
         if SAA.to_be_fit:
             soln = SAA.model

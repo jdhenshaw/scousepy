@@ -136,6 +136,61 @@ class Decomposer(object):
         else:
             self.create_a_spectrum()
         self.fit_a_spectrum()
+
+        errors=np.copy(self.pskspectrum.specfit.modelerrs)
+        errors=[np.nan if error is None else error for error in errors ]
+        errors=np.asarray([np.nan if np.invert(np.isfinite(error)) else error for error in errors  ])
+
+        if np.any(np.invert(np.isfinite(errors))):
+            #print('initial fit did not converge...modifying initial guesses')
+            guesses = np.copy(self.pskspectrum.specfit.modelpars)
+            #print(guesses_parent)
+            #print(guesses)
+            #print(errors)
+            rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 else 1.0 for guess in guesses])
+            #print(rounding)
+            self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
+
+            # first get the number of parameters and components
+            nparams=np.size(self.pskspectrum.specfit.fitter.parnames)
+            ncomponents=np.size(self.guesses)/nparams
+
+            # remove any instances of negative intensity
+            for i in range(int(ncomponents)):
+                component = self.guesses[int((i*nparams)):int((i*nparams)+nparams)]
+                if np.sum([1 for number in component if number < 0.0]) >= 1:
+                    self.guesses[int((i*nparams)):int((i*nparams)+nparams)] = 0.0
+
+
+            # for spectra with more than one component we want to set the component
+            # with the lowest amplitude to zero as well (this could be the same
+            # component)
+            if ncomponents > 1:
+                # identify where amplitude is in paranames
+                namelist = ['tex', 'amp', 'amplitude', 'peak', 'tant', 'tmb']
+                foundname = [pname in namelist for pname in self.pskspectrum.specfit.fitter.parnames]
+                foundname = np.array(foundname)
+                idx=np.where(foundname==True)[0]
+                idx=np.asscalar(idx[0])
+
+                # Now get the amplitudes
+                amplist=np.asarray([self.guesses[int(i*nparams)+idx] for i in range(int(ncomponents))])
+                # identify the lowest amplitude
+                idx = np.where(amplist==np.min(amplist))[0]
+                idx=np.asscalar(idx[0])
+
+                self.guesses[int((idx*nparams)):int((idx*nparams)+nparams)] = 0.0
+
+            self.guesses = self.guesses[(self.guesses != 0.0)]
+            if np.size(self.guesses !=0):
+                self.psktemplate=None
+                self.pskspectrum=None
+                if self.psktemplate is not None:
+                    self.update_template()
+                else:
+                    self.create_a_spectrum()
+                self.fit_a_spectrum()
+
         self.get_model_information()
         self.check_against_parent()
         if not self.validfit:

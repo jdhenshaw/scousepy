@@ -48,6 +48,7 @@ def compute_noise(scouseobject):
     rmsList = []
     stopcount = 0
     specidx = 0
+    stuck=0
     while stopcount < stop:
 
         _spectrum = scouseobject.cube[:, locations[0, specidx],
@@ -55,10 +56,15 @@ def compute_noise(scouseobject):
 
         noisy=getnoise(scouseobject.cube.spectral_axis.value, _spectrum)
         rmsVal = noisy.rms
+
         if np.isfinite(rmsVal):
             rmsList.append(rmsVal)
             stopcount+=1
             specidx+=1
+        else:
+            stuck+=1
+            if stuck==50:
+                stopcount=500.0
 
     rms = np.nanmedian(rmsList)
 
