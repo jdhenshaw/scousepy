@@ -10,6 +10,7 @@ CONTACT: henshaw@mpia.de
 
 import numpy as np
 import sys
+from astropy.stats import mad_std
 
 from .io import *
 from .parallel_map import *
@@ -62,9 +63,15 @@ def compute_noise(scouseobject):
             stopcount+=1
             specidx+=1
         else:
-            stuck+=1
-            if stuck==50:
-                stopcount=500.0
+            rmsVal = mad_std(_spectrum, ignore_nan=True)
+            if np.isfinite(rmsVal):
+                rmsList.append(rmsVal)
+                stopcount+=1
+                specidx+=1
+            else:
+                stuck+=1
+                if stuck==50:
+                    stopcount+=500.0
 
     rms = np.nanmedian(rmsList)
 
