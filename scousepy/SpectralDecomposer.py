@@ -84,7 +84,7 @@ class Decomposer(object):
         self.happy=False
         self.conditions=None
 
-    def fit_spectrum_with_guesses(self, guesses, fittype='gaussian'):
+    def fit_spectrum_with_guesses(self, guesses, fittype='gaussian', method='dspec'):
         """
         Fitting method used when using scouse as a standalone fitter. It takes
         guesses supplied by dspec and calls on pyspeckit to fit the spectrum
@@ -97,7 +97,7 @@ class Decomposer(object):
             A string describing the pyspeckit fitter
 
         """
-        self.method='dspec'
+        self.method=method
         self.fittype=fittype
         self.guesses=guesses
 

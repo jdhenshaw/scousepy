@@ -34,7 +34,7 @@ class ScouseFitter(object):
                        fitcount=None,
                        x=None,y=None,rms=None,
                        SNR=3,minSNR=1,maxSNR=30,
-                       alpha=3,minalpha=0.1,maxalpha=30,
+                       alpha=5,minalpha=0.1,maxalpha=30,
                        outputfile=None,
                        xarrkwargs={},unit='',refit=False):
 
