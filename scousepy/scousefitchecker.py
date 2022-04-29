@@ -555,8 +555,8 @@ class ScouseFitChecker(object):
 
         update_text(self.text_model_info,'')
         # update plots
-        ymin=np.min(self.specy)-0.2*np.max(self.specy)
-        ymax=np.max(self.specy)+0.2*np.max(self.specy)
+        ymin=np.nanmin(self.specy)-0.2*np.nanmax(self.specy)
+        ymax=np.nanmax(self.specy)+0.2*np.nanmax(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
         plot_spectrum(self,self.specx, self.specy,plottoupdate=self.plot_spectrum,update=True,ls='-')
         plot_spectrum(self,self.specx,self.ysmooth,update=True,plottoupdate=self.plot_smooth,ls=':')
@@ -905,6 +905,7 @@ class ScouseFitChecker(object):
 
         setattr(self.my_spectrum,'model',model,)
         setattr(self.my_spectrum,'decision',model.method,)
+
         self.models=get_model_list(self)
         update_text(self.text_model_info,'There are '+str(int(len(self.models)))+' models available for this spectrum')
         self.modelindex=0
