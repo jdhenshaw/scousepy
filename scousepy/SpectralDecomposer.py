@@ -569,7 +569,7 @@ class Decomposer(object):
             mod[:,k] = self.pskspectrum.specfit.get_model_frompars(self.pskspectrum.xarr, modparams)
         totmod = np.nansum(mod, axis=1)
         res=self.pskspectrum.data-totmod
-        ssr=np.sum((res)**2.0)
+        ssr=np.nansum((res)**2.0)
 
         return aic(ssr, (int(self.pskspectrum.specfit.npeaks)*len(self.pskspectrum.specfit.fitter.parnames)), len(self.pskspectrum.xarr))
 

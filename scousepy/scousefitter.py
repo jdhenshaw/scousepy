@@ -1028,7 +1028,7 @@ def get_aic(self):
         mod[:,k] = self.spectrum.specfit.get_model_frompars(self.spectrum.xarr, modparams)
     totmod = np.nansum(mod, axis=1)
     res=self.spectrum.data-totmod
-    ssr=np.sum((res)**2.0)
+    ssr=np.nansum((res)**2.0)
 
     return aic(ssr, (int(self.spectrum.specfit.npeaks)*len(self.spectrum.specfit.fitter.parnames)), len(self.spectrum.xarr))
     #
