@@ -174,7 +174,7 @@ class individual_spectrum(object):
         elif model.method=='dspec':
             self.model_from_dspec=model
         elif model.method=='spatial':
-            self.model_from_spatial=model
+            self.model_from_spatial=[model]
         elif model.method=='manual':
             self.model_from_manual=model
         else:

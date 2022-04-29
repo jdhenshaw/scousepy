@@ -104,7 +104,7 @@ class Decomposer(object):
         self.fit_a_spectrum()
         self.get_model_information()
 
-    def fit_spectrum_from_parent(self,guesses,guesses_parent,tol,res,fittype='gaussian'):
+    def fit_spectrum_from_parent(self,guesses,guesses_parent,tol,res,fittype='gaussian',method='parent'):
         """
         The fitting method most commonly used by scouse. This method will fit
         a spectrum and compare the result against another model. Most commonly
@@ -124,7 +124,7 @@ class Decomposer(object):
         fittype : string
             A string describing the pyspeckit fitter
         """
-        self.method='parent'
+        self.method=method
         self.fittype=fittype
         self.guesses=guesses
         self.guesses_parent=guesses_parent
