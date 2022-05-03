@@ -26,7 +26,7 @@ class ScouseFitter(object):
                        fitcount=None,
                        x=None,y=None,rms=None,
                        SNR=3,minSNR=1,maxSNR=30,
-                       alpha=3,minalpha=0.1,maxalpha=30,
+                       alpha=5,minalpha=0.1,maxalpha=30,
                        outputfile=None,
                        xarrkwargs={},unit='',refit=False):
 
@@ -1020,7 +1020,7 @@ def get_aic(self):
         mod[:,k] = self.spectrum.specfit.get_model_frompars(self.spectrum.xarr, modparams)
     totmod = np.nansum(mod, axis=1)
     res=self.spectrum.data-totmod
-    ssr=np.sum((res)**2.0)
+    ssr=np.nansum((res)**2.0)
 
     return aic(ssr, (int(self.spectrum.specfit.npeaks)*len(self.spectrum.specfit.fitter.parnames)), len(self.spectrum.xarr))
     #

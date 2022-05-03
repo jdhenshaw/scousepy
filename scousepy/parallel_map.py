@@ -26,7 +26,7 @@ except Exception as ex:
 __all__ = ('parallel_map',)
 
 
-def worker(f, ii, chunk, out_q, err_q, lock):
+def worker(f, ii, chunk, out_q, err_q, lock, verbose):
   """
   A worker function that maps an input function over a
   slice of the input iterable.
@@ -40,15 +40,24 @@ def worker(f, ii, chunk, out_q, err_q, lock):
   """
   vals = []
 
-  # iterate over slice
-  for val in tqdm(chunk):
-    try:
-      result = f(val)
-    except Exception as e:
-      err_q.put(e)
-      return
-
-    vals.append(result)
+  if verbose:
+    # iterate over slice
+    for val in tqdm(chunk):
+      try:
+        result = f(val)
+      except Exception as e:
+        err_q.put(e)
+        return
+      vals.append(result)
+  else:
+    # iterate over slice
+    for val in chunk:
+      try:
+        result = f(val)
+      except Exception as e:
+        err_q.put(e)
+        return
+      vals.append(result)
 
   # output the result and task ID to output queue
   out_q.put( (ii, vals) )
@@ -99,7 +108,7 @@ def run_tasks(procs, err_q, out_q, num):
       return list(results)
 
 
-def parallel_map(function, sequence, numcores=None):
+def parallel_map(function, sequence, numcores=None, verbose=True):
   """
   A parallelized version of the native Python map function that
   utilizes the Python multiprocessing module to divide and
@@ -152,7 +161,7 @@ def parallel_map(function, sequence, numcores=None):
   # group sequence into numcores-worth of chunks
   sequence = numpy.array_split(sequence, numcores)
 
-  procs = [multiprocessing.Process(target=worker,args=(function, ii, chunk, out_q, err_q, lock))
+  procs = [multiprocessing.Process(target=worker,args=(function, ii, chunk, out_q, err_q, lock, verbose))
          for ii, chunk in enumerate(sequence)]
 
   return run_tasks(procs, err_q, out_q, numcores)

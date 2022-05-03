@@ -366,12 +366,12 @@ def get_stat_dict(statkeys, statlist):
     for i in range(np.size(statkeys)):
         key = statkeys[i]
         stat = np.asarray(statlist[i])
-        stat_dict[key] = [np.min(stat), \
-                          np.percentile(stat, 25), \
-                          np.median(stat),\
-                          np.percentile(stat, 75),\
-                          np.max(stat),\
-                          np.mean(stat)]
+        stat_dict[key] = [np.nanmin(stat), \
+                          np.nanpercentile(stat, 25), \
+                          np.nanmedian(stat),\
+                          np.nanpercentile(stat, 75),\
+                          np.nanmax(stat),\
+                          np.nanmean(stat)]
 
     return stat_dict
 

@@ -245,6 +245,7 @@ class scouse(object):
         self.x=None
         self.xtrim=None
         self.trimids=None
+        self.chunk=False
 
         # stage 2 -- user
         self.write_ascii=None
@@ -282,7 +283,7 @@ class scouse(object):
         #
 
     @staticmethod
-    def stage_1(config='', interactive=True):
+    def stage_1(config='', interactive=True, verbose=None, nchunks=None, s1file=None):
         """
         Identify the spatial area over which the fitting will be implemented.
 
@@ -320,14 +321,23 @@ class scouse(object):
             print('')
             return
 
+        if verbose is not None:
+            self.verbose=verbose
+
         # check if stage 1 has already been run
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
+        if s1file is not None:
+            s1path = self.outputdirectory+self.filename+'/stage_1/'+s1file
+        else:
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.scousepy'
+
+        if os.path.exists(s1path):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s1', step='load')
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+            self.load_stage_1(s1path)
             if 's1' in self.completed_stages:
-                print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
-                print('')
+                if self.verbose:
+                    print(colors.fg._lightgreen_+"Coverage complete and SAAs initialised. "+colors._endc_)
+                    print('')
             return self
 
         # load the cube
@@ -394,6 +404,14 @@ class scouse(object):
             from .io import output_moments
             output_moments(self.cube.header,coverageobject.moments,momentoutputdir,self.filename)
 
+        if nchunks is not None:
+            if np.size(coverageobject.wsaa) > 1:
+                raise ValueError("chunking cannot be done for multiple saa sizes. "
+                        "Set wsaa to a single size. ")
+            else:
+                self.chunk=True
+                saa_dict_chunks=self.chunk_saas(nchunks)
+
         # Wrapping up
         plt.close('all')
         endtime = time.time()
@@ -406,15 +424,40 @@ class scouse(object):
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            with open(self.outputdirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages,
-                             self.coverage_config_file_path,
-                             self.lenspec,
-                             self.saa_dict,
-                             self.x,
-                             self.xtrim,
-                             self.trimids,
-                             self.rms_approx), fh, protocol=proto)
+            if nchunks is not None:
+                for key in saa_dict_chunks.keys():
+                    saa_dict={}
+                    saa_dict[0]=saa_dict_chunks[key]
+                    with open(self.outputdirectory+self.filename+'/stage_1/s1.'+str(key)+'.scousepy', 'wb') as fh:
+                        pickle.dump((self.completed_stages,
+                                     self.coverage_config_file_path,
+                                     self.lenspec,
+                                     saa_dict,
+                                     self.x,
+                                     self.xtrim,
+                                     self.trimids,
+                                     self.rms_approx), fh, protocol=proto)
+            else:
+                if s1file is not None:
+                    with open(self.outputdirectory+self.filename+'/stage_1/'+s1file, 'wb') as fh:
+                        pickle.dump((self.completed_stages,
+                                     self.coverage_config_file_path,
+                                     self.lenspec,
+                                     self.saa_dict,
+                                     self.x,
+                                     self.xtrim,
+                                     self.trimids,
+                                     self.rms_approx), fh, protocol=proto)
+                else:
+                    with open(self.outputdirectory+self.filename+'/stage_1/s1.scousepy', 'wb') as fh:
+                        pickle.dump((self.completed_stages,
+                                     self.coverage_config_file_path,
+                                     self.lenspec,
+                                     self.saa_dict,
+                                     self.x,
+                                     self.xtrim,
+                                     self.trimids,
+                                     self.rms_approx), fh, protocol=proto)
 
         return self
 
@@ -433,7 +476,36 @@ class scouse(object):
             self.trimids,\
             self.rms_approx=pickle.load(fh)
 
-    def stage_2(config='', refit=False):
+    def chunk_saas(self, nchunks):
+        """
+        Method for dividing saas up into chunks
+        """
+        saa_dict=self.saa_dict[0]
+        totalsaas=np.sum([1 for saakey, saa in saa_dict.items()])
+        ntobefit = np.sum([1 if saa.to_be_fit else 0 for saakey, saa in saa_dict.items()])
+        nsaasperchunk = np.round(ntobefit/nchunks+0.5)
+
+        saa_dict_chunks={}
+        totalcount=0
+        for chunk in range(nchunks):
+            count=0
+            saa_dict_chunk={}
+            while count < nsaasperchunk:
+                saa_dict_chunk[saa_dict[totalcount].index]=saa_dict[totalcount]
+                if saa_dict[totalcount].to_be_fit:
+                    count+=1
+                    totalcount+=1
+                else:
+                    totalcount+=1
+                if totalcount==totalsaas:
+                    break
+            saa_dict_chunks[chunk]=saa_dict_chunk
+            if totalcount==totalsaas:
+                break
+
+        return saa_dict_chunks
+
+    def stage_2(config='', refit=False, verbose=None, s1file=None, s2file=None):
         """
         Fitting of the SAAs
 
@@ -469,24 +541,40 @@ class scouse(object):
             print('')
             return
 
-        # check if stages 1 and 2 have already been run
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+        if verbose is not None:
+            self.verbose=verbose
+
+        # check if stage 1 has already been run
+        if s1file is not None:
+            s1path = self.outputdirectory+self.filename+'/stage_1/'+s1file
+        else:
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.scousepy'
+
+        # check if stage 2 has already been run
+        if s2file is not None:
+            s2path = self.outputdirectory+self.filename+'/stage_2/'+s2file
+        else:
+            s2path = self.outputdirectory+self.filename+'/stage_2/s2.scousepy'
+
+        # check if stages 1 and 2 have already been run and load if so
+        if os.path.exists(s1path):
+            self.load_stage_1(s1path)
             #### TMP FIX
             self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
             ###
             import_from_config(self, self.coverage_config_file_path)
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
+
+        if os.path.exists(s2path):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s2', step='load')
-            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+            self.load_stage_2(s2path)
             if self.fitcount is not None:
                 if np.all(self.fitcount):
                     if not refit:
-                        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                        print('')
+                        if self.verbose:
+                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                            print('')
                         return self
-
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -501,6 +589,8 @@ class scouse(object):
         # generate a list of all SAAs (inc. all wsaas)
         saa_list = generate_saa_list(self)
         saa_list = np.asarray(saa_list)
+        if np.shape(saa_list)[0]!=self.totalsaas:
+            self.totalsaas=np.shape(saa_list)[0]
 
         # Record which spectra have been fit - first check to see if this has
         # already been created
@@ -548,17 +638,23 @@ class scouse(object):
         if np.all(self.fitcount):
             if self.write_ascii:
                 from .io import output_ascii_saa
-                output_ascii_saa(self, os.path.join(self.outputdirectory,self.filename,'stage_2/'))
+                output_ascii_saa(self, s2path)
             self.completed_stages.append('s2')
 
-        # Save the scouse object automatically
         if self.autosave:
             import pickle
-            with open(self.outputdirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages,
-                            self.saa_dict,
-                            self.fitcount,
-                            self.modelstore), fh, protocol=proto)
+            if s2file is not None:
+                with open(self.outputdirectory+self.filename+'/stage_2/'+s2file, 'wb') as fh:
+                    pickle.dump((self.completed_stages,
+                                self.saa_dict,
+                                self.fitcount,
+                                self.modelstore), fh, protocol=proto)
+            else:
+                with open(self.outputdirectory+self.filename+'/stage_2/s2.scousepy', 'wb') as fh:
+                    pickle.dump((self.completed_stages,
+                                self.saa_dict,
+                                self.fitcount,
+                                self.modelstore), fh, protocol=proto)
 
         return self
 
@@ -570,7 +666,7 @@ class scouse(object):
             self.fitcount, \
             self.modelstore = pickle.load(fh)
 
-    def stage_3(config='', s3file=None):
+    def stage_3(config='', verbose=None, s1file=None, s2file=None, s3file=None):
         """
         Stage 3
 
@@ -600,37 +696,52 @@ class scouse(object):
             print('')
             return
 
-        # check if stages 1, 2, and 3 have already been run
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+        if verbose is not None:
+            self.verbose=verbose
+
+        # check if stage 1 has already been run
+        if s1file is not None:
+            s1path = self.outputdirectory+self.filename+'/stage_1/'+s1file
+        else:
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.scousepy'
+
+        # check if stage 2 has already been run
+        if s2file is not None:
+            s2path = self.outputdirectory+self.filename+'/stage_2/'+s2file
+        else:
+            s2path = self.outputdirectory+self.filename+'/stage_2/s2.scousepy'
+
+        # check if stage 3 has already been run
+        if s3file is not None:
+            s3path = self.outputdirectory+self.filename+'/stage_3/'+s3file
+        else:
+            s3path = self.outputdirectory+self.filename+'/stage_3/s3.scousepy'
+
+        # check if stages 1, 2, and 3 have already been run and load if so
+        if os.path.exists(s1path):
+            self.load_stage_1(s1path)
             #### TMP FIX
             self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
             ###
             import_from_config(self, self.coverage_config_file_path)
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
-            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+
+        if os.path.exists(s2path):
+            self.load_stage_2(s2path)
             if self.fitcount is not None:
                 if not np.all(self.fitcount):
                     print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
                     return
-        if s3file is not None:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+
+        if os.path.exists(s3path):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s3', step='load')
+            self.load_stage_3(s3path)
+            if 's3' in self.completed_stages:
                 if self.verbose:
-                    progress_bar = print_to_terminal(stage='s3', step='load')
-                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/'+s3file)
-                if 's3' in self.completed_stages:
                     print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
                     print('')
-                return self
-        else:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
-                if self.verbose:
-                    progress_bar = print_to_terminal(stage='s3', step='load')
-                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
-                if 's3' in self.completed_stages:
-                    print(colors.fg._lightgreen_+"Fitting completed. "+colors._endc_)
-                    print('')
-                return self
+            return self
+
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
@@ -689,13 +800,24 @@ class scouse(object):
         if self.verbose:
             progress_bar = print_to_terminal(stage='s3', step='end',
                                              t1=starttime, t2=endtime)
+
         self.completed_stages.append('s3')
 
         # Save the scouse object automatically
         if self.autosave:
             import pickle
-            with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
-                pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            if s3file is not None:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/'+s3file,self.outputdirectory+self.filename+'/stage_3/'+s3file+'.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/'+s3file, 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
+            else:
+                if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
+                    os.rename(self.outputdirectory+self.filename+'/stage_3/s3.scousepy',self.outputdirectory+self.filename+'/stage_3/s3.scousepy.bk')
+
+                with open(self.outputdirectory+self.filename+'/stage_3/s3.scousepy', 'wb') as fh:
+                    pickle.dump((self.completed_stages, self.indiv_dict), fh, protocol=proto)
 
         return self
 
@@ -705,8 +827,9 @@ class scouse(object):
             self.completed_stages,\
             self.indiv_dict = pickle.load(fh)
 
-    def stage_4(config='', bitesize=False, verbose=True, nocheck=False,
-                s3file=None, s4file=None, scouseobjectalt=[]):
+    def stage_4(config='', bitesize=False, verbose=None, nocheck=False,
+                s1file = None, s2file = None, s3file=None, s4file=None,
+                scouseobjectalt=[]):
         """
         Stage 4
 
@@ -732,44 +855,59 @@ class scouse(object):
             print('')
             return
 
+        if verbose is not None:
+            self.verbose=verbose
+
+        # check if stage 1 has already been run
+        if s1file is not None:
+            s1path = self.outputdirectory+self.filename+'/stage_1/'+s1file
+        else:
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.scousepy'
+
+        # check if stage 2 has already been run
+        if s2file is not None:
+            s2path = self.outputdirectory+self.filename+'/stage_2/'+s2file
+        else:
+            s2path = self.outputdirectory+self.filename+'/stage_2/s2.scousepy'
+
+        # check if stage 3 has already been run
+        if s3file is not None:
+            s3path = self.outputdirectory+self.filename+'/stage_3/'+s3file
+        else:
+            s3path = self.outputdirectory+self.filename+'/stage_3/s3.scousepy'
+
+        if s4file is not None:
+            s4path = self.outputdirectory+self.filename+'/stage_4/'+s4file
+        else:
+            s4path = self.outputdirectory+self.filename+'/stage_4/s4.scousepy'
+
+
         # check if stages 1, 2, 3 and 4 have already been run
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_1/s1.scousepy'):
-            self.load_stage_1(self.outputdirectory+self.filename+'/stage_1/s1.scousepy')
+        if os.path.exists(s1path):
+            self.load_stage_1(s1path)
             #### TMP FIX
             self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
             ###
             import_from_config(self, self.coverage_config_file_path)
-        if os.path.exists(self.outputdirectory+self.filename+'/stage_2/s2.scousepy'):
-            self.load_stage_2(self.outputdirectory+self.filename+'/stage_2/s2.scousepy')
+        if os.path.exists(s2path):
+            self.load_stage_2(s2path)
             if self.fitcount is not None:
                 if not np.all(self.fitcount):
                     print(colors.fg._lightred_+"Not all spectra have solutions. Please complete stage 2 before proceding. "+colors._endc_)
                     return
-        if s3file is not None:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/'+s3file):
-                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/'+s3file)
-        else:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_3/s3.scousepy'):
-                self.load_stage_3(self.outputdirectory+self.filename+'/stage_3/s3.scousepy')
 
-        if s4file is not None:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/'+s4file):
+        if os.path.exists(s3path):
+            self.load_stage_3(s3path)
+
+        if os.path.exists(s4path):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s4', step='load')
+            self.load_stage_4(s4path)
+            if not bitesize:
                 if self.verbose:
-                    progress_bar = print_to_terminal(stage='s4', step='load')
-                self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/'+s4file)
-                if not bitesize:
                     print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
                     print('')
-                    return self
-        else:
-            if os.path.exists(self.outputdirectory+self.filename+'/stage_4/s4.scousepy'):
-                if self.verbose:
-                    progress_bar = print_to_terminal(stage='s4', step='load')
-                self.load_stage_4(self.outputdirectory+self.filename+'/stage_4/s4.scousepy')
-                if not bitesize:
-                    print(colors.fg._lightgreen_+"Fit check already complete. Use bitesize=True to re-enter model checker. "+colors._endc_)
-                    print('')
-                    return self
+                return self
 
         # load the cube
         fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')

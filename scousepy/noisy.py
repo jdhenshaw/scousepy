@@ -93,7 +93,7 @@ class getnoise(object):
         if np.isnan(self.spectrum).any():
             mask=np.isnan(self.spectrum)
             self.mask+=mask
-            
+
         self.spectrum_masked[self.mask] = 0
 
         if remove_broad:
@@ -118,8 +118,13 @@ class getnoise(object):
 
         # determine the channels with noise
         self.noise = self.spectrum[~self.mask]
-        #  determine the noise from the remaining channels
-        self.rms = np.sqrt(np.sum(self.noise**2) / np.size(self.noise))
+
+        if np.size(self.noise)==0:
+            self.rms=np.nan
+            self.flag='All flagged'
+        else:
+            #  determine the noise from the remaining channels
+            self.rms = np.sqrt(np.sum(self.noise**2) / np.size(self.noise))
 
     def get_max_consecutive_channels(self, n_channels, p_limit):
         """

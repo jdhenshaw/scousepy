@@ -2,6 +2,7 @@
 
 import numpy as np
 import sys
+from astropy.stats import mad_std
 
 from .io import *
 from .parallel_map import *
@@ -40,6 +41,7 @@ def compute_noise(scouseobject):
     rmsList = []
     stopcount = 0
     specidx = 0
+    stuck=0
     while stopcount < stop:
 
         _spectrum = scouseobject.cube[:, locations[0, specidx],
@@ -47,10 +49,21 @@ def compute_noise(scouseobject):
 
         noisy=getnoise(scouseobject.cube.spectral_axis.value, _spectrum)
         rmsVal = noisy.rms
+
         if np.isfinite(rmsVal):
             rmsList.append(rmsVal)
             stopcount+=1
             specidx+=1
+        else:
+            rmsVal = mad_std(_spectrum, ignore_nan=True)
+            if np.isfinite(rmsVal):
+                rmsList.append(rmsVal)
+                stopcount+=1
+                specidx+=1
+            else:
+                stuck+=1
+                if stuck==50:
+                    stopcount+=500.0
 
     rms = np.nanmedian(rmsList)
 
@@ -147,7 +160,7 @@ def generate_SAAs(scouseobject, coverageobject):
         if scouseobject.njobs > 1:
             # if __name__ == 'scousepy.stage_1':
             #     print(__name__)
-                results = parallel_map(create_saa, inputlist, numcores=scouseobject.njobs)
+                results = list(parallel_map(create_saa, inputlist, numcores=scouseobject.njobs))
         else:
             if scouseobject.verbose:
                 results=[create_saa(input) for input in tqdm(inputlist)]
