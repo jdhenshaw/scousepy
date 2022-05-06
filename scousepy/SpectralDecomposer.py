@@ -135,13 +135,8 @@ class Decomposer(object):
         errors=np.asarray([np.nan if np.invert(np.isfinite(error)) else error for error in errors  ])
 
         if np.any(np.invert(np.isfinite(errors))):
-            #print('initial fit did not converge...modifying initial guesses')
             guesses = np.copy(self.pskspectrum.specfit.modelpars)
-            #print(guesses_parent)
-            #print(guesses)
-            #print(errors)
             rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 else 1.0 for guess in guesses])
-            #print(rounding)
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
 
             # first get the number of parameters and components
@@ -496,10 +491,10 @@ class Decomposer(object):
         self.pskspectrum=copy.copy(self.psktemplate)
         # update important values
         self.pskspectrum.specfit.Spectrum = self.pskspectrum
-        self.pskspectrum.data = u.Quantity(self.spectrum).value
-        self.pskspectrum.error = u.Quantity(np.ones_like(self.spectrum)*self.rms).value
-        self.pskspectrum.specfit.spectofit = u.Quantity(self.spectrum).value
-        self.pskspectrum.specfit.errspec = u.Quantity(np.ones_like(self.spectrum)*self.rms).value
+        self.pskspectrum.data = np.ma.masked_where(np.isnan(u.Quantity(self.spectrum).value) + np.isinf(u.Quantity(self.spectrum).value), u.Quantity(self.spectrum).value)
+        self.pskspectrum.error = np.ma.masked_where(np.isnan(u.Quantity(np.ones_like(self.spectrum)*self.rms).value) + np.isinf(u.Quantity(np.ones_like(self.spectrum)*self.rms).value), u.Quantity(np.ones_like(self.spectrum)*self.rms).value)
+        self.pskspectrum.specfit.spectofit = np.ma.masked_where(np.isnan(u.Quantity(self.spectrum).value) + np.isinf(u.Quantity(self.spectrum).value), u.Quantity(self.spectrum).value)
+        self.pskspectrum.specfit.errspec = np.ma.masked_where(np.isnan(u.Quantity(np.ones_like(self.spectrum)*self.rms).value) + np.isinf(u.Quantity(np.ones_like(self.spectrum)*self.rms).value), u.Quantity(np.ones_like(self.spectrum)*self.rms).value)
 
     def get_model_information(self):
         """

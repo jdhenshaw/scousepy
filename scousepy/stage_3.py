@@ -32,7 +32,6 @@ def initialise_fitting(scouseobject):
     indivspec_list=[]
     # generate a template spectrum for the fitter
     template=gen_template(scouseobject)
-
     # begin by looping through the SAA dictionaries
     for i in range(len(scouseobject.wsaa)):
         saa_dict=scouseobject.saa_dict[i]
@@ -205,13 +204,6 @@ def decomposition_method(input):
     spectrum=indivspec.spectrum[specids]
     rms=indivspec.rms
 
-    if ~np.isfinite(rms):
-        print('')
-        print('rms is nan')
-        print(indivspec)
-        print(spectrum)
-        print(indivspec.guesses_from_parent)
-
     # set up the decomposer
     decomposer=Decomposer(spectral_axis,spectrum,rms)
     setattr(decomposer,'psktemplate',indivspec.template,)
@@ -224,32 +216,6 @@ def decomposition_method(input):
 
     # always pass the parent SAA parameters for comparison
     guesses_parent=indivspec.guesses_from_parent
-    if np.any(np.isnan(guesses)):
-        print('')
-        print('a guess is nan')
-        print(indivspec)
-        print(spectrum)
-        print(rms)
-        print(guesses)
-        print(guesses_parent)
-
-    if np.any(np.isnan(guesses_parent)):
-        print('')
-        print('a guess from parent is nan')
-        print(indivspec)
-        print(spectrum)
-        print(rms)
-        print(guesses)
-        print(guesses_parent)
-
-    # bebugging
-    # print("")
-    # print("saa: ", indivspec.saaindex)
-    # print("spectrum: ", indivspec)
-    # print("rms: ", rms)
-    # print("guesses: ", guesses)
-    # print("guesses_parent: ", guesses_parent)
-    # print("")
 
     # fit the spectrum
     Decomposer.fit_spectrum_from_parent(decomposer,guesses,guesses_parent,tol,res,fittype=fittype,)

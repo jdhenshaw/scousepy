@@ -14,12 +14,15 @@ class ScouseLearn(object):
         self.saa_dict=None
         self.unit=''
         self.xarrkwargs={}
+        self.momkwargs={}
         self.max_components=None
-        self.trainingsetproperties=None
+        self.trainingsetproperties={}
         self.n_examples=None
         self.random_seed=None
 
-    def TrainingSetSAA(self, saa_dict, unit='',xarrkwargs={}):
+    def TrainingSetSAA(self, saa_dict, unit='', xarrkwargs={}, momkwargs={},
+                       max_components=1, trainingsetproperties={},
+                       n_examples=200, random_seed=100):
         """
         Creates a training set from the saa spectra
         """
@@ -27,14 +30,42 @@ class ScouseLearn(object):
         self.saa_dict=saa_dict
         self.unit=unit
         self.xarrkwargs=xarrkwargs
+        self.momkwargs=momkwargs
         self.specx=self.scouseobject.xtrim
         self.spectra=get_spectraSAA(self)
+        self.max_components=max_components
         self.trainingsetproperties=get_properties(self)
+        self.n_examples=n_examples
+        self.random_seed=random_seed
+        self.traingingsetclean = self.make_clean_training_set()
 
-    def make_training_set(self, max_components=1, trainingsetproperties={},
-                          n_examples=200, random_seed=100):
+    def make_clean_training_set(self, max_components=1, trainingsetproperties={},
+                                n_examples=200, random_seed=100, specx=None):
+
+        if self.trainingsetproperties=={}:
+            if trainingsetproperties=={}:
+                raise ValueError("You must supply some training set properties in the" +
+                                  " form of a dictionary including min, median, max" +
+                                  " of rms, amplitude, velocity, dispersion.")
+            else:
+                self.trainingsetproperties = trainingsetproperties
+        if self.max_components is None:
+            self.max_components=max_components
+        if self.n_examples is None:
+            self.n_examples=n_examples
+        if self.random_seed is None:
+            self.random_seed=random_seed
+        if self.specx is None:
+            if specx is None:
+                pass
+            else:
+                self.specx=specx
 
         
+
+
+
+        return trainingsetclean
 
 def get_spectraSAA(self):
     """
@@ -62,8 +93,9 @@ def get_properties(self):
                                   for decomposer in decomposers]
 
     pskspectra=[decomposer.pskspectrum for decomposer in decomposers]
-
-    moments=np.asarray([(pskspectrum.moments(unit=self.unit,vheight=False)[0:3])
+    if 'unit' in self.momkwargs.keys():
+        del self.momkwargs['unit']
+    moments=np.asarray([(pskspectrum.moments(unit=self.unit, **self.momkwargs )[0:3])
                          for pskspectrum in pskspectra])
 
     stat_dict={'rms':rms,

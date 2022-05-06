@@ -366,6 +366,7 @@ def get_stat_dict(statkeys, statlist):
     for i in range(np.size(statkeys)):
         key = statkeys[i]
         stat = np.asarray(statlist[i])
+        stat = np.asarray(statlist[i], dtype=np.float64)
         stat_dict[key] = [np.nanmin(stat), \
                           np.nanpercentile(stat, 25), \
                           np.nanmedian(stat),\
