@@ -718,29 +718,35 @@ class ScouseSpatial(object):
         """
         # get all the neighbours that have wmedian_ncomps number of comps
         neighbours = [neighbour for neighbour in neighbours if (neighbour.model.ncomps==wmedian_ncomps)]
-        # get the weights
-        weights_wmedian_ncomps = self.get_weights(spectrum, neighbours)
-        # get the weighted mean spectrum
-        neighbourparams=np.asarray([neighbour.model.params for neighbour in neighbours])
-        neighbourerrs=np.asarray([neighbour.model.errors for neighbour in neighbours])
-        # reshape the arrays
-        neighbourparams=np.reshape(neighbourparams, (np.shape(neighbourparams)[0], wmedian_ncomps, len(spectrum.model.parnames)))
-        neighbourerrs=np.reshape(neighbourerrs, (np.shape(neighbourerrs)[0], wmedian_ncomps, len(spectrum.model.parnames)))
+        if np.size(neighbours)!=0.0:
+            # get the weights
+            weights_wmedian_ncomps = self.get_weights(spectrum, neighbours)
+            # print(weights_wmedian_ncomps)
+            # get the weighted mean spectrum
+            neighbourparams=np.asarray([neighbour.model.params for neighbour in neighbours])
+            neighbourerrs=np.asarray([neighbour.model.errors for neighbour in neighbours])
+            # reshape the arrays
+            neighbourparams=np.reshape(neighbourparams, (np.shape(neighbourparams)[0], wmedian_ncomps, len(spectrum.model.parnames)))
+            neighbourerrs=np.reshape(neighbourerrs, (np.shape(neighbourerrs)[0], wmedian_ncomps, len(spectrum.model.parnames)))
 
-        # calculate weighted averages
-        meanneighbour_params=np.average(neighbourparams, axis=0, weights=weights_wmedian_ncomps)
-        meanneighbour_var=np.average((neighbourparams-meanneighbour_params)**2, axis=0, weights=weights_wmedian_ncomps)
-        meanneighbour_stddev=np.sqrt(meanneighbour_var)
+            # print('')
+            # calculate weighted averages
+            meanneighbour_params=np.average(neighbourparams, axis=0, weights=weights_wmedian_ncomps)
+            meanneighbour_var=np.average((neighbourparams-meanneighbour_params)**2, axis=0, weights=weights_wmedian_ncomps)
+            meanneighbour_stddev=np.sqrt(meanneighbour_var)
 
-        meanneighbour_params, meanneighbour_stddev = np.asarray(meanneighbour_params), np.asarray(meanneighbour_stddev)
+            meanneighbour_params, meanneighbour_stddev = np.asarray(meanneighbour_params), np.asarray(meanneighbour_stddev)
 
-        meanneighbour_params = meanneighbour_params.flatten()
-        meanneighbour_stddev = meanneighbour_stddev.flatten()
+            meanneighbour_params = meanneighbour_params.flatten()
+            meanneighbour_stddev = meanneighbour_stddev.flatten()
 
-        idx=[(param != 0.0) for param in meanneighbour_params]
+            idx=[(param != 0.0) for param in meanneighbour_params]
 
-        meanneighbour_params = meanneighbour_params[idx]
-        meanneighbour_stddev = meanneighbour_stddev[idx]
+            meanneighbour_params = meanneighbour_params[idx]
+            meanneighbour_stddev = meanneighbour_stddev[idx]
+        else:
+            meanneighbour_params = []
+            meanneighbour_stddev = []
 
         return  meanneighbour_params, meanneighbour_stddev
 

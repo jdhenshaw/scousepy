@@ -1082,6 +1082,8 @@ class scouse(object):
             self.cube = _cube
             log.setLevel(old_log)
 
+        return _cube
+
     def save_to(self, filename):
         """
         Saves an output file

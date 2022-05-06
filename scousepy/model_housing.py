@@ -1,12 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
 
-"""
-
-SCOUSE - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2016-2018 Jonathan D. Henshaw
-CONTACT: henshaw@mpia.de
-
-"""
 import numpy as np
 
 class saa(object):

@@ -1,13 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
 
-"""
-
-scouse - Semi-automated multi-COmponent Universal Spectral-line fitting Engine
-Copyright (c) 2016-2018 Jonathan D. Henshaw
-CONTACT: henshaw@mpia.de
-
-"""
-
 import numpy as np
 import sys
 from astropy.table import Table
@@ -374,6 +366,7 @@ def get_stat_dict(statkeys, statlist):
     for i in range(np.size(statkeys)):
         key = statkeys[i]
         stat = np.asarray(statlist[i])
+        stat = np.asarray(statlist[i], dtype=np.float64)
         stat_dict[key] = [np.nanmin(stat), \
                           np.nanpercentile(stat, 25), \
                           np.nanmedian(stat),\
