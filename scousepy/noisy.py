@@ -270,8 +270,10 @@ class getnoise(object):
         negative_indices = (noise_spectrum < 0.0)
         spectrum_negative_values = noise_spectrum[negative_indices]
         reflected_noise = np.concatenate((spectrum_negative_values,np.abs(spectrum_negative_values)))
-
-        return median_absolute_deviation(reflected_noise)
+        if np.size(reflected_noise)!=0:
+            return median_absolute_deviation(reflected_noise)
+        else:
+            return median_absolute_deviation(noise_spectrum)
 
     def mask_outlierpeaks(self, spectrum, n_channels, pad_channels, MADthresh, ranges):
         """

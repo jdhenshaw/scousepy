@@ -469,8 +469,8 @@ class Decomposer(object):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-            self.pskspectrum = Spectrum(data=self.spectrum,
-                                        error=np.ones_like(self.spectrum)*self.rms,
+            self.pskspectrum = Spectrum(data=np.ma.masked_where(np.isnan(u.Quantity(self.spectrum).value) + np.isinf(u.Quantity(self.spectrum).value), u.Quantity(self.spectrum).value),
+                                        error=np.ma.masked_where(np.isnan(u.Quantity(np.ones_like(self.spectrum)*self.rms).value) + np.isinf(u.Quantity(np.ones_like(self.spectrum)*self.rms).value), u.Quantity(np.ones_like(self.spectrum)*self.rms).value),
                                         xarr=self.spectral_axis,
                                         doplot=False,
                                         unit=unit,
