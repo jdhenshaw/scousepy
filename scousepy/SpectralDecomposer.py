@@ -464,6 +464,7 @@ class Decomposer(object):
             key word arguments describing the spectral axis
         """
         from pyspeckit import Spectrum
+        import astropy.units as u
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
