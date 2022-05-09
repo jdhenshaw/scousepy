@@ -171,8 +171,8 @@ class Decomposer(object):
 
             self.guesses = self.guesses[(self.guesses != 0.0)]
             if np.size(self.guesses !=0):
-                self.psktemplate=None
-                self.pskspectrum=None
+                #self.psktemplate=None
+                #self.pskspectrum=None
                 if self.psktemplate is not None:
                     self.update_template()
                 else:
