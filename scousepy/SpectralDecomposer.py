@@ -136,12 +136,18 @@ class Decomposer(object):
 
         if np.any(np.invert(np.isfinite(errors))):
             guesses = np.copy(self.pskspectrum.specfit.modelpars)
-            rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 else 1.0 for guess in guesses])
+            rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 and guess != 0.0 else 1.0 for guess in guesses])
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
 
             # first get the number of parameters and components
             nparams=np.size(self.pskspectrum.specfit.fitter.parnames)
             ncomponents=np.size(self.guesses)/nparams
+
+            # remove any instances of nans
+            for i in range(int(ncomponents)):
+                component = guesses[int((i * nparams)) : int((i * nparams) + nparams)]
+                if np.any(~np.isfinite(np.asarray(component))):
+                    guesses[int((i * nparams)) : int((i * nparams) + nparams)] = 0.0
 
             # remove any instances of negative intensity
             for i in range(int(ncomponents)):

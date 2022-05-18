@@ -581,10 +581,22 @@ class ScouseFitter(object):
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update deriv plot
-        ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
-        ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
-        lim=np.nanmax(np.abs([ymin,ymax]))
-        plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
+        if np.all(self.d1==0.0):
+            ymin=np.nan
+            ymax=np.nan
+        else:
+            ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
+            ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
+
+        if np.isfinite(ymin) and np.isfinite(ymax):
+            lim=np.nanmax(np.abs([ymin,ymax]))
+        else:
+            lim=1.0
+
+        if np.all(self.d1==0.0):
+            pass
+        else:
+            plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
 
@@ -695,10 +707,22 @@ class ScouseFitter(object):
         self.plot_peak_markers=plot_peak_locations(self,update=True,plottoupdate=self.plot_peak_markers)
         self.plot_peak_lines=plot_stems(self,update=True,color='k')
         # update deriv plot
-        ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
-        ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
-        lim=np.nanmax(np.abs([ymin,ymax]))
-        plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
+        if np.all(self.d1==0.0):
+            ymin=np.nan
+            ymax=np.nan
+        else:
+            ymin=np.nanmin([np.nanmin(self.d1/np.nanmax(self.d1)),np.nanmin(self.d2/np.nanmax(self.d2)),np.nanmin(self.d3/np.nanmax(self.d3)),np.nanmin(self.d4/np.nanmax(self.d4))])
+            ymax=np.nanmax([np.nanmax(self.d1/np.nanmax(self.d1)),np.nanmax(self.d2/np.nanmax(self.d2)),np.nanmax(self.d3/np.nanmax(self.d3)),np.nanmax(self.d4/np.nanmax(self.d4))])
+
+        if np.isfinite(ymin) and np.isfinite(ymax):
+            lim=np.nanmax(np.abs([ymin,ymax]))
+        else:
+            lim=1.0
+
+        if np.all(self.d1==0.0):
+            pass
+        else:
+            plot_derivatives(self,update=True,ymin=-1*lim,ymax=lim)
         # update information window
         update_text(self.text_snr, 'SNR: '+str(self.SNR))
         update_text(self.text_alpha, 'alpha size: '+str(self.alpha))
@@ -934,7 +958,22 @@ def compute_dsp(self):
     Computes derivative spectroscopy and sets some global values
     """
     from scousepy.dspec import DSpec
-    dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,alpha=self.alpha)
+    from scousepy.noisy import getnoise
+    noisy=getnoise(self.specx, self.specy)
+    if ~np.any(noisy.mask):
+        noisy=getnoise(self.specx, self.specy, n_mad=3)
+
+    spectrum_masked=np.copy(self.specy)
+    spectrum_masked[~noisy.mask]=0
+    spectrum_masked[spectrum_masked<0.0]=0.0
+
+    if np.any(noisy.mask):
+        dsp = DSpec(self.specx,spectrum_masked,self.specrms,SNR=self.SNR,alpha=self.alpha)
+    else:
+        print('')
+        print(colors.fg._yellow_+"Warning: No noise free channels detected, proceed with caution.  "+colors._endc_)
+        dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,alpha=self.alpha)
+
     self.ysmooth = dsp.ysmooth
     self.d1 = dsp.d1
     self.d2 = dsp.d2

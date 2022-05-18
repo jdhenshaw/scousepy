@@ -67,7 +67,7 @@ def get_components(self, positives=True):
 
     """
     # value must be greater than SNR*rms
-    condition1=np.array(self.y>(self.SNR*self.noise), dtype='int')[1:]
+    condition1=np.array(self.ysmooth>(self.SNR*self.noise), dtype='int')[1:]
     if positives:
         # second derivative must be negative
         condition2=np.array(self.d2[1:]<0, dtype='int')
@@ -109,20 +109,22 @@ def get_widths(self, positives=True):
     else:
         id = np.array(np.where(self.conditionmask_n)).ravel()
     inflection = np.abs(np.diff(np.sign(self.d2)))
-    widths = np.sqrt(np.abs(self.y/self.d2)[id])
+    widths = np.asarray([np.sqrt(np.abs(self.y[i]/self.d2[i])) if self.d2[i] != 0.0 else 0.0 for i in range(len(self.y))])[id]
     return widths/self.ncomps
 
 def get_guesses(self, positives=True):
     guesses=[]
     if positives:
         for i in range(self.ncomps):
-            guesses.append(self.peaks[i])
-            guesses.append(self.centroids[i])
-            guesses.append(self.widths[i])
+            if self.peaks[i]!=0.0:
+                guesses.append(self.peaks[i])
+                guesses.append(self.centroids[i])
+                guesses.append(self.widths[i])
     else:
         for i in range(self.ncomps_n):
-            guesses.append(self.peaks_n[i])
-            guesses.append(self.centroids_n[i])
-            guesses.append(self.widths_n[i])
+            if self.peaks_n[i]!=0.0:
+                guesses.append(self.peaks_n[i])
+                guesses.append(self.centroids_n[i])
+                guesses.append(self.widths_n[i])
 
     return guesses
