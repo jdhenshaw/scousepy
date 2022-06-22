@@ -307,16 +307,12 @@ class ScouseFitter(object):
         self.totmodkwargs={'color':'magenta','ls':'-','lw':1}
 
         # Fit the spectrum according to dspec guesses
-        if not self.scouse_stage_6 and self.dsp.ncomps != 0:
+        if self.dsp.ncomps != 0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
 
-        # if stage 6 is being run we don't want to fit we want to populate a
-        # dictionary of pre-existing models
-        if self.scouse_stage_6:
-            populate_models(self)
-
         # Add the best-fitting solution and useful parameters to a dictionary
-        self.modeldict=get_model_info(self)
+        self.modeldict=get_model_info(self, refit=refit)
+
         # Recreate the model
         self.mod,self.res,self.totmod=recreate_model(self)
         # Update the plot adding the model
@@ -1013,12 +1009,16 @@ def recreate_model(self):
 
     return mod, res, totmod
 
-def get_model_info(self):
+def get_model_info(self, refit=False):
     """
     Framework for model solution dictionary
     """
-    if self.decomposer.modeldict is not None:
+    if refit:
+        modeldict=dict((name, getattr(self.my_spectrum.model, name)) for name in dir(self.my_spectrum.model) if not name.startswith('__') and not name.startswith('set'))
+    elif self.decomposer.modeldict is not None:
         modeldict=self.decomposer.modeldict
+        modeldict['SNR']=self.SNR
+        modeldict['alpha']=self.alpha
     else:
         modeldict={}
         modeldict['fittype']=None
@@ -1042,8 +1042,8 @@ def get_model_info(self):
         modeldict['fitconverge']=False
         modeldict['method']=self.decomposer.method
 
-    modeldict['SNR']=self.SNR
-    modeldict['alpha']=self.alpha
+        modeldict['SNR']=self.SNR
+        modeldict['alpha']=self.alpha
 
     return modeldict
 

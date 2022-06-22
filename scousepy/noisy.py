@@ -19,7 +19,7 @@ class getnoise(object):
 
     """
     def __init__(self, spectral_axis, spectrum, p_limit=0.02, pad_channels=2,
-                    n_mad=5.0, remove_broad=True):
+                    n_mad=5.0, remove_broad=True, mad=False):
 
         """
         Parameters
@@ -64,6 +64,7 @@ class getnoise(object):
         self.noise=None
         self.spectrum_masked=np.copy(self.spectrum)
         self.flag=''
+        self.mad=mad
 
         # fail safe checks for dealing with troublesome spectra
         if np.isfinite(self.spectrum).any():
@@ -124,7 +125,10 @@ class getnoise(object):
             self.flag='All flagged'
         else:
             #  determine the noise from the remaining channels
-            self.rms = np.sqrt(np.sum(self.noise**2) / np.size(self.noise))
+            if not self.mad:
+                self.rms = np.sqrt(np.sum(self.noise**2) / np.size(self.noise))
+            else:
+                self.rms = median_absolute_deviation(self.noise)
 
     def get_max_consecutive_channels(self, n_channels, p_limit):
         """

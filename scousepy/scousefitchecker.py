@@ -600,9 +600,9 @@ class ScouseFitChecker(object):
         #compute new dsp
         self.dsp = compute_dsp(self)
         # update spectrum plot
-        ymax=np.max([self.SNR*self.specrms, np.max(self.specy)])+\
+        ymax=np.nanmax([self.SNR*self.specrms, np.max(self.specy)])+\
               0.2*np.max([self.SNR*self.specrms, np.max(self.specy)])
-        ymin=np.min(self.specy)-0.2*np.max(self.specy)
+        ymin=np.nanmin(self.specy)-0.2*np.max(self.specy)
         self.spectrum_window.set_ylim([ymin,ymax])
         plot_snr(self,[np.nanmin(self.specx),np.nanmax(self.specx)],[self.SNR*self.specrms, self.SNR*self.specrms],update=True,plottoupdate=self.plot_SNR)
         plot_peak_locations(self,self.centroids,self.peaks,update=True,plottoupdate=self.plot_peak_markers,markersize=5)
@@ -1176,7 +1176,7 @@ def plot_spectra(self,scouseobject, color='green'):
                 # plot from the cube rather than the fitted spectrum
                 spectrum=self.scouseobject.cube.filled_data[scouseobject.trimids,index[0],index[1]].value
                 # redefine the axis limits and plot the spectrum
-                ax.set_xlim(np.min(self.scouseobject.xtrim), np.max(self.scouseobject.xtrim))
+                ax.set_xlim(np.nanmin(self.scouseobject.xtrim), np.nanmax(self.scouseobject.xtrim))
                 ax.set_ylim(np.nanmin(spectrum), 1.05*np.nanmax(spectrum))
                 ax.plot(scouseobject.xtrim,spectrum, drawstyle='steps', color='k', lw=0.85)
 
