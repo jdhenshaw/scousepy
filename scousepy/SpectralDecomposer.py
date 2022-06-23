@@ -145,9 +145,9 @@ class Decomposer(object):
 
             # remove any instances of nans
             for i in range(int(ncomponents)):
-                component = guesses[int((i * nparams)) : int((i * nparams) + nparams)]
+                component = self.guesses[int((i * nparams)) : int((i * nparams) + nparams)]
                 if np.any(~np.isfinite(np.asarray(component))):
-                    guesses[int((i * nparams)) : int((i * nparams) + nparams)] = 0.0
+                    self.guesses[int((i * nparams)) : int((i * nparams) + nparams)] = 0.0
 
             # remove any instances of negative intensity
             for i in range(int(ncomponents)):
