@@ -1,5 +1,5 @@
 # Licensed under an MIT open source license - see LICENSE
-
+import numpy as np
 def generate_saa_list(scouseobject):
     """
     Returns a list constaining all spectral averaging areas.
@@ -12,12 +12,10 @@ def generate_saa_list(scouseobject):
     saa_list=[]
     for i in range(len(scouseobject.wsaa)):
         saa_dict = scouseobject.saa_dict[i]
-        #for j in range(len(saa_dict.keys())):
         for key in saa_dict.keys():
             # get the relavent SAA
-            #SAA = saa_dict[j]
-            SAA = saa_dict[key]
-            if SAA.to_be_fit:
-                saa_list.append([SAA.index, i])
+            saa = saa_dict[key]
+            if saa.to_be_fit:
+                saa_list.append([saa.index, i])
 
     return saa_list

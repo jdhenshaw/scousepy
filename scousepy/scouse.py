@@ -564,6 +564,15 @@ class scouse(object):
             ###
             import_from_config(self, self.coverage_config_file_path)
 
+        # generate a list of all SAAs (inc. all wsaas)
+        # NOTE: this needs to be done before S2 is loaded as it is simply an
+        # indexed list - without this the indexing can get messed up during
+        # refitting.
+        saa_list = generate_saa_list(self)
+        saa_list = np.asarray(saa_list)
+        if np.shape(saa_list)[0]!=self.totalsaas:
+            self.totalsaas=np.shape(saa_list)[0]
+
         if os.path.exists(s2path):
             if self.verbose:
                 progress_bar = print_to_terminal(stage='s2', step='load')
@@ -585,12 +594,6 @@ class scouse(object):
         #----------------------------------------------------------------------#
         if self.verbose:
             progress_bar = print_to_terminal(stage='s2', step='start')
-
-        # generate a list of all SAAs (inc. all wsaas)
-        saa_list = generate_saa_list(self)
-        saa_list = np.asarray(saa_list)
-        if np.shape(saa_list)[0]!=self.totalsaas:
-            self.totalsaas=np.shape(saa_list)[0]
 
         # Record which spectra have been fit - first check to see if this has
         # already been created
