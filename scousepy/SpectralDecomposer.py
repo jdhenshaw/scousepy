@@ -136,7 +136,18 @@ class Decomposer(object):
 
         if np.any(np.invert(np.isfinite(errors))):
             guesses = np.copy(self.pskspectrum.specfit.modelpars)
-            rounding = np.asarray([np.abs(np.floor(np.log10(np.abs(guess)))) if np.floor(np.log10(np.abs(guess)))<0.0 and guess != 0.0 else 1.0 for guess in guesses])
+
+            # adding this in a loop to ensure numpy doesn't spit an error out
+            rounding = []
+            for guess in guesses:
+                if guess !=0.0:
+                    if np.floor(np.log10(np.abs(guess)))<0.0:
+                        rounding.append(np.abs(np.floor(np.log10(np.abs(guess)))))
+                    else:
+                        rounding.append(1.0)
+                else:
+                    rounding.append(1.0)
+
             self.guesses = np.asarray([np.around(guess,decimals=int(rounding[i])) for i, guess in enumerate(guesses)])
 
             # first get the number of parameters and components
@@ -176,7 +187,12 @@ class Decomposer(object):
                 self.guesses[int((idx*nparams)):int((idx*nparams)+nparams)] = 0.0
 
             self.guesses = self.guesses[(self.guesses != 0.0)]
-            if np.size(self.guesses !=0):
+
+            # size of guesses must be !=0.0 and a multiple of nparams
+            remainder = np.size(self.guesses) % nparams
+            is_divisible = remainder == 0
+
+            if np.size(self.guesses !=0) and is_divisible:
                 #self.psktemplate=None
                 #self.pskspectrum=None
                 if self.psktemplate is not None:
