@@ -83,7 +83,7 @@ and ``spectral-cube`` (Github installation).
 **Note that for interactive fitting with pyspeckit you may need to customise your
 matplotlib configuration. Namely, if you're using ``scousepy`` on a Mac you will
 most likely need to change your backend from 'macosx' to 'Qt5Agg' (or equiv.).
-You can find some information about how to do this `here <https://matplotlib.org/users/customizing.html#customizing-matplotlib>`_**
+You can find some information about how to do this** `here <https://matplotlib.org/users/customizing.html#customizing-matplotlib>`_ 
 
 Installation
 ------------
