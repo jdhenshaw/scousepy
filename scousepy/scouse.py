@@ -28,7 +28,7 @@ from .stage_3 import *
 from .colors import *
 
 import matplotlib as mpl
-#mpl.use('qt5agg')
+mpl.use('qt5agg')
 import matplotlib.pyplot as plt
 
 # add Python 2 xrange compatibility, to be removed
