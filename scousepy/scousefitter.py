@@ -601,6 +601,17 @@ class ScouseFitter(object):
             # Fit the spectrum according to dspec guesses
             if self.dsp.ncomps != 0:
                 Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+            else:
+                # adding this fail safe: this may trigger an error message if
+                # dsp.ncomps is zero but we have actually fit the data and we are
+                # simply checking the fits. What this will do is refit the data
+                # using the stored model so that we can initiate the specfit
+                # class. Without this, the specfit class is not initiated and
+                # we cannot recreate the model. Note that this fit is overwritten
+                # in favour of the actual model in memory - this is just to
+                # initiate things.
+                Decomposer.fit_spectrum_with_guesses(self.decomposer,self.modelstore[self.index]['params'],fittype=self.fittype)
+
             # retrieve the current model
             self.modeldict=self.modelstore[self.index]
             # recreate the model
@@ -672,6 +683,8 @@ class ScouseFitter(object):
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+        else:
+            self.decomposer.modeldict=None
         # get the model
         self.modeldict=get_model_info(self)
         # recreate the model
@@ -725,6 +738,8 @@ class ScouseFitter(object):
         # if dspec returns 0 components - display a 0 component fit
         if self.dsp.ncomps!=0:
             Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+        else:
+            self.decomposer.modeldict=None
         # get the model
         self.modeldict=get_model_info(self)
         # recreate the model
