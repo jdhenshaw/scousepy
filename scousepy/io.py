@@ -443,17 +443,18 @@ def get_solnlist_indiv(self):
     for key in self.indiv_dict.keys():
         spectrum = self.indiv_dict[key]
         soln = spectrum.model
-        if soln.ncomps==0.0:
-            solution_desc = get_soln_desc(0, soln, \
-                                          spectrum.coordinates[0], \
-                                          spectrum.coordinates[1])
-            solnlist.append(solution_desc)
-        else:
-            for k in range(int(soln.ncomps)):
-                solution_desc = get_soln_desc(k, soln, \
+        if soln is not None:
+            if soln.ncomps==0.0:
+                solution_desc = get_soln_desc(0, soln, \
                                               spectrum.coordinates[0], \
                                               spectrum.coordinates[1])
                 solnlist.append(solution_desc)
+            else:
+                for k in range(int(soln.ncomps)):
+                    solution_desc = get_soln_desc(k, soln, \
+                                                  spectrum.coordinates[0], \
+                                                  spectrum.coordinates[1])
+                    solnlist.append(solution_desc)
 
     return solnlist
 
