@@ -813,7 +813,7 @@ class ScouseSpatial(object):
         foundname = [pname in namelist for pname in spectrum.model.parnames]
         foundname = np.array(foundname)
         idx=np.where(foundname==True)[0]
-        idx=np.asscalar(idx[0])
+        idx=idx[0]
 
         nparams=np.size(spectrum.model.parnames)
         ncomponents=spectrum.model.ncomps
@@ -843,7 +843,7 @@ class ScouseSpatial(object):
         foundname = [pname in namelist for pname in spectrum.model.parnames]
         foundname = np.array(foundname)
         idx=np.where(foundname==True)[0]
-        idx=np.asscalar(idx[0])
+        idx=idx[0]
 
         nparams=np.size(spectrum.model.parnames)
         ncomponents=spectrum.model.ncomps
@@ -874,7 +874,7 @@ class ScouseSpatial(object):
         foundname = [pname in namelist for pname in spectrum.model.parnames]
         foundname = np.array(foundname)
         idx=np.where(foundname==True)[0]
-        idx=np.asscalar(idx[0])
+        idx=idx[0]
 
         nparams=np.size(spectrum.model.parnames)
         ncomponents=spectrum.model.ncomps

@@ -176,13 +176,13 @@ class Decomposer(object):
                 foundname = [pname in namelist for pname in self.pskspectrum.specfit.fitter.parnames]
                 foundname = np.array(foundname)
                 idx=np.where(foundname==True)[0]
-                idx=np.asscalar(idx[0])
+                idx=idx[0]
 
                 # Now get the amplitudes
                 amplist=np.asarray([self.guesses[int(i*nparams)+idx] for i in range(int(ncomponents))])
                 # identify the lowest amplitude
                 idx = np.where(amplist==np.min(amplist))[0]
-                idx=np.asscalar(idx[0])
+                idx = idx[0]
 
                 self.guesses[int((idx*nparams)):int((idx*nparams)+nparams)] = 0.0
 
@@ -670,7 +670,7 @@ class Decomposer(object):
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idx=np.where(foundname==True)[0]
-        idx=np.asscalar(idx[0])
+        idx=idx[0]
 
         nparams=np.size(self.modeldict['parnames'])
         ncomponents=np.size(self.guesses_updated)/nparams
@@ -708,7 +708,7 @@ class Decomposer(object):
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idx=np.where(foundname==True)[0]
-        idx=np.asscalar(idx[0])
+        idx=idx[0]
 
         nparams=np.size(self.modeldict['parnames'])
         ncomponents=np.size(self.guesses_updated)/nparams
@@ -757,14 +757,14 @@ class Decomposer(object):
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idxv=np.where(foundname==True)[0]
-        idxv=np.asscalar(idxv[0])
+        idxv=idxv[0]
 
         # Find where the velocity dispersion is located in the parameter array
         namelist = ['dispersion', 'width', 'fwhm']
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idxd=np.where(foundname==True)[0]
-        idxd=np.asscalar(idxd[0])
+        idxd=idxd[0]
 
         nparams=np.size(self.modeldict['parnames'])
         ncomponents=np.size(self.guesses_updated)/nparams
@@ -806,21 +806,21 @@ class Decomposer(object):
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idxp=np.where(foundname==True)[0]
-        idxp=np.asscalar(idxp[0])
+        idxp=idxp[0]
 
         # Find where the peak is located in the parameter array
         namelist = ['velocity', 'shift', 'centroid', 'center']
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idxv=np.where(foundname==True)[0]
-        idxv=np.asscalar(idxv[0])
+        idxv=idxv[0]
 
         # Find where the velocity dispersion is located in the parameter array
         namelist = ['dispersion', 'width', 'fwhm']
         foundname = [pname in namelist for pname in self.modeldict['parnames']]
         foundname = np.array(foundname)
         idxd=np.where(foundname==True)[0]
-        idxd=np.asscalar(idxd[0])
+        idxd=idxd[0]
 
         fwhmconv = 2.*np.sqrt(2.*np.log(2.))
 
