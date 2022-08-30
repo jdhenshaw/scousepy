@@ -300,17 +300,18 @@ def get_param_stats(self, scouseobject):
 
     for key in keys:
         spectrum = scouseobject.indiv_dict[key]
-        if spectrum.model.ncomps != 0.0:
-            ncomps.append(spectrum.model.ncomps)
-            rms.append(spectrum.rms)
-            residstd.append(spectrum.model.residstd)
-            chisq.append(spectrum.model.chisq)
-            redchisq.append(spectrum.model.redchisq)
-            AIC.append(spectrum.model.AIC)
+        if spectrum.model is not None:
+            if spectrum.model.ncomps != 0.0:
+                ncomps.append(spectrum.model.ncomps)
+                rms.append(spectrum.rms)
+                residstd.append(spectrum.model.residstd)
+                chisq.append(spectrum.model.chisq)
+                redchisq.append(spectrum.model.redchisq)
+                AIC.append(spectrum.model.AIC)
 
-            for i in range(0, int(spectrum.model.ncomps)):
-                params.append(spectrum.model.params[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
-                errors.append(spectrum.model.errors[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
+                for i in range(0, int(spectrum.model.ncomps)):
+                    params.append(spectrum.model.params[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
+                    errors.append(spectrum.model.errors[(i*len(spectrum.model.parnames)):(i*len(spectrum.model.parnames))+len(spectrum.model.parnames)])
 
     commonstats = [ncomps, rms, residstd, chisq, redchisq, AIC]
     commonstatkeys = ['ncomps','rms','residstd','chisq','redchisq','AIC']
@@ -380,15 +381,15 @@ def get_residratio(self, scouseobject):
     """
     Calculates mean ratio of resid/rms
     """
-    rmslist = [scouseobject.indiv_dict[key].model.rms for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
-    residlist = [scouseobject.indiv_dict[key].model.residstd for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
+    rmslist = [scouseobject.indiv_dict[key].model.rms for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model is not None) and (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
+    residlist = [scouseobject.indiv_dict[key].model.residstd for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model is not None) and (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
     return (np.asarray(residlist)/np.asarray(rmslist)).mean(axis=0)
 
 def get_nfits(self, scouseobject):
     """
     Calculates number of non-dud fits
     """
-    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model is not None) and (scouseobject.indiv_dict[key].model.ncomps != 0.0)]
     return np.size(fits)
 
 def get_nspec(self, scouseobject):
@@ -401,14 +402,14 @@ def get_ncomps(self, scouseobject):
     """
     Calculates number of components
     """
-    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model is not None) and (scouseobject.indiv_dict[key].model.ncomps != 0.0) ]
     return np.sum(fits)
 
 def get_nmultiple(self, scouseobject):
     """
     Calculates number of components
     """
-    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model.ncomps > 1.0)  ]
+    fits = [scouseobject.indiv_dict[key].model.ncomps for key in scouseobject.indiv_dict.keys() if (scouseobject.indiv_dict[key].model is not None) and (scouseobject.indiv_dict[key].model.ncomps > 1.0)  ]
     return len(fits)
 
 def get_ncomps_saa(self, scouseobject):

@@ -341,7 +341,6 @@ def compilation_method(input):
             setattr(indivspec, 'saa_dict_index', saa_dict_index)
             setattr(indivspec, 'saaindex', saaindex)
             setattr(indivspec, 'model_from_parent', model_from_parent)
-
         else:
             # find the unique (non-nan) aic values
             uniqvals, uniqids = np.unique(aic_subarr_completed, return_index=True)

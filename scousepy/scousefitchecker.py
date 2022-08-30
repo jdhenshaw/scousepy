@@ -521,15 +521,22 @@ class ScouseFitChecker(object):
                     return
 
     def get_spectral_info(self):
-        from .model_housing import individual_spectrum
+        from .model_housing import individual_spectrum, indivmodel
+        from .stage_3 import create_a_dud
 
         if self.speckey not in self.scouseobject.indiv_dict.keys():
+            # handles when the user clicks on a spectrum that was rejected during
+            # stage 1. Create a spectrum and a dud model.
             index=np.unravel_index(self.speckey,self.scouseobject.cube.shape[1:])
             self.my_spectrum=individual_spectrum(np.array([index[1],index[0]]),self.scouseobject.cube.filled_data[:,index[0],index[1]].value,index=self.speckey,
                                 scouseobject=self.scouseobject, saa_dict_index=None,
                                 saaindex=None)
             self.scouseobject.indiv_dict[self.speckey]=self.my_spectrum
             setattr(self.my_spectrum,'model_from_parent',[None],)
+            # create and add the dud
+            modeldict = create_a_dud(self.my_spectrum)
+            bfmodel = indivmodel(modeldict)
+            setattr(self.my_spectrum, 'model', bfmodel)
         else:
             self.my_spectrum=self.scouseobject.indiv_dict[self.speckey]
 
