@@ -384,7 +384,7 @@ def get_residratio(self, scouseobject):
     rmslist=[]
     residlist=[]
     for key in scouseobject.indiv_dict.keys():
-        if scouseobject.indiv_dict[key] is not None:
+        if scouseobject.indiv_dict[key].model is not None:
             if scouseobject.indiv_dict[key].model.ncomps != 0.0:
                 rmslist.append(scouseobject.indiv_dict[key].model.rms)
                 residlist.append(scouseobject.indiv_dict[key].model.residstd)
@@ -396,7 +396,7 @@ def get_nfits(self, scouseobject):
     """
     fits=[]
     for key in scouseobject.indiv_dict.keys():
-        if scouseobject.indiv_dict[key] is not None:
+        if scouseobject.indiv_dict[key].model is not None:
             if scouseobject.indiv_dict[key].model.ncomps != 0.0:
                 fits.append(1)
     return np.size(fits)
@@ -413,7 +413,7 @@ def get_ncomps(self, scouseobject):
     """
     fits=[]
     for key in scouseobject.indiv_dict.keys():
-        if scouseobject.indiv_dict[key] is not None:
+        if scouseobject.indiv_dict[key].model is not None:
             if scouseobject.indiv_dict[key].model.ncomps != 0.0:
                 fits.append(scouseobject.indiv_dict[key].model.ncomps)
     return np.sum(fits)
@@ -424,7 +424,7 @@ def get_nmultiple(self, scouseobject):
     """
     fits=[]
     for key in scouseobject.indiv_dict.keys():
-        if scouseobject.indiv_dict[key] is not None:
+        if scouseobject.indiv_dict[key].model is not None:
             if scouseobject.indiv_dict[key].model.ncomps > 1.0:
                 fits.append(1)
     return np.size(fits)
