@@ -128,7 +128,7 @@ class ScouseFitChecker(object):
         self.vmin=np.nanmin(self.diagnostics[0])-0.05*np.nanmin(self.diagnostics[0])
         self.vmax=np.nanmax(self.diagnostics[0])+0.05*np.nanmax(self.diagnostics[0])
         # plot the diagnostics
-        self.cmap=get_cmap(self)
+        get_mycmap(self)
         self.map=plot_map(self, self.diagnostics[0])
 
         # setup spectrum plot window
@@ -384,7 +384,7 @@ class ScouseFitChecker(object):
         maptoplot=self.diagnostics[self.diagnostic]
 
         # plot the map with the new slider values
-        self.cmap=get_cmap(self)
+        get_mycmap(self)
         self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
@@ -407,7 +407,7 @@ class ScouseFitChecker(object):
         maptoplot=self.diagnostics[self.diagnostic]
 
         # plot the map with the new slider values
-        self.cmap=get_cmap(self)
+        get_mycmap(self)
         self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
@@ -430,8 +430,6 @@ class ScouseFitChecker(object):
         # update the Limits
         if self.diagnostic==3:
             self.vmin = np.nanmin(maptoplot)
-            if self.vmin==0.0:
-                self.vmin=1.0
             self.vmax = np.nanmax(maptoplot)
         else:
             self.vmin = np.nanmin(maptoplot)-0.05*np.nanmin(maptoplot)
@@ -439,7 +437,7 @@ class ScouseFitChecker(object):
         # update the sliders
         update_sliders(self)
         # plot the map
-        self.cmap=get_cmap(self)
+        get_mycmap(self)
         self.map=plot_map(self,maptoplot,update=True)
         # update plot
         self.fig.canvas.draw()
@@ -977,6 +975,7 @@ def setup_map_window(self):
         y.set_axislabel('  ')
         x.set_ticklabel(exclude_overlapping=True)
         y.set_ticklabel(rotation=90,verticalalignment='bottom', horizontalalignment='left',exclude_overlapping=True)
+        ax_image.set_facecolor('darkgrey')
     else:
         map_window = self.fig.add_axes(newaxis)
     return map_window
@@ -1059,14 +1058,18 @@ def load_maps(self):
 
     return [fits.getdata(savedir+'stage_4_'+mapname+'.fits') for mapname in self.maps]
 
-def get_cmap(self):
+def get_mycmap(self):
     import matplotlib as mpl
     import copy
     import matplotlib.pyplot as plt
     if self.diagnostic==3:
+        ncomps=int(np.nanmax(self.diagnostics[self.diagnostic])+1)
         self.cmap=copy.copy(mpl.cm.get_cmap("viridis"))
-        self.cmap.set_bad(color='lightgrey')
-        self.cmap.set_under('w')
+        cmaplist=[self.cmap(i) for i in range(self.cmap.N)]
+        cmaplist[0]=(1.0,1.0,1.0,1.0)
+        self.cmap=mpl.colors.LinearSegmentedColormap.from_list('Custom cmap', cmaplist, self.cmap.N)
+        #self.cmap.set_bad(color='lightgrey')
+        #self.cmap.set_under('w')
     else:
         self.cmap=copy.copy(mpl.cm.get_cmap("viridis"))
         self.cmap.set_bad(color='lightgrey')

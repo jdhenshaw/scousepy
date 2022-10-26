@@ -1119,13 +1119,16 @@ class scouse(object):
 # Analysis
 #==============================================================================#
     @staticmethod
-    def compute_stats(self):
+    def compute_stats(self, filepath=None):
         """
         Computes some statistics for the fitting process
         """
         from .statistics import stats
         # load the cube
-        fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        if filepath is None:
+            fitsfile = os.path.join(self.datadirectory, self.filename+'.fits')
+        else:
+            fitsfile = filepath
         self.load_cube(fitsfile=fitsfile)
 
         return stats(scouseobject=self)

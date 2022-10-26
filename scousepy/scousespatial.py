@@ -43,7 +43,7 @@ class ScouseSpatial(object):
     flag_njumps : int
         flag if number of instances where number of components in
         the reference pixel differs to that of neighbours by more than
-        flag_ncomponentjump is greater than flag_njumps (default=1)
+        flag_ncomponentjump is greater than flag_njumps (default=2)
     flag_nstddev : int
         relative difference in component properties as compared to mean neighbour
         model components (default=3)
@@ -54,8 +54,8 @@ class ScouseSpatial(object):
     """
 
     def __init__(self, scouseobject, blocksize=5,
-                 flag_sigma=2, flag_deltancomps=1, flag_ncomponentjump=2,
-                 flag_njumps=1, flag_nstddev=3, njobs=3, verbose=True):
+                 flag_sigma=2, flag_deltancomps=2, flag_ncomponentjump=2,
+                 flag_njumps=2, flag_nstddev=3, njobs=3, verbose=True):
 
         self.blocksize=blocksize
         self.xpos=None
@@ -80,6 +80,7 @@ class ScouseSpatial(object):
         self.flagmap=None
         self.outputdirectory=scouseobject.outputdirectory
         self.filename=scouseobject.filename
+        self.spectral_axis_full=scouseobject.x
         self.spectral_axis=scouseobject.xtrim
         self.trimids=scouseobject.trimids
         self.tol = None
@@ -337,7 +338,7 @@ class ScouseSpatial(object):
 
         return nfneighbours
 
-    def check_model_bank(self, spectrum, wmedian_ncomps, indiv_dict):
+    def check_model_bank(self, spectrum, fitncomps, indiv_dict):
         """
         Method used to search within scousepy's model bank to find alternative
         solutions that satisfy the flagging criteria (overrides scousepy's
@@ -354,6 +355,7 @@ class ScouseSpatial(object):
         from copy import deepcopy
         flags=[]
         ncomps=[]
+        aic=[]
 
         # first check to see if the current model is in the model bank and
         # remove
@@ -373,6 +375,8 @@ class ScouseSpatial(object):
             for i, altmodel in enumerate(alternative_models):
                 # get the number of components
                 ncomps.append(altmodel.ncomps)
+                # get the aic
+                aic.append(altmodel.AIC)
                 # create a copy of the spectrum
                 spectrum_=deepcopy(spectrum)
                 # update the selected model with the new model
@@ -387,22 +391,25 @@ class ScouseSpatial(object):
                 else:
                     flags.append(True)
 
+            # convert to arrays
+            flags=np.asarray(flags)
+            aic=np.asarray(aic)
+            alternative_models=np.asarray(alternative_models)
+            ncomps=np.asarray(ncomps)
             # if there are any cases where a suitable replacement has been found
             # we are going to pass that model back
             if np.any(flags):
                 # check to see if any of the suitable models have the same number of
-                # components as the median ncomps from the neighbours
-                id = np.where((np.asarray(ncomps)==wmedian_ncomps) & (flags==True))[0]
+                # components as the ncomps from the neighbours
+                id = np.where((ncomps==fitncomps) & (flags==True))[0]
                 if np.size(id)!=0:
                     # if that is true select the first one that satisfies the condition
-                    # (there could be more than one)
-                    model=alternative_models[id[0]]
+                    # (there could be more than one - select smallest aic)
+                    idaic = np.where((aic[id]==np.min(aic[id])))[0]
+                    model=alternative_models[id][idaic[0]]
                 else:
-                    # if that is not true then we are going to still swap the model.
-                    # loop over the possible models
-                    for i, altmodel in enumerate(alternative_models):
-                        if flags[i]:
-                            model=altmodel
+                    model=None
+
             else:
                 # if no models are found return None
                 model=None
@@ -721,15 +728,28 @@ class ScouseSpatial(object):
         if np.size(neighbours)!=0.0:
             # get the weights
             weights_wmedian_ncomps = self.get_weights(spectrum, neighbours)
-            # print(weights_wmedian_ncomps)
+
             # get the weighted mean spectrum
-            neighbourparams=np.asarray([neighbour.model.params for neighbour in neighbours])
-            neighbourerrs=np.asarray([neighbour.model.errors for neighbour in neighbours])
+            neighbourparams=[]
+            neighbourerrs=[]
+            for neighbour in neighbours:
+                # we need to sort the components by velocity to prevent averaging over components that are
+                # not similar since there is no a priori reason the components should appear in the same order
+                # in the param list.
+                neighbourcomponents=np.asarray([neighbour.model.params[k*len(neighbour.model.parnames):(k+1)*len(neighbour.model.parnames) ] for k in range(neighbour.model.ncomps)])
+                neighbourerrors=np.asarray([neighbour.model.errors[k*len(neighbour.model.parnames):(k+1)*len(neighbour.model.parnames) ] for k in range(neighbour.model.ncomps)])
+                sortidx=np.argsort([comp[1] for comp in neighbourcomponents])
+                neighbourcomponents=neighbourcomponents[sortidx]
+                neighbourerrors=neighbourerrors[sortidx]
+                neighbourcomponents=neighbourcomponents.flatten()
+                neighbourerrors=neighbourerrors.flatten()
+                neighbourparams.append(neighbourcomponents)
+                neighbourerrs.append(neighbourerrors)
+
             # reshape the arrays
             neighbourparams=np.reshape(neighbourparams, (np.shape(neighbourparams)[0], wmedian_ncomps, len(spectrum.model.parnames)))
             neighbourerrs=np.reshape(neighbourerrs, (np.shape(neighbourerrs)[0], wmedian_ncomps, len(spectrum.model.parnames)))
 
-            # print('')
             # calculate weighted averages
             meanneighbour_params=np.average(neighbourparams, axis=0, weights=weights_wmedian_ncomps)
             meanneighbour_var=np.average((neighbourparams-meanneighbour_params)**2, axis=0, weights=weights_wmedian_ncomps)
@@ -995,6 +1015,8 @@ def decomposition_method(input):
     """
     from .SpectralDecomposer import Decomposer
     from .model_housing import indivmodel
+    from .noisy import getnoise
+    from copy import deepcopy
     # unpack the inputs
     self,indiv_dict,spectrum = input
 
@@ -1006,42 +1028,73 @@ def decomposition_method(input):
     weights=self.get_weights(spectrum, neighbours)
     # get the weighted median number of ncomps
     wmedian_ncomps=self.weighted_median(neighbours_ncomps, weights)
-    # get the mean neighbour properties
+
+    # look for an alternative or get some initial guesses for further fitting
     if spectrum.model.ncomps!=0:
-        meanneighbour_params, meanneighbour_stddev = self.get_mean_neighbour(spectrum.model, [spec.model for spec in neighbours], weights)
-        model=self.check_model_bank(spectrum, wmedian_ncomps, indiv_dict)
+        ncomps=get_ncomps(self, spectrum, neighbours_ncomps)
+        if ncomps==0:
+            # then chances are that multiple fits have been attempted and no new
+            # suitable fit can be obtained, so we will simply leave this alone
+            meanneighbour_params, meanneighbour_stddev = [],[]
+            model=None
+        else:
+            # get the weighted mean neighbour
+            meanneighbour_params, meanneighbour_stddev = self.get_mean_neighbour_zerocomps(spectrum, neighbours, ncomps)
+            # if the parameter uncertainties are high we are going to refit using
+            # the new guesses
+            if np.any(self.flag_dict[spectrum.index]['flag'][3:5]) or self.flag_dict[spectrum.index]['flag'][7]:
+                model=None
+            # if that is not the case we will check the model bank for an alternative
+            else:
+                model=self.check_model_bank(spectrum, ncomps, indiv_dict)
+
+        # finally if an alternative has been found then no refitting is required
         if model is not None:
-            guesses_updated=None
+            guesses_updated=meanneighbour_params
     else:
+        # if the model is a zero-comp fit we are going to get the weighted mean
+        # neighbour using wmedian_ncomps
         meanneighbour_params, meanneighbour_stddev = self.get_mean_neighbour_zerocomps(spectrum, neighbours, wmedian_ncomps)
         model=None
 
+    # if no model could be found during the previous step we are going to refit
     if model is None:
         if len(meanneighbour_params)!=0:
             # set up the decomposer
             decomposer=Decomposer(self.spectral_axis,spectrum.spectrum[self.trimids],spectrum.rms)
             setattr(decomposer,'psktemplate',spectrum.template,)
-
             # inputs to initiate the fitter
-            if np.size(spectrum.guesses_updated)<=1:
-                guesses=meanneighbour_params
-            else:
-                guesses=spectrum.guesses_updated
-
-            # always pass the parent SAA parameters for comparison
+            guesses=meanneighbour_params
             guesses_parent=meanneighbour_params
             # fit the spectrum
             Decomposer.fit_spectrum_from_parent(decomposer,guesses,guesses_parent,self.tol,self.res,fittype=self.fittype,method='spatial')
-
-            # # generate a model
             if decomposer.validfit:
                 model=indivmodel(decomposer.modeldict)
                 guesses_updated=decomposer.guesses_updated
             else:
                 model=None
-                guesses_updated=decomposer.guesses_updated
+                guesses_updated=guesses
         else:
             model=None
             guesses_updated=None
 
     return [model, guesses_updated]
+
+def get_ncomps(self, spectrum, neighbours_ncomps):
+    """
+    code to retrieve the number of components to be fit
+    """
+    ncomps = np.max(neighbours_ncomps)
+
+    if spectrum.guesses_updated is not None:
+        ncompsrefit=int(len(spectrum.guesses_updated)/len(spectrum.model.parnames))
+        if ncompsrefit > 1:
+            ncomps=ncompsrefit-1
+            while ncomps not in np.asarray([neighbours_ncomps]):
+                ncomps-=1
+                if ncomps==0:
+                    break
+        else:
+            ncomps=0
+
+    return ncomps

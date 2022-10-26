@@ -12,30 +12,46 @@ class stats(object):
         """
         Computes basic statistics on fitting
         """
-        self._nspec = get_nspec(self, scouseobject)
-        self._nsaa, self._nsaa_indiv = get_nsaa(self,scouseobject)
-        self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouseobject)
-        self._nfits = get_nfits(self, scouseobject)
-        self._ncomps = get_ncomps(self, scouseobject)
-        self._ncomps_saa = get_ncomps_saa(self, scouseobject)
+        self._nspec = None
+        self._nfits = None
+        self._ncomps= None
         self._ncompsperfit = None
-        self._ncompsperfit_saa = None
-        self._noriginal = get_noriginal(self, scouseobject)
-        self._nrefit = get_nrefit(self, scouseobject)
-        self._nalt = get_nalt(self, scouseobject)
-        self._nmultiple = get_nmultiple(self, scouseobject)
-        self._nmultiple_saa = get_nmultiple_saa(self, scouseobject)
+        self._noriginal = None
+        self._nrefit = None
+        self._nalt = None
+        self._nmultiple = None
         self._originalfrac = None
         self._refitfrac = None
         self._altfrac = None
-        self._saastats = get_saa_stats(self, scouseobject)
-        self._stats = get_param_stats(self, scouseobject)
+        self._stats = None
         self._meanrms = None
         self._meanresid = None
-        self._residratio = get_residratio(self, scouseobject)
+        self._residratio = None
         self._meanchisq = None
         self._meanredchisq = None
         self._meanAIC = None
+        
+        self._nspec = get_nspec(self, scouseobject)
+        self._nsaa, self._nsaa_indiv = get_nsaa(self,scouseobject)
+        self._nspecsaa, self._nspecsaa_indiv = get_nspecsaa(self, scouseobject)
+        self._ncomps_saa = get_ncomps_saa(self, scouseobject)
+        self._ncompsperfit_saa = None
+        self._nmultiple_saa = get_nmultiple_saa(self, scouseobject)
+        self._saastats = get_saa_stats(self, scouseobject)
+
+        if 's4' in scouseobject.completed_stages:
+
+            self._nfits = get_nfits(self, scouseobject)
+            self._ncomps = get_ncomps(self, scouseobject)
+            self._noriginal = get_noriginal(self, scouseobject)
+            self._nrefit = get_nrefit(self, scouseobject)
+            self._nalt = get_nalt(self, scouseobject)
+            self._nmultiple = get_nmultiple(self, scouseobject)
+            self._originalfrac = None
+            self._refitfrac = None
+            self._altfrac = None
+            self._stats = get_param_stats(self, scouseobject)
+            self._residratio = get_residratio(self, scouseobject)
 
     @property
     def stats(self):
