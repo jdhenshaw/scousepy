@@ -610,7 +610,8 @@ class ScouseFitter(object):
                 # we cannot recreate the model. Note that this fit is overwritten
                 # in favour of the actual model in memory - this is just to
                 # initiate things.
-                Decomposer.fit_spectrum_with_guesses(self.decomposer,self.modelstore[self.index]['params'],fittype=self.fittype)
+                if self.modelstore[self.index]['fitconverge']:
+                    Decomposer.fit_spectrum_with_guesses(self.decomposer,self.modelstore[self.index]['params'],fittype=self.fittype)
 
             # retrieve the current model
             self.modeldict=self.modelstore[self.index]

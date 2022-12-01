@@ -345,14 +345,16 @@ def output_ascii_saa(self, path):
             # I don't know how we got to this case, but I encountered it at least once.
             print("No fits were found for the {0}'th spectral averaging area.".format(i))
 
-def output_ascii_indiv(self, outputdir):
+def output_ascii_indiv(self, outputdir, filename = None):
     """
     Outputs an ascii table containing the information for each fit.
     """
+    if filename is None:
+        filename='best_fit_solutions.dat'
 
     saa_dict = self.saa_dict[0]
     table = make_table(self, saa_dict, indiv=True)
-    table.write(outputdir+'/best_fit_solutions.dat', format='ascii', \
+    table.write(outputdir+filename, format='ascii', \
                 overwrite=True, delimiter='\t')
     return
 

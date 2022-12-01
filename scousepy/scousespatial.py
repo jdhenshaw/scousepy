@@ -54,7 +54,7 @@ class ScouseSpatial(object):
     """
 
     def __init__(self, scouseobject, blocksize=5,
-                 flag_sigma=2, flag_deltancomps=2, flag_ncomponentjump=2,
+                 flag_sigma=1, flag_deltancomps=2, flag_ncomponentjump=2,
                  flag_njumps=2, flag_nstddev=3, njobs=3, verbose=True):
 
         self.blocksize=blocksize

@@ -626,6 +626,10 @@ class scouse(object):
                 if not modeldict['fitconverge']:
                     setattr(SAA, 'to_be_fit', False)
                 else:
+                    # if it was a zero comp fit but then we changed our minds
+                    # set it back again
+                    if not SAA.to_be_fit:
+                        setattr(SAA, 'to_be_fit', True)
                     # convert the modelstore dictionary into an saamodel object
                     model=saamodel(modeldict)
                     # add this to the SAA
@@ -1132,6 +1136,158 @@ class scouse(object):
         self.load_cube(fitsfile=fitsfile)
 
         return stats(scouseobject=self)
+
+    @staticmethod
+    def combine_chunks(config='', nchunks=None, s1file=None, s2file=None):
+        from .io import import_from_config
+        from .verbose_output import print_to_terminal
+        from .stage_2 import generate_saa_list
+
+        # Check input
+        if os.path.exists(config):
+            self=scouse(config=config)
+            stages=['stage_1']
+            for stage in stages:
+                import_from_config(self, config, config_key=stage)
+        else:
+            print('')
+            print(colors.fg._lightred_+"Please supply a valid scousepy configuration file. \n\nEither: \n"+
+                                  "1: Check the path and re-run. \n"+
+                                  "2: Create a configuration file using 'run_setup'."+colors._endc_)
+            print('')
+            return
+
+        # begin by loading the first chunks
+        s1path0 = self.outputdirectory+self.filename+'/stage_1/s1.1.scousepy'
+
+        if os.path.exists(s1path0):
+            if self.verbose:
+                progress_bar = print_to_terminal(stage='s1', step='load')
+            self.load_stage_1(s1path0)
+            #### TMP FIX
+            self.coverage_config_file_path=os.path.join(self.outputdirectory,self.filename,'config_files','coverage.config')
+            ###
+            import_from_config(self, self.coverage_config_file_path)
+        else:
+            print('')
+            print(colors.fg._lightred_+"It looks like the S1 chunks are missing. \n\n"+
+                                       "Make sure they are located in the stage_1 directory and have the naming convention s1.nchunk.scousepy."+colors._endc_)
+            print('')
+            return
+
+        saa_dicts1={}
+        saa_dicts1[0]={}
+
+        if self.verbose:
+            print(colors.fg._lightgreen_+"Combining the chunks into a single dictionary..."+colors._endc_)
+            print('')
+
+        # save a combined s1 first
+        for chunk in range(nchunks):
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.'+str(chunk)+'.scousepy'
+            s2path = self.outputdirectory+self.filename+'/stage_2/s2.'+str(chunk)+'.scousepy'
+            if os.path.exists(s1path):
+                self.load_stage_1(s1path)
+                for key, saa in self.saa_dict[0].items():
+                    saa_dicts1[0][key]=saa
+
+        self.saa_dict=saa_dicts1
+
+        import pickle
+        if s1file is not None:
+            with open(self.outputdirectory+self.filename+'/stage_1/'+s1file, 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                             self.coverage_config_file_path,
+                             self.lenspec,
+                             self.saa_dict,
+                             self.x,
+                             self.xtrim,
+                             self.trimids,
+                             self.rms_approx), fh, protocol=proto)
+        else:
+            with open(self.outputdirectory+self.filename+'/stage_1/s1.combine.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                             self.coverage_config_file_path,
+                             self.lenspec,
+                             self.saa_dict,
+                             self.x,
+                             self.xtrim,
+                             self.trimids,
+                             self.rms_approx), fh, protocol=proto)
+
+
+        # save a combined s2 next
+        saa_dicts2={}
+        saa_dicts2[0]={}
+        modelstore={}
+        for chunk in range(nchunks):
+            s1path = self.outputdirectory+self.filename+'/stage_1/s1.'+str(chunk)+'.scousepy'
+            s2path = self.outputdirectory+self.filename+'/stage_2/s2.'+str(chunk)+'.scousepy'
+            if os.path.exists(s1path):
+                self.load_stage_1(s1path)
+                if os.path.exists(s2path):
+                    self.load_stage_2(s2path)
+                    if self.fitcount is not None:
+                        if not np.all(self.fitcount):
+                            print('')
+                            print(colors.fg._lightred_+"Fitting is incomplete for chunk "+str(chunk)+". \n\n"+
+                                                       "Please complete the fitting prior to combining the chunks."+colors._endc_)
+                            print('')
+                            return
+                        else:
+                            to_be_fit_count=0
+                            for key, saa in self.saa_dict[0].items():
+
+                                saas1=saa_dicts1[0][key]
+
+                                if saa.to_be_fit:
+                                    keysms=list(modelstore.keys())
+                                    if np.size(keysms)==0:
+                                        keyms=0
+                                    else:
+                                        keyms=np.max(keysms)+1
+                                    modelstore[keyms]=self.modelstore[to_be_fit_count]
+                                    to_be_fit_count+=1
+                                elif not (saa.to_be_fit) and (saas1.to_be_fit):
+                                    keysms=list(modelstore.keys())
+                                    if np.size(keysms)==0:
+                                        keyms=0
+                                    else:
+                                        keyms=np.max(keysms)+1
+                                    modelstore[keyms]=self.modelstore[to_be_fit_count]
+
+                                    if self.modelstore[to_be_fit_count]['fitconverge']:
+                                        setattr(saa, 'to_be_fit', True)
+                                    to_be_fit_count+=1
+                                else:
+                                    pass
+
+                                saa_dicts2[0][key]=saa
+
+            else:
+                print('')
+                print(colors.fg._lightred_+"Chunk "+str(chunk)+" appears to be missing. \n\n"+
+                                           "Please make sure it is located in the stage_1 directory."+colors._endc_)
+                print('')
+
+        self.saa_dict=saa_dicts2
+        self.modelstore=modelstore
+        self.fitcount=np.ones(np.size(list(self.modelstore.keys())), dtype='bool')
+
+        if s2file is not None:
+            with open(self.outputdirectory+self.filename+'/stage_2/'+s2file, 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                            self.saa_dict,
+                            self.fitcount,
+                            self.modelstore), fh, protocol=proto)
+        else:
+            with open(self.outputdirectory+self.filename+'/stage_2/s2.combine.scousepy', 'wb') as fh:
+                pickle.dump((self.completed_stages,
+                            self.saa_dict,
+                            self.fitcount,
+                            self.modelstore), fh, protocol=proto)
+
+        return self
 
     def combine(scouseobjects=[]):
         """
