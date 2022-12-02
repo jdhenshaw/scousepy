@@ -125,6 +125,7 @@ def autonomous_decomposition(scouseobject, indivspec_list):
     if scouseobject.verbose:
         progress_bar = print_to_terminal(stage='s3', step='fitinit')
 
+    global scouseobjectlist
     scouseobjectlist=[scouseobject.xtrim,scouseobject.trimids,scouseobject.fittype,
                       scouseobject.tol,scouseobject.cube.header['CDELT3']]
 
@@ -132,7 +133,8 @@ def autonomous_decomposition(scouseobject, indivspec_list):
     # are successfully modelled.
 
     while np.size(np.asarray(indivspec_list) != 0.0):
-        inputlist=[scouseobjectlist+[indivspec] for indivspec in indivspec_list]
+        #inputlist=[scouseobjectlist+[indivspec] for indivspec in indivspec_list]
+        inputlist=[indivspec for indivspec in indivspec_list]
 
         # if njobs > 1 run in parallel else in series
         if scouseobject.njobs > 1:
@@ -199,8 +201,10 @@ def decomposition_method(input):
     from .SpectralDecomposer import Decomposer
     from .model_housing import indivmodel
 
+    spectral_axis,specids,fittype,tol,res, = scouseobjectlist
+
     # unpack the inputs
-    spectral_axis,specids,fittype,tol,res,indivspec = input
+    indivspec = input
     spectrum=indivspec.spectrum[specids]
     rms=indivspec.rms
 
