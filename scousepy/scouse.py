@@ -505,7 +505,8 @@ class scouse(object):
 
         return saa_dict_chunks
 
-    def stage_2(config='', refit=False, verbose=None, s1file=None, s2file=None):
+    def stage_2(config='', refit=False, verbose=None, s1file=None, s2file=None,
+                interactive=True, SNR=3, alpha=5):
         """
         Fitting of the SAAs
 
@@ -609,8 +610,11 @@ class scouse(object):
                                 fit_dict=self.saa_dict,
                                 parent=saa_list[:,1],
                                 fitcount=self.fitcount,
-                                refit=refit)
-        fitterobject.show()
+                                refit=refit,
+                                interactive=interactive,
+                                SNR=SNR, alpha=alpha, verbose=self.verbose)
+        if interactive:
+            fitterobject.show()
 
         if np.all(self.fitcount):
             # Now we want to go through and add the model solutions to the SAAs
@@ -931,7 +935,7 @@ class scouse(object):
                  progress_bar = print_to_terminal(stage='s4', step='start')
 
         # Interactive coverage generator
-        fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices, scouseobjectalt=scouseobjectalt)
+        fitcheckerobject=ScouseFitChecker(scouseobject=self, selected_spectra=self.check_spec_indices, scouseobjectalt=scouseobjectalt, verbose=self.verbose)
         if not nocheck:
             fitcheckerobject.show()
         else:

@@ -313,6 +313,9 @@ class ScouseFitChecker(object):
                     # get the flattened indices of the pixel and its neighbours
                     self.keys=get_neighbours(self)
 
+                    print('')
+                    print(self.xpos, self.ypos)
+                    print('')
                     # if the map is selected then we are going to plot
                     # some spectra
                     plot_spectra(self, self.scouseobject, color='limegreen')

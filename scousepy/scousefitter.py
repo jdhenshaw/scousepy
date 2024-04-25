@@ -28,7 +28,9 @@ class ScouseFitter(object):
                        SNR=3,minSNR=1,maxSNR=30,
                        alpha=5,minalpha=0.1,maxalpha=30,
                        outputfile=None,
-                       xarrkwargs={},unit='',refit=False):
+                       xarrkwargs={},unit='',refit=False,
+                       interactive=True,
+                       verbose=True):
 
         """
 
@@ -123,6 +125,8 @@ class ScouseFitter(object):
         self.maxalpha=maxalpha
         self.outputfile=outputfile
         self.models={}
+        self.interactive=interactive
+        self.verbose=verbose
 
         # Prepare the fitter according to method selection
         if method=='scouse':
@@ -147,9 +151,10 @@ class ScouseFitter(object):
                     # Check to see if all of the spectra have been fitted.
                     if np.all(self.fitcount):
                         if not refit:
-                            print('')
-                            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
-                            print('')
+                            if self.verbose:
+                                print('')
+                                print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+                                print('')
                             # exit if fitting has been completed
                             return
                         else:
@@ -369,6 +374,9 @@ class ScouseFitter(object):
         self.slider_alpha_ax=self.fig.add_axes([0.4875, 0.91, 0.3, 0.02])
         self.slider_alpha=make_slider(self.slider_alpha_ax,"alpha",self.minalpha,self.maxalpha,self.update_alpha,valinit=self.alpha, valfmt="%i")#, valfmt="%.2f")
 
+        if not self.interactive:
+            self.dspec_apply_to_all('')
+
     def show(self):
         """
         Show the plot
@@ -443,47 +451,77 @@ class ScouseFitter(object):
         # this feature will apply dspec settings to all spectra without
         # solutions and exit the fitter - first we want to make sure we save
         # the current solution.
-        print("Fitting all remaining spectra using derivative spectroscopy... ")
-        print('')
+        if self.verbose:
+            print("Fitting all remaining spectra using derivative spectroscopy... ")
+            print('')
 
         self.modelstore[self.index]=self.modeldict
         self.fitcount[self.index]=True
         # identify all spectra that do not currently have best-fitting solutions
         id = np.where(self.fitcount==False)[0]
         # loop through and fit
-        for i in tqdm(id):
-            # retrieve the new index
-            index=int(i)
-            # check against modelstore to see if there is a solution
-            if not index in self.modelstore.keys():
-                if self.method=='scouse':
-                    # get the relevant spectrum
-                    self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
-                else:
-                    self.index=index
-                # get the spectral information
-                get_spectral_info(self)
-                # initiate the decomposer
-                self.initiate_decomposer()
-                #compute new dspec
-                self.dsp = compute_dsp(self)
-                # Fit the spectrum according to dspec guesses
-                if self.dsp.ncomps != 0:
-                    Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
-                # Add the best-fitting solution and useful parameters to a dictionary
-                self.modeldict=get_model_info(self)
-                # add model to model store
-                self.modelstore[index]=self.modeldict
-                # update fit status
-                self.fitcount[index]=True
+
+        if self.verbose:
+            for i in tqdm(id):
+                # retrieve the new index
+                index=int(i)
+                # check against modelstore to see if there is a solution
+                if not index in self.modelstore.keys():
+                    if self.method=='scouse':
+                        # get the relevant spectrum
+                        self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
+                    else:
+                        self.index=index
+                    # get the spectral information
+                    get_spectral_info(self)
+                    # initiate the decomposer
+                    self.initiate_decomposer()
+                    #compute new dspec
+                    self.dsp = compute_dsp(self)
+                    # Fit the spectrum according to dspec guesses
+                    if self.dsp.ncomps != 0:
+                        Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+                    # Add the best-fitting solution and useful parameters to a dictionary
+                    self.modeldict=get_model_info(self)
+                    # add model to model store
+                    self.modelstore[index]=self.modeldict
+                    # update fit status
+                    self.fitcount[index]=True
+        else:
+            for i in id:
+                # retrieve the new index
+                index=int(i)
+                # check against modelstore to see if there is a solution
+                if not index in self.modelstore.keys():
+                    if self.method=='scouse':
+                        # get the relevant spectrum
+                        self.my_spectrum=retrieve_spectrum(self,self.spectra,index)
+                    else:
+                        self.index=index
+                    # get the spectral information
+                    get_spectral_info(self)
+                    # initiate the decomposer
+                    self.initiate_decomposer()
+                    #compute new dspec
+                    self.dsp = compute_dsp(self)
+                    # Fit the spectrum according to dspec guesses
+                    if self.dsp.ncomps != 0:
+                        Decomposer.fit_spectrum_with_guesses(self.decomposer,self.guesses,fittype=self.fittype)
+                    # Add the best-fitting solution and useful parameters to a dictionary
+                    self.modeldict=get_model_info(self)
+                    # add model to model store
+                    self.modelstore[index]=self.modeldict
+                    # update fit status
+                    self.fitcount[index]=True
 
         # return model dict to none
         self.modeldict=None
         # close the fitter
         self.close_window()
         # print completion statement
-        print('')
-        print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
+        if self.verbose:
+            print('')
+            print(colors.fg._lightgreen_+"All spectra have solutions. Fitting complete. "+colors._endc_)
 
         return
 
@@ -982,8 +1020,9 @@ def compute_dsp(self):
     if np.any(noisy.mask):
         dsp = DSpec(self.specx,spectrum_masked,self.specrms,SNR=self.SNR,alpha=self.alpha)
     else:
-        print('')
-        print(colors.fg._yellow_+"Warning: No noise free channels detected, proceed with caution.  "+colors._endc_)
+        if self.verbose:
+            print('')
+            print(colors.fg._yellow_+"Warning: No noise free channels detected, proceed with caution.  "+colors._endc_)
         dsp = DSpec(self.specx,self.specy,self.specrms,SNR=self.SNR,alpha=self.alpha)
 
     self.ysmooth = dsp.ysmooth

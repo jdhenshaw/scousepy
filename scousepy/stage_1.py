@@ -160,7 +160,7 @@ def generate_SAAs(scouseobject, coverageobject):
         if scouseobject.njobs > 1:
             # if __name__ == 'scousepy.stage_1':
             #     print(__name__)
-                results = list(parallel_map(create_saa, inputlist, numcores=scouseobject.njobs))
+                results = list(parallel_map(create_saa, inputlist, numcores=scouseobject.njobs, verbose=scouseobject.verbose))
         else:
             if scouseobject.verbose:
                 results=[create_saa(input) for input in tqdm(inputlist)]

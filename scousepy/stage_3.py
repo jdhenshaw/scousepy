@@ -138,7 +138,7 @@ def autonomous_decomposition(scouseobject, indivspec_list):
 
         # if njobs > 1 run in parallel else in series
         if scouseobject.njobs > 1:
-            results = parallel_map(decomposition_method, inputlist, numcores=scouseobject.njobs)
+            results = parallel_map(decomposition_method, inputlist, numcores=scouseobject.njobs, verbose=scouseobject.verbose)
         else:
             if scouseobject.verbose:
                 results=[decomposition_method(input) for input in tqdm(inputlist)]
