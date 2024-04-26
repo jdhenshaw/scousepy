@@ -121,7 +121,7 @@ def autonomous_decomposition(scouseobject, indivspec_list):
     from .verbose_output import print_to_terminal
 
     indivspec_list_completed=[]
-
+    
     if scouseobject.verbose:
         progress_bar = print_to_terminal(stage='s3', step='fitinit')
 

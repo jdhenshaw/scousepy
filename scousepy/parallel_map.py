@@ -7,13 +7,17 @@ import numpy
 import warnings
 from astropy import log
 from tqdm import tqdm
+import os
 _multi=False
 _ncpus=1
 
 try:
     # May raise ImportError
     import multiprocessing
-    multiprocessing.set_start_method('fork')
+
+    if not multiprocessing.get_start_method(allow_none=True) or multiprocessing.get_start_method() == 'spawn':
+        multiprocessing.set_start_method('fork', force=True) 
+   
     _multi=True
 
     # May raise NotImplementedError
@@ -21,7 +25,6 @@ try:
 except Exception as ex:
     pmap_exception = ex
     _multi=False
-
 
 __all__ = ('parallel_map',)
 
