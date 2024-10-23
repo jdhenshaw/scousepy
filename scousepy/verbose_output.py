@@ -97,11 +97,10 @@ def print_to_terminal(stage='', step='', length=None, var=None, t1=None, t2=None
             print(colors.fg._lightblue_+"Beginning stage_3 analysis..."+colors._endc_)
             progress_bar=[]
         if step=='init':
-            if length != None:
-                print("")
-                print('Initialising spectra...')
-                print("")
-                progress_bar = tqdm(total=length, position=0, leave=True)
+            print("")
+            print('Initialising spectra...')
+            print("")
+            progress_bar = []
         if step=='initend':
             print("")
             print('Intialisation completed in: {0} minutes'.format((t2-t1)/60.))

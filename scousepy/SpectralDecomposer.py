@@ -402,14 +402,25 @@ class Decomposer(object):
             warnings.simplefilter('ignore')
             old_log = log.level
             log.setLevel('ERROR')
-            self.pskspectrum.specfit(interactive=False,
-                                clear_all_connections=True,
-                                xmin=np.min(self.spectral_axis),
-                                xmax=np.max(self.spectral_axis),
-                                fittype = self.fittype,
-                                guesses = self.guesses,
-                                verbose=False,
-                                use_lmfit=True)
+            # HACK: this is a workaround for lmfit getting shirty 
+            try: 
+                self.pskspectrum.specfit(interactive=False,
+                                    clear_all_connections=True,
+                                    xmin=np.min(self.spectral_axis),
+                                    xmax=np.max(self.spectral_axis),
+                                    fittype = self.fittype,
+                                    guesses = self.guesses,
+                                    verbose=True,
+                                    use_lmfit=True)
+            except ValueError:
+                self.pskspectrum.specfit(interactive=False,
+                                    clear_all_connections=True,
+                                    xmin=np.min(self.spectral_axis),
+                                    xmax=np.max(self.spectral_axis),
+                                    fittype = self.fittype,
+                                    guesses = [np.around(guess, decimals=4) for guess in self.guesses],
+                                    verbose=True,
+                                    use_lmfit=True)
             log.setLevel(old_log)
 
     def fit_a_spectrum_interactively(self):

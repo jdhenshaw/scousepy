@@ -1168,6 +1168,7 @@ def compute_moments(self):
     # if a mask has already been input by the user then combine masks
     if self._mask_found:
         cubemask_user = np.repeat(self.user_mask[np.newaxis, :, :], cube.shape[0], axis=0)
+        cubemask_user = cubemask_user[:,self.ymin:self.ymax,self.xmin:self.xmax]
         cubemask=cubemask.include()*cubemask_user
         cubemask=cubemask.astype('bool')
 
