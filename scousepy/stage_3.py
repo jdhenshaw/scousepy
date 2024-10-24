@@ -113,7 +113,7 @@ def initialise_fitting(scouseobject):
                 partial_results=[process_saa(input) for input in inputlist]
        
         # Flatten the list and filter out empty items
-        indivspec_list.extend(subsublist for sublist in partial_results for subsublist in sublist if len(subsublist) != 0)
+        indivspec_list.extend(subsublist for sublist in partial_results for subsublist in sublist if (isinstance(subsublist, list) and len(subsublist) != 0) or (not isinstance(subsublist, list) and subsublist is not None))
 
     # Ensure indivspec_list is flat
     if not is_flat_list(indivspec_list):

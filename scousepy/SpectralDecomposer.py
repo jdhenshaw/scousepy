@@ -418,9 +418,9 @@ class Decomposer(object):
                                     xmin=np.min(self.spectral_axis),
                                     xmax=np.max(self.spectral_axis),
                                     fittype = self.fittype,
-                                    guesses = [np.around(guess, decimals=4) for guess in self.guesses],
+                                    guesses = self.guesses,
                                     verbose=True,
-                                    use_lmfit=True)
+                                    use_lmfit=False)
             log.setLevel(old_log)
 
     def fit_a_spectrum_interactively(self):
