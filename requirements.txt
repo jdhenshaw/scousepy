@@ -1,0 +1,9 @@
+astropy==7.0.1
+matplotlib==3.10.0
+numpy==2.2.2
+pyspeckit==1.0.4
+pytest_astropy_header==0.2.2
+scipy==1.15.1
+setuptools_scm==8.1.0
+spectral_cube==0.6.6
+tqdm==4.67.1

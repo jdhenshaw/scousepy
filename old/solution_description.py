@@ -1,18 +1,21 @@
 # Licensed under an MIT open source license - see LICENSE
 
+import warnings
+
 import numpy as np
 import pyspeckit
-import sys
-import warnings
 from astropy import log
 from astropy.stats import akaike_info_criterion as aic
-from .colors import *
+
+from .core.vis.colors import *
+
 
 class fit(object):
-    #TODO: Need to make this generic for pyspeckit's other models
+    # TODO: Need to make this generic for pyspeckit's other models
 
-    def __init__(self, spec, idx=None, scouse=None, fit_dud=False, noise=None,
-                 duddata=None):
+    def __init__(
+        self, spec, idx=None, scouse=None, fit_dud=False, noise=None, duddata=None
+    ):
         """
         Stores the best-fitting model
 
@@ -21,14 +24,16 @@ class fit(object):
         self._index = idx
 
         if fit_dud:
-            spec=None
-            #quickly and quietly generate a dud spec
+            spec = None
+            # quickly and quietly generate a dud spec
             with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
+                warnings.simplefilter("ignore")
                 old_log = log.level
-                log.setLevel('ERROR')
+                log.setLevel("ERROR")
 
-                spec = pyspeckit.Spectrum(data=[0.0,0.0], error=[0.0,0.0], xarr=[0.0,0.0])
+                spec = pyspeckit.Spectrum(
+                    data=[0.0, 0.0], error=[0.0, 0.0], xarr=[0.0, 0.0]
+                )
                 spec.specfit.fittype = scouse.fittype
                 spec.specfit.fitter = spec.specfit.Registry.multifitters[scouse.fittype]
 
@@ -37,7 +42,6 @@ class fit(object):
             fit_pars_dud(self, spec, scouse, noise, duddata)
         else:
             fit_pars(self, spec, scouse)
-
 
     @property
     def index(self):
@@ -136,7 +140,10 @@ class fit(object):
         Return a nice printable format for the object.
 
         """
-        return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(self.index, self.ncomps)
+        return "<< scousepy model_solution; index={0}; ncomps={1} >>".format(
+            self.index, self.ncomps
+        )
+
 
 def fit_pars_dud(self, spec, scouse, noise, duddata):
     """
@@ -156,6 +163,7 @@ def fit_pars_dud(self, spec, scouse, noise, duddata):
     self._aic = 0.0
     self._converge = True
 
+
 def fit_pars(self, spec, scouse):
     """
     Sets the parameters for a spectrum
@@ -169,7 +177,7 @@ def fit_pars(self, spec, scouse):
     self._residstd = np.std(spec.specfit.residuals)
     self._chi2 = spec.specfit.chi2
     self._dof = spec.specfit.dof
-    self._redchi2 = spec.specfit.chi2/spec.specfit.dof
+    self._redchi2 = spec.specfit.chi2 / spec.specfit.dof
     self._aic = get_aic(self, spec)
 
     if None in self.errors:
@@ -178,12 +186,14 @@ def fit_pars(self, spec, scouse):
     else:
         self._converge = True
 
+
 def get_aic(self, spec):
     """
     Calculates the AIC value from the spectrum
     """
     logl = spec.specfit.fitter.logp(spec.xarr, spec.data, spec.error)
-    return aic(logl, self.ncomps+(self.ncomps*3.), len(spec.xarr))
+    return aic(logl, self.ncomps + (self.ncomps * 3.0), len(spec.xarr))
+
 
 def print_fit_information(self, init_guess=False):
     """
@@ -198,25 +208,29 @@ def print_fit_information(self, init_guess=False):
     print("")
     print(("Number of components: {0}").format(self.ncomps))
     print("")
-    compcount=0
+    compcount = 0
 
     if not self.converge:
-        print(colors.fg._yellow_+"WARNING: Minimisation failed to converge. Please "
-              "\nrefit manually. "+colors._endc_)
+        print(
+            colors.fg._yellow_ + "WARNING: Minimisation failed to converge. Please "
+            "\nrefit manually. " + colors._endc_
+        )
         print("")
 
     for i in range(0, int(self.ncomps)):
-        parlow = int((i*len(self.parnames)))
-        parhigh = int((i*len(self.parnames))+len(self.parnames))
-        parrange = np.arange(parlow,parhigh)
+        parlow = int((i * len(self.parnames)))
+        parhigh = int((i * len(self.parnames)) + len(self.parnames))
+        parrange = np.arange(parlow, parhigh)
         for j in range(0, len(self.parnames)):
-            print(("{0}:  {1} +/- {2}").format(self.parnames[j], \
-                                         np.around(self.params[parrange[j]],
-                                         decimals=5), \
-                                         np.around(self.errors[parrange[j]],
-                                         decimals=5)))
+            print(
+                ("{0}:  {1} +/- {2}").format(
+                    self.parnames[j],
+                    np.around(self.params[parrange[j]], decimals=5),
+                    np.around(self.errors[parrange[j]], decimals=5),
+                )
+            )
         print("")
-        compcount+=1
+        compcount += 1
 
     print(("chisq:    {0}").format(np.around(self.chi2, decimals=2)))
     print(("redchisq: {0}").format(np.around(self.redchi2, decimals=2)))

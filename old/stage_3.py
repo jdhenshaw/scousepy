@@ -40,6 +40,19 @@ def gen_template(scouseobject):
     return decomposer.psktemplate
 
 def process_saa(inputlist):
+    """
+    Process the SAA (Spatially Associated Areas) by creating individual spectra for each pixel within the SAA.
+
+    Args:
+        inputlist (list): A list containing the following elements:
+            - scouseobject: The SCOUSE object.
+            - i (int): The index of the SAA in the SCOUSE object.
+            - j (int): The index of the SAA in the SCOUSE object.
+            - SAA (SAA object): The SAA object.
+
+    Returns:
+        list: A list of individual_spectrum objects representing the spectra within the SAA.
+    """
 
     from .model_housing import individual_spectrum
     scouseobject, i, j, SAA = inputlist
